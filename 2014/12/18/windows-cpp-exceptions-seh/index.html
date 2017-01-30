@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | Windows C++ exceptions via SEH</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="windows-c-exceptions-via-seh">Windows C++ exceptions via SEH</h1>
+
+<p>The <a href="http://msdn.microsoft.com/fr-fr/library/windows/desktop/ms680657%28v=vs.85%29.aspx">Structured Exception Handling</a> (SEH) is used in Windows 
+to manage the exceptions system. However, C++ use it to manage its own exceptions. We will make an example and study it in WinDbg to see how the exceptions are managed.</p>
+
+<h2 id="source-code">Source code</h2>
+
+<p>We will use a very simple source code to catch a divide by zero exception:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;iostream&gt;
+#include &lt;stdexcept&gt;
+</span>
+<span class="kt">int</span> <span class="nf">divEx</span><span class="p">(</span><span class="kt">int</span> <span class="n">numerator</span><span class="p">,</span> <span class="kt">int</span> <span class="n">denominator</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">denominator</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">overflow_error</span><span class="p">(</span><span class="s">"Divide by zero exception"</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">numerator</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">try</span> <span class="p">{</span>
+        <span class="n">divEx</span><span class="p">(</span><span class="mh">0x42</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span> 
+    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">overflow_error</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Error: "</span> <span class="o">&lt;&lt;</span> <span class="n">e</span><span class="p">.</span><span class="n">what</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<h2 id="exchain">!exchain</h2>
+
+<p>SEH is just a chain list that we can read with the command !exchain:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">exchain</span>
+<span class="mi">000000000018</span><span class="n">ff74</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">135</span><span class="p">(</span><span class="n">__except_handler4</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">000000000041108</span><span class="n">c</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffcc</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">_except_handler4</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">00000000776827</span><span class="n">e1</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffe4</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">FinalExceptionHandlerPad21</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">000000007762</span><span class="n">c9f3</span><span class="p">)</span></code></pre></figure>
+
+<p>When the CPU will trigger an interruption, the kernel will browse the chain list and call the functions to try to “catch” the error.
+If none function is designed to catch this error, the kernel will do the job himself (calling werfault or/and terminating the process).</p>
+
+<p>Nevertheless, it can be usefull to know how the command <code>!exchain</code> get the full chain list. And it is pretty simple: <code>fs:[0]</code> contains a pointer on the chain list!</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="kt">dd</span> <span class="n">fs</span><span class="o">:</span><span class="p">[0]</span>
+<span class="mi">0053</span><span class="o">:</span><span class="mi">00000000</span>  <span class="mi">0018</span><span class="n">ff74</span>
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">testseh</span><span class="err">!</span><span class="n">_EXCEPTION_REGISTRATION_RECORD</span> <span class="mh">0x0018ff74</span> 
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Next</span>             <span class="o">:</span> <span class="mh">0x0018ffcc</span> <span class="n">_EXCEPTION_REGISTRATION_RECORD</span>
+   <span class="o">+</span><span class="mh">0x004</span> <span class="n">Handler</span>          <span class="o">:</span> <span class="mh">0x0041108c</span>     <span class="n">_EXCEPTION_DISPOSITION</span>  <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">135</span><span class="p">(</span><span class="n">__except_handler4</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">testseh</span><span class="err">!</span><span class="n">_EXCEPTION_REGISTRATION_RECORD</span> <span class="mh">0x0018ffcc</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Next</span>             <span class="o">:</span> <span class="mh">0x0018ffe4</span> <span class="n">_EXCEPTION_REGISTRATION_RECORD</span>
+   <span class="o">+</span><span class="mh">0x004</span> <span class="n">Handler</span>          <span class="o">:</span> <span class="mh">0x776827e1</span>     <span class="n">_EXCEPTION_DISPOSITION</span>  <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">_except_handler4</span><span class="o">+</span><span class="mi">0</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">testseh</span><span class="err">!</span><span class="n">_EXCEPTION_REGISTRATION_RECORD</span> <span class="mh">0x0018ffe4</span> 
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Next</span>             <span class="o">:</span> <span class="mh">0xffffffff</span> <span class="n">_EXCEPTION_REGISTRATION_RECORD</span>
+   <span class="o">+</span><span class="mh">0x004</span> <span class="n">Handler</span>          <span class="o">:</span> <span class="mh">0x7762c9d4</span>     <span class="n">_EXCEPTION_DISPOSITION</span>  <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">FinalExceptionHandlerPad21</span><span class="o">+</span><span class="mi">0</span></code></pre></figure>
+
+<p>Oh and if you follow the last function (<code>FinalExceptionHandlerPad21</code>), you can find a very common message:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> 
+<span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">RtlUnhandledExceptionFilter2</span><span class="o">+</span><span class="mh">0x72</span><span class="o">:</span>
+<span class="mi">776</span><span class="n">ca7a9</span> <span class="mi">689</span><span class="n">ceb6377</span>      <span class="k">push</span>    <span class="n">offset</span> <span class="n">ntdll_775f0000</span><span class="err">!</span> <span class="o">??</span> <span class="o">::</span><span class="n">FNODOBFM</span><span class="o">::</span><span class="err">`</span><span class="n">string</span><span class="err">'</span> <span class="p">(</span><span class="mi">7763</span><span class="n">eb9c</span><span class="p">)</span>
+<span class="mi">776</span><span class="n">ca7ae</span> <span class="mi">53</span>              <span class="k">push</span>    <span class="n">ebx</span>
+<span class="mi">776</span><span class="n">ca7af</span> <span class="mi">6</span><span class="n">a65</span>            <span class="k">push</span>    <span class="mi">65</span><span class="n">h</span>
+<span class="mi">776</span><span class="n">ca7b1</span> <span class="mi">5</span><span class="n">e</span>              <span class="k">pop</span>     <span class="n">esi</span>
+<span class="mi">776</span><span class="n">ca7b2</span> <span class="mi">56</span>              <span class="k">push</span>    <span class="n">esi</span>
+<span class="mi">776</span><span class="n">ca7b3</span> <span class="n">e83de6f8ff</span>      <span class="k">call</span>    <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">DbgPrintEx</span> <span class="p">(</span><span class="mi">77658</span><span class="n">df5</span><span class="p">)</span>
+<span class="mi">776</span><span class="n">ca7b8</span> <span class="mi">83</span><span class="n">c418</span>          <span class="k">add</span>     <span class="n">esp</span><span class="p">,</span><span class="mi">18</span><span class="n">h</span>
+<span class="mi">776</span><span class="n">ca7bb</span> <span class="n">e9fa010000</span>      <span class="k">jmp</span>     <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">RtlUnhandledExceptionFilter2</span><span class="o">+</span><span class="mh">0x283</span> <span class="p">(</span><span class="mi">776</span><span class="n">ca9ba</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">dc</span> <span class="mi">7763</span><span class="n">eb9c</span>
+<span class="mi">7763</span><span class="n">eb9c</span>  <span class="mi">2</span><span class="n">a200a0a</span> <span class="mi">55202</span><span class="n">a2a</span> <span class="mi">6</span><span class="n">e61686e</span> <span class="mi">64656</span><span class="n">c64</span>  <span class="p">..</span> <span class="o">***</span> <span class="n">Unhandled</span>
+<span class="mi">7763</span><span class="n">ebac</span>  <span class="mi">63786520</span> <span class="mi">69747065</span> <span class="mi">30206</span><span class="n">e6f</span> <span class="mi">38302578</span>   <span class="n">exception</span> <span class="mi">0</span><span class="nf">x%08</span>
+<span class="mi">7763</span><span class="n">ebbc</span>  <span class="mi">202</span><span class="n">c786c</span> <span class="mi">20746968</span> <span class="mi">25206</span><span class="n">e69</span> <span class="mi">253</span><span class="n">a7377</span>  <span class="n">lx</span><span class="p">,</span> <span class="n">hit</span> <span class="k">in</span> <span class="err">%</span><span class="n">ws</span><span class="o">:</span><span class="err">%</span>
+<span class="mi">7763</span><span class="n">ebcc</span>  <span class="mi">000</span><span class="n">a0a73</span> <span class="mi">2</span><span class="n">a2a2a20</span> <span class="mi">746</span><span class="n">e6520</span> <span class="mi">2</span><span class="n">e207265</span>  <span class="n">s</span><span class="p">...</span> <span class="o">***</span> <span class="k">enter</span> <span class="p">.</span>
+<span class="mi">7763</span><span class="n">ebdc</span>  <span class="mi">20727865</span> <span class="mi">66207025</span> <span class="mi">7420726</span><span class="n">f</span> <span class="mi">65206568</span>  <span class="n">exr</span> <span class="err">%</span><span class="n">p</span> <span class="n">for</span> <span class="n">the</span> <span class="n">e</span>
+<span class="mi">7763</span><span class="n">ebec</span>  <span class="mi">70656378</span> <span class="mi">6</span><span class="n">e6f6974</span> <span class="mi">63657220</span> <span class="mi">0</span><span class="n">a64726f</span>  <span class="n">xception</span> <span class="n">record</span><span class="p">.</span>
+<span class="mi">7763</span><span class="n">ebfc</span>  <span class="mi">2</span><span class="n">a209000</span> <span class="mi">20202</span><span class="n">a2a</span> <span class="mi">65746</span><span class="n">e65</span> <span class="mi">632</span><span class="n">e2072</span>  <span class="p">..</span> <span class="o">***</span>  <span class="k">enter</span> <span class="p">.</span><span class="n">c</span>
+<span class="mi">7763</span><span class="n">ec0c</span>  <span class="mi">25207278</span> <span class="mi">6</span><span class="n">f662070</span> <span class="mi">68742072</span> <span class="mi">6</span><span class="n">f632065</span>  <span class="n">xr</span> <span class="err">%</span><span class="n">p</span> <span class="n">for</span> <span class="n">the</span> <span class="n">co</span></code></pre></figure>
+
+<h2 id="traditional-exception">Traditional exception</h2>
+
+<p>Ok now we will begin to study the example. First of all, it will begin to add a function in the top of the SEH:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">exchain</span>
+<span class="mi">000000000018</span><span class="n">ff74</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">135</span><span class="p">(</span><span class="n">__except_handler4</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">000000000041108</span><span class="n">c</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffcc</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">wcstombs</span><span class="o">+</span><span class="mi">87</span> <span class="p">(</span><span class="mi">00000000776827</span><span class="n">e1</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffe4</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">RtlCaptureContext</span><span class="o">+</span><span class="mi">100</span> <span class="p">(</span><span class="mi">000000007762</span><span class="n">c9f3</span><span class="p">)</span>
+
+<span class="mi">00411730</span> <span class="mi">55</span>              <span class="k">push</span>    <span class="n">ebp</span>
+<span class="mi">00411731</span> <span class="mi">8</span><span class="n">bec</span>            <span class="k">mov</span>     <span class="n">ebp</span><span class="p">,</span><span class="n">esp</span>
+<span class="mi">00411733</span> <span class="mi">6</span><span class="n">aff</span>            <span class="k">push</span>    <span class="mi">0</span><span class="n">FFFFFFFFh</span>
+<span class="mi">00411735</span> <span class="mi">6888544100</span>      <span class="k">push</span>    <span class="n">offset</span> <span class="n">testseh</span><span class="err">!</span><span class="k">std</span><span class="o">::</span><span class="n">operator</span><span class="o">&lt;&lt;&lt;</span><span class="k">std</span><span class="o">::</span><span class="n">char_traits</span><span class="o">&lt;</span><span class="n">char</span><span class="o">&gt;</span> <span class="o">&gt;+</span><span class="mh">0xf38</span> <span class="p">(</span><span class="mi">00415488</span><span class="p">)</span>
+<span class="mi">0041173</span><span class="n">a</span> <span class="mi">64</span><span class="n">a100000000</span>    <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="n">fs</span><span class="o">:</span><span class="p">[00000000h]</span>
+<span class="mi">00411740</span> <span class="mi">50</span>              <span class="k">push</span>    <span class="n">eax</span>
+<span class="mi">00411741</span> <span class="mi">64892500000000</span>  <span class="k">mov</span>     <span class="n">dword</span> <span class="n">ptr</span> <span class="n">fs</span><span class="o">:</span><span class="p">[0],</span><span class="n">esp</span>
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">exchain</span>
+<span class="mi">000000000018</span><span class="n">ff28</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="k">std</span><span class="o">::</span><span class="n">operator</span><span class="o">&lt;&lt;&lt;</span><span class="k">std</span><span class="o">::</span><span class="n">char_traits</span><span class="o">&lt;</span><span class="n">char</span><span class="o">&gt;</span> <span class="o">&gt;+</span><span class="n">f38</span> <span class="p">(</span><span class="mi">0000000000415488</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ff74</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">135</span><span class="p">(</span><span class="n">__except_handler4</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">000000000041108</span><span class="n">c</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffcc</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">wcstombs</span><span class="o">+</span><span class="mi">87</span> <span class="p">(</span><span class="mi">00000000776827</span><span class="n">e1</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffe4</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">RtlCaptureContext</span><span class="o">+</span><span class="mi">100</span> <span class="p">(</span><span class="mi">000000007762</span><span class="n">c9f3</span><span class="p">)</span></code></pre></figure>
+
+<p>After the initialization of SEH, it will call our function <code>divEx(0x42, 0)</code>:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0041176</span><span class="n">e</span> <span class="mi">6</span><span class="n">a00</span>            <span class="k">push</span>    <span class="mi">0</span>
+<span class="mi">00411770</span> <span class="mi">6</span><span class="n">a42</span>            <span class="k">push</span>    <span class="mi">42</span><span class="n">h</span>
+<span class="mi">00411772</span> <span class="n">e81dfbffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">655</span><span class="p">(</span><span class="o">?</span><span class="n">divExYAHHHZ</span><span class="p">)</span> <span class="p">(</span><span class="mi">00411294</span><span class="p">)</span></code></pre></figure>
+
+<p>The check on the denominator will be done and it will call <code>CxxThrowException</code>:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span>
+<span class="n">testseh</span><span class="err">!</span><span class="n">divEx</span><span class="o">+</span><span class="mh">0x1e</span> <span class="err">[</span><span class="n">testseh</span><span class="err">\</span><span class="n">main</span><span class="p">.</span><span class="n">cpp</span> <span class="err">@</span> <span class="mi">5</span><span class="err">]</span><span class="o">:</span>
+<span class="mi">004114</span><span class="n">fe</span> <span class="mi">837</span><span class="n">d0c00</span>        <span class="k">cmp</span>     <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">0</span><span class="n">Ch</span><span class="err">]</span><span class="p">,</span><span class="mi">0</span>              <span class="c">; if (denominator == 0)</span>
+<span class="mi">00411502</span> <span class="mi">7521</span>            <span class="k">jne</span>     <span class="n">testseh</span><span class="err">!</span><span class="n">divEx</span><span class="o">+</span><span class="mh">0x45</span> <span class="p">(</span><span class="mi">00411525</span><span class="p">)</span>
+<span class="mi">00411504</span> <span class="mi">68007</span><span class="n">b4100</span>      <span class="k">push</span>    <span class="n">offset</span> <span class="n">testseh</span><span class="err">!`</span><span class="n">string</span><span class="err">'</span> <span class="p">(</span><span class="mi">00417</span><span class="n">b00</span><span class="p">)</span> <span class="c">; "Divide by zero exception"</span>
+<span class="mi">00411509</span> <span class="mi">8</span><span class="n">d8d30ffffff</span>    <span class="k">lea</span>     <span class="n">ecx</span><span class="p">,</span><span class="err">[</span><span class="n">ebp</span><span class="o">-</span><span class="mi">0</span><span class="n">D0h</span><span class="err">]</span>
+<span class="mi">0041150</span><span class="n">f</span> <span class="n">e88ffdffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">670</span><span class="p">(</span><span class="o">??</span><span class="mi">0</span><span class="n">overflow_errorstdQAEPBDZ</span><span class="p">)</span> <span class="p">(</span><span class="mi">004112</span><span class="n">a3</span><span class="p">)</span>
+<span class="mi">00411514</span> <span class="mi">68</span><span class="n">c08d4100</span>      <span class="k">push</span>    <span class="n">offset</span> <span class="n">testseh</span><span class="err">!</span><span class="n">_TI3</span><span class="o">?</span><span class="n">AVoverflow_errorstd</span> <span class="p">(</span><span class="mi">00418</span><span class="n">dc0</span><span class="p">)</span>
+<span class="mi">00411519</span> <span class="mi">8</span><span class="n">d8530ffffff</span>    <span class="k">lea</span>     <span class="n">eax</span><span class="p">,</span><span class="err">[</span><span class="n">ebp</span><span class="o">-</span><span class="mi">0</span><span class="n">D0h</span><span class="err">]</span>
+<span class="mi">0041151</span><span class="n">f</span> <span class="mi">50</span>              <span class="k">push</span>    <span class="n">eax</span>
+<span class="mi">00411520</span> <span class="n">e874fdffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">660</span><span class="p">(</span><span class="n">__CxxThrowException</span> <span class="p">(</span><span class="mi">00411299</span><span class="p">)</span>
+<span class="mi">00411525</span> <span class="mi">8</span><span class="n">b4508</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span></code></pre></figure>
+
+<p><code>CxxThrowException</code> is referenced <a href="http://msdn.microsoft.com/en-us/library/ff795730.aspx">in the msdn</a>: “Builds the exception record and calls the runtime environment to start processing the exception”.
+All the structures are known:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="kt">void</span> <span class="kr">__stdcall</span> <span class="n">_CxxThrowException</span><span class="p">(</span>
+   <span class="kt">void</span><span class="o">*</span> <span class="n">pExceptionObject</span>   <span class="p">;</span> <span class="mo">001</span><span class="mi">8</span><span class="n">fd64</span>
+   <span class="n">_ThrowInfo</span><span class="o">*</span> <span class="n">pThrowInfo</span>   <span class="p">;</span> <span class="mo">0041</span><span class="mi">8</span><span class="n">dc0</span> 
+<span class="p">);</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="o">-</span><span class="n">r4</span> <span class="n">testseh</span><span class="err">!</span><span class="n">_s__ThrowInfo</span> <span class="mi">00418</span><span class="n">dc0</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">attributes</span>       <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x004</span> <span class="n">pmfnUnwind</span>       <span class="o">:</span> <span class="mh">0x00411244</span>     <span class="n">void</span>  <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">575</span><span class="p">(</span><span class="o">??</span><span class="mi">1</span><span class="n">overflow_errorstdUAEXZ</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x008</span> <span class="n">pForwardCompat</span>   <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x00c</span> <span class="n">pCatchableTypeArray</span> <span class="o">:</span> <span class="mh">0x00418e2c</span> <span class="n">_s__CatchableTypeArray</span>
+      <span class="o">+</span><span class="mh">0x000</span> <span class="n">nCatchableTypes</span>  <span class="o">:</span> <span class="mi">0</span><span class="n">n3</span>
+      <span class="o">+</span><span class="mh">0x004</span> <span class="n">arrayOfCatchableTypes</span> <span class="o">:</span> <span class="p">[0]</span> <span class="mh">0x00418e98</span> <span class="n">_s__CatchableType</span>
+         <span class="o">+</span><span class="mh">0x000</span> <span class="n">properties</span>       <span class="o">:</span> <span class="mi">0</span>
+         <span class="o">+</span><span class="mh">0x004</span> <span class="n">pType</span>            <span class="o">:</span> <span class="mh">0x0041a000</span> <span class="n">_TypeDescriptor</span>
+            <span class="o">+</span><span class="mh">0x000</span> <span class="n">pVFTable</span>         <span class="o">:</span> <span class="mh">0x00417840</span> <span class="n">Void</span>
+            <span class="o">+</span><span class="mh">0x004</span> <span class="n">spare</span>            <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+            <span class="o">+</span><span class="mh">0x008</span> <span class="n">name</span>             <span class="o">:</span> <span class="p">[0]</span>  <span class="s">".?AVoverflow_error@std@@"</span>
+         <span class="o">+</span><span class="mh">0x008</span> <span class="n">thisDisplacement</span> <span class="o">:</span> <span class="n">_PMD</span>
+            <span class="o">+</span><span class="mh">0x000</span> <span class="n">mdisp</span>            <span class="o">:</span> <span class="mi">0</span><span class="n">n0</span>
+            <span class="o">+</span><span class="mh">0x004</span> <span class="n">pdisp</span>            <span class="o">:</span> <span class="mi">0</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span>
+            <span class="o">+</span><span class="mh">0x008</span> <span class="n">vdisp</span>            <span class="o">:</span> <span class="mi">0</span><span class="n">n0</span>
+         <span class="o">+</span><span class="mh">0x014</span> <span class="n">sizeOrOffset</span>     <span class="o">:</span> <span class="mi">0</span><span class="n">n12</span>
+         <span class="o">+</span><span class="mh">0x018</span> <span class="n">copyFunction</span>     <span class="o">:</span> <span class="mh">0x00411271</span>           <span class="n">void</span>  <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">620</span><span class="p">(</span><span class="o">??</span><span class="mi">0</span><span class="n">overflow_errorstdQAEABV01Z</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span></code></pre></figure>
+
+<p>After that, <code>CxxThrowException</code> will call <code>NtRaiseException</code>:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">7762</span><span class="n">c7a0</span> <span class="n">e8bbf1ffff</span>      <span class="k">call</span>    <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">NtRaiseException</span> <span class="p">(</span><span class="mi">7762</span><span class="n">b960</span><span class="p">)</span>
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> <span class="n">NtRaiseException</span>
+<span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">NtRaiseException</span><span class="o">:</span>
+<span class="mi">7762</span><span class="n">b960</span> <span class="n">b846010000</span>      <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="mi">146</span><span class="n">h</span>
+<span class="mi">7762</span><span class="n">b965</span> <span class="mi">64</span><span class="n">ff15c0000000</span>  <span class="k">call</span>    <span class="n">dword</span> <span class="n">ptr</span> <span class="n">fs</span><span class="o">:</span><span class="p">[0C0h]</span>
+<span class="mi">7762</span><span class="n">b96c</span> <span class="n">c20c00</span>          <span class="k">ret</span>     <span class="mi">0</span><span class="n">Ch</span>
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> <span class="n">poi</span><span class="p">(</span><span class="n">fs</span><span class="o">:</span><span class="p">[0c0h])</span>
+<span class="n">wow64cpu</span><span class="err">!</span><span class="n">KiFastSystemCall</span><span class="o">:</span>
+<span class="mi">775211</span><span class="n">d8</span> <span class="n">eaa42152773300</span>  <span class="k">jmp</span>     <span class="mi">0033</span><span class="o">:</span><span class="mi">775221</span><span class="n">A4</span></code></pre></figure>
+
+<p><code>NtRaiseException</code> will call <code>KiRaiseException</code> but today we will not go into the kernel.
+Now the kernel will call the first function in the SEH and we will follow the flow:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">exchain</span>
+<span class="mi">000000000018</span><span class="n">ff28</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="k">std</span><span class="o">::</span><span class="n">operator</span><span class="o">&lt;&lt;&lt;</span><span class="k">std</span><span class="o">::</span><span class="n">char_traits</span><span class="o">&lt;</span><span class="n">char</span><span class="o">&gt;</span> <span class="o">&gt;+</span><span class="n">f38</span> <span class="p">(</span><span class="mi">0000000000415488</span><span class="p">)</span>
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> <span class="mi">00415488</span>
+<span class="n">testseh</span><span class="err">!</span><span class="k">std</span><span class="o">::</span><span class="n">operator</span><span class="o">&lt;&lt;&lt;</span><span class="k">std</span><span class="o">::</span><span class="n">char_traits</span><span class="o">&lt;</span><span class="n">char</span><span class="o">&gt;</span> <span class="o">&gt;+</span><span class="mh">0xf38</span><span class="o">:</span>
+<span class="mi">00415488</span> <span class="n">b810904100</span>      <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">offset</span> <span class="n">testseh</span><span class="err">!</span><span class="n">_CT</span><span class="o">??</span><span class="n">_R0</span><span class="o">?</span><span class="n">AVruntime_errorstd</span><span class="o">+</span><span class="mh">0x148</span> <span class="p">(</span><span class="mi">00419010</span><span class="p">)</span>
+<span class="mi">0041548</span><span class="n">d</span> <span class="n">e94ebdffff</span>      <span class="k">jmp</span>     <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">475</span><span class="p">(</span><span class="n">___CxxFrameHandler3</span><span class="p">)</span> <span class="p">(</span><span class="mi">004111</span><span class="n">e0</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> 
+<span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">475</span><span class="p">(</span><span class="n">___CxxFrameHandler3</span><span class="p">)</span><span class="o">:</span>
+<span class="mi">004111</span><span class="n">e0</span> <span class="n">e9ff0f0000</span>      <span class="k">jmp</span>     <span class="n">testseh</span><span class="err">!</span><span class="n">_CxxFrameHandler3</span> <span class="p">(</span><span class="mi">004121</span><span class="n">e4</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> 
+<span class="n">MSVCR100D</span><span class="err">!</span><span class="n">__CxxFrameHandler3</span><span class="o">+</span><span class="mh">0x27</span><span class="o">:</span>
+<span class="mi">584</span><span class="n">f9c07</span> <span class="n">e8d4070000</span>      <span class="k">call</span>    <span class="n">MSVCR100D</span><span class="err">!</span><span class="n">__InternalCxxFrameHandler</span> <span class="p">(</span><span class="mi">584</span><span class="n">fa3e0</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> 
+<span class="n">MSVCR100D</span><span class="err">!</span><span class="n">__FrameUnwindToState</span><span class="o">+</span><span class="mh">0x1b4</span><span class="o">:</span>
+<span class="mi">584</span><span class="n">fae64</span> <span class="n">e827060000</span>      <span class="k">call</span>    <span class="n">MSVCR100D</span><span class="err">!</span><span class="n">__BuildCatchObject</span> <span class="p">(</span><span class="mi">584</span><span class="n">fb490</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span>
+<span class="n">MSVCR100D</span><span class="err">!</span><span class="n">__FrameUnwindToState</span><span class="o">+</span><span class="mh">0x240</span><span class="o">:</span>
+<span class="mi">584</span><span class="n">faef0</span> <span class="n">e8cbebffff</span>      <span class="k">call</span>    <span class="n">MSVCR100D</span><span class="err">!</span><span class="n">_JumpToContinuation</span> <span class="p">(</span><span class="mi">584</span><span class="n">f9ac0</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span>
+<span class="n">MSVCR100D</span><span class="err">!</span><span class="n">__FrameUnwindToState</span><span class="o">+</span><span class="mh">0x312</span><span class="o">:</span>
+<span class="mi">584</span><span class="n">fafc2</span> <span class="n">e899ecffff</span>      <span class="k">call</span>    <span class="n">MSVCR100D</span><span class="err">!</span><span class="n">_CallCatchBlock2</span> <span class="p">(</span><span class="mi">584</span><span class="n">f9c60</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span>
+<span class="n">MSVCR100D</span><span class="err">!</span><span class="n">_CallCatchBlock2</span><span class="o">+</span><span class="mh">0x56</span><span class="o">:</span>
+<span class="mi">584</span><span class="n">f9cb6</span> <span class="n">e8353a0000</span>      <span class="k">call</span>    <span class="n">MSVCR100D</span><span class="err">!</span><span class="n">_CallSettingFrame</span> <span class="p">(</span><span class="mi">584</span><span class="n">fd6f0</span><span class="p">)</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">u</span> 
+<span class="n">MSVCR100D</span><span class="err">!</span><span class="n">_CallSettingFrame</span><span class="o">+</span><span class="mh">0x25</span><span class="o">:</span>
+<span class="mi">584</span><span class="n">fd715</span> <span class="n">ffd0</span>            <span class="k">call</span>    <span class="n">eax</span></code></pre></figure>
+
+<p>Surprisingly (or not), we will enter in the subprogram “catch”:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">00411782</span> <span class="mi">8</span><span class="n">d4de0</span>          <span class="k">lea</span>     <span class="n">ecx</span><span class="p">,</span><span class="err">[</span><span class="n">ebp</span><span class="o">-</span><span class="mi">20</span><span class="n">h</span><span class="err">]</span>
+<span class="mi">00411785</span> <span class="n">ff15c4b34100</span>    <span class="k">call</span>    <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">testseh</span><span class="err">!</span><span class="n">_imp_</span><span class="o">?</span><span class="n">whatexceptionstdUBEPBDXZ</span> <span class="p">(</span><span class="mi">0041</span><span class="n">b3c4</span><span class="p">)</span><span class="err">]</span> <span class="c">; std::overflow_error.what()</span>
+<span class="mi">0041178</span><span class="n">b</span> <span class="mi">3</span><span class="n">bf4</span>            <span class="k">cmp</span>     <span class="n">esi</span><span class="p">,</span><span class="n">esp</span>
+<span class="mi">0041178</span><span class="n">d</span> <span class="n">e80dfaffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">410</span><span class="p">(</span><span class="n">__RTC_CheckEsp</span><span class="p">)</span> <span class="p">(</span><span class="mi">0041119</span><span class="n">f</span><span class="p">)</span>
+<span class="mi">00411792</span> <span class="mi">50</span>              <span class="k">push</span>    <span class="n">eax</span>
+<span class="mi">00411793</span> <span class="mi">68</span><span class="n">b4784100</span>      <span class="k">push</span>    <span class="n">offset</span> <span class="n">testseh</span><span class="err">!`</span><span class="n">string</span><span class="err">'</span> <span class="p">(</span><span class="mi">004178</span><span class="n">b4</span><span class="p">)</span> <span class="c">; "Error: "</span>
+<span class="mi">00411798</span> <span class="n">a104b34100</span>      <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">testseh</span><span class="err">!</span><span class="n">_imp_</span><span class="o">?</span><span class="n">coutstd</span> <span class="p">(</span><span class="mi">0041</span><span class="n">b304</span><span class="p">)</span><span class="err">]</span>
+<span class="mi">0041179</span><span class="n">d</span> <span class="mi">50</span>              <span class="k">push</span>    <span class="n">eax</span>
+<span class="mi">0041179</span><span class="n">e</span> <span class="n">e8b6f9ffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">340</span><span class="p">(</span><span class="o">??</span><span class="err">$</span><span class="o">?</span><span class="mi">6U</span><span class="o">?</span><span class="err">$</span><span class="n">char_traitsDstdstdYAAAV</span><span class="o">?</span><span class="err">$</span><span class="n">basic_ostreamDU</span><span class="o">?</span><span class="err">$</span><span class="n">char_traitsDstd</span> <span class="p">(</span><span class="mi">00411159</span><span class="p">)</span>
+<span class="mi">004117</span><span class="n">a3</span> <span class="mi">83</span><span class="n">c408</span>          <span class="k">add</span>     <span class="n">esp</span><span class="p">,</span><span class="mi">8</span>
+<span class="mi">004117</span><span class="n">a6</span> <span class="mi">50</span>              <span class="k">push</span>    <span class="n">eax</span>
+<span class="mi">004117</span><span class="n">a7</span> <span class="n">e8adf9ffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">340</span><span class="p">(</span><span class="o">??</span><span class="err">$</span><span class="o">?</span><span class="mi">6U</span><span class="o">?</span><span class="err">$</span><span class="n">char_traitsDstdstdYAAAV</span><span class="o">?</span><span class="err">$</span><span class="n">basic_ostreamDU</span><span class="o">?</span><span class="err">$</span><span class="n">char_traitsDstd</span> <span class="p">(</span><span class="mi">00411159</span><span class="p">)</span> <span class="c">; std::cout</span>
+<span class="mi">004117</span><span class="n">ac</span> <span class="mi">83</span><span class="n">c408</span>          <span class="k">add</span>     <span class="n">esp</span><span class="p">,</span><span class="mi">8</span>
+<span class="mi">004117</span><span class="n">af</span> <span class="n">c645fc01</span>        <span class="k">mov</span>     <span class="n">byte</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">-</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span><span class="mi">1</span> 
+<span class="mi">004117</span><span class="n">b3</span> <span class="mi">8</span><span class="n">d4de0</span>          <span class="k">lea</span>     <span class="n">ecx</span><span class="p">,</span><span class="err">[</span><span class="n">ebp</span><span class="o">-</span><span class="mi">20</span><span class="n">h</span><span class="err">]</span>
+<span class="mi">004117</span><span class="n">b6</span> <span class="n">e889faffff</span>      <span class="k">call</span>    <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">575</span><span class="p">(</span><span class="o">??</span><span class="mi">1</span><span class="n">overflow_errorstdUAEXZ</span><span class="p">)</span> <span class="p">(</span><span class="mi">00411244</span><span class="p">)</span> <span class="c">; std::overflow_error::~overflow_error</span></code></pre></figure>
+
+<p>Tada! We have catched this error!</p>
+
+<h2 id="crash-dump">Crash dump</h2>
+
+<p>When you have understood the basics, it is possible to make some usefull things like a system to catch all exceptions:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+</span>
+<span class="n">LONG</span> <span class="nf">topSEH</span><span class="p">(</span><span class="k">struct</span> <span class="n">_EXCEPTION_RECORD</span><span class="o">*</span> <span class="n">ExceptionRecord</span><span class="p">,</span> <span class="kt">void</span><span class="o">*</span> <span class="n">EstablisherFrame</span><span class="p">,</span> <span class="k">struct</span> <span class="n">_CONTEXT</span><span class="o">*</span> <span class="n">ContextRecord</span><span class="p">,</span> <span class="kt">void</span><span class="o">*</span> <span class="n">DispatcherContext</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">OutputDebugStringA</span><span class="p">(</span><span class="s">"Gotta Catch 'Em All!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">EXCEPTION_EXECUTE_HANDLER</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="kr">__asm</span> <span class="p">{</span>
+        <span class="n">push</span>    <span class="n">topSEH</span>
+        <span class="n">mov</span>     <span class="n">eax</span><span class="p">,</span> <span class="n">dword</span> <span class="n">ptr</span> <span class="n">fs</span><span class="o">:</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">push</span>    <span class="n">eax</span>
+        <span class="n">mov</span>     <span class="n">dword</span> <span class="n">ptr</span> <span class="n">fs</span><span class="o">:</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">esp</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">42</span> <span class="o">/</span> <span class="n">b</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="n">g</span>
+<span class="n">Gotta</span> <span class="n">Catch</span> <span class="err">'</span><span class="n">Em</span> <span class="n">All</span><span class="err">!</span>
+<span class="p">(</span><span class="mi">153</span><span class="n">c</span><span class="p">.</span><span class="mi">1538</span><span class="p">)</span><span class="o">:</span> <span class="n">Integer</span> <span class="n">divide</span><span class="o">-</span><span class="n">by</span><span class="o">-</span><span class="n">zero</span> <span class="o">-</span> <span class="n">code</span> <span class="n">c0000094</span> <span class="p">(</span><span class="err">!!!</span> <span class="n">second</span> <span class="n">chance</span> <span class="err">!!!</span><span class="p">)</span>
+<span class="n">testseh</span><span class="err">!</span><span class="n">main</span><span class="o">+</span><span class="mh">0x3e</span><span class="o">:</span>
+<span class="mi">0041142</span><span class="n">e</span> <span class="n">f77df8</span>          <span class="k">idiv</span>    <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">-</span><span class="mi">8</span><span class="err">]</span> <span class="n">ss</span><span class="o">:</span><span class="mi">002</span><span class="n">b</span><span class="o">:</span><span class="mi">0018</span><span class="n">ff2c</span><span class="o">=</span><span class="mi">00000000</span>
+<span class="mi">0</span><span class="o">:</span><span class="mi">000</span><span class="o">:</span><span class="n">x86</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">exchain</span>
+<span class="mi">000000000018</span><span class="n">fe48</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">455</span><span class="p">(</span><span class="o">?</span><span class="n">topSEHYAJPAU_EXCEPTION_RECORDPAXPAU_CONTEXT</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">00000000004111</span><span class="n">cc</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ff74</span><span class="o">:</span> <span class="n">testseh</span><span class="err">!</span><span class="n">ILT</span><span class="o">+</span><span class="mi">105</span><span class="p">(</span><span class="n">__except_handler4</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span> <span class="p">(</span><span class="mi">000000000041106</span><span class="n">e</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffcc</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">wcstombs</span><span class="o">+</span><span class="mi">87</span> <span class="p">(</span><span class="mi">00000000776827</span><span class="n">e1</span><span class="p">)</span>
+<span class="mi">000000000018</span><span class="n">ffe4</span><span class="o">:</span> <span class="n">ntdll_775f0000</span><span class="err">!</span><span class="n">RtlCaptureContext</span><span class="o">+</span><span class="n">ea</span> <span class="p">(</span><span class="mi">000000007762</span><span class="n">c9dd</span><span class="p">)</span></code></pre></figure>
+
+<p>It is possible to do something like this too with the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms681420%28v=vs.85%29.aspx">Vectored Exception Handling</a>.</p>
+
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

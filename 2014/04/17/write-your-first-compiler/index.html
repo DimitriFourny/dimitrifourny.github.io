@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | Write your first compiler</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="write-your-first-compiler">Write your first compiler</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>This time, we will play with an awesome thing in computer science: the theory of compilation. Of course, I think you not read this post to found another academyc paper. Therefore, we will make a little compiler that it will translate this:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">5</span><span class="p">;</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">print</span> <span class="n">a</span><span class="p">;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>In this:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="k">PUSH</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span>
+<span class="n">SET</span> <span class="n">a</span>
+<span class="k">PUSH</span> <span class="n">a</span>
+<span class="k">PUSH</span> <span class="mi">5</span><span class="p">.</span><span class="mi">0</span>
+<span class="k">ADD</span>
+<span class="n">SET</span> <span class="n">a</span>
+<span class="k">JMP</span> <span class="n">cond1</span>
+<span class="n">body1</span><span class="o">:</span>
+    <span class="k">PUSH</span> <span class="n">a</span>
+    <span class="n">PRINT</span>
+    <span class="k">PUSH</span> <span class="n">a</span>
+    <span class="k">PUSH</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span>
+    <span class="k">ADD</span>
+    <span class="n">SET</span> <span class="n">a</span>
+<span class="n">cond1</span><span class="o">:</span>
+    <span class="k">PUSH</span> <span class="n">a</span>
+    <span class="k">PUSH</span> <span class="mi">10</span><span class="p">.</span><span class="mi">0</span>
+    <span class="k">SUB</span>
+    <span class="k">JNZ</span> <span class="n">body1</span></code></pre></figure>
+
+<p>My article is highly inspired by the work of <a href="http://www.matthieuamiguet.ch/pages/compilateurs">Matthieu Amiguet</a>, thanks to him.
+This post is just a little introduction, if you want to continue in the world of compilation, I recommend you the book <a href="http://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools">Compilers: Principles, Techniques, and Tools (2nd Edition)</a></p>
+
+<h2 id="tools">Tools</h2>
+
+<ul>
+  <li>Python 3</li>
+  <li><a href="http://www.dabeaz.com/ply/">Python Lex-Yacc</a></li>
+  <li><a href="https://bitbucket.org/prologic/pydot">PyDot</a></li>
+</ul>
+
+<h1 id="theory">Theory</h1>
+
+<h2 id="lexical-analysis">Lexical analysis</h2>
+
+<p>The <a href="http://en.wikipedia.org/wiki/Lexical_analysis">lexical analysis</a> is the first step in the compilation chain. 
+The goal of this one is to found the token of our language.
+An example with our language:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">5</span><span class="p">;</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">print</span> <span class="n">a</span><span class="p">;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">line</span> <span class="mi">1</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">1</span><span class="o">:</span> <span class="n">ASSIGN</span><span class="p">(</span><span class="o">=</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">1</span><span class="o">:</span> <span class="n">NUMBER</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">1</span><span class="o">:</span> <span class="n">END_LINE</span><span class="p">(;)</span>
+<span class="n">line</span> <span class="mi">2</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">2</span><span class="o">:</span> <span class="n">ASSIGN</span><span class="p">(</span><span class="o">=</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">2</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">2</span><span class="o">:</span> <span class="n">ADD_OP</span><span class="p">(</span><span class="o">+</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">2</span><span class="o">:</span> <span class="n">NUMBER</span><span class="p">(</span><span class="mf">5.0</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">2</span><span class="o">:</span> <span class="n">END_LINE</span><span class="p">(;)</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">WHILE</span><span class="p">(</span><span class="k">while</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">BEGIN_EXPRESSION</span><span class="p">(()</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">ADD_OP</span><span class="p">(</span><span class="o">-</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">NUMBER</span><span class="p">(</span><span class="mf">10.0</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">END_EXPRESSION</span><span class="p">())</span>
+<span class="n">line</span> <span class="mi">3</span><span class="o">:</span> <span class="n">BEGIN_BLOCK</span><span class="p">({)</span>
+<span class="n">line</span> <span class="mi">4</span><span class="o">:</span> <span class="n">PRINT</span><span class="p">(</span><span class="n">print</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">4</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">4</span><span class="o">:</span> <span class="n">END_LINE</span><span class="p">(;)</span>
+<span class="n">line</span> <span class="mi">5</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">5</span><span class="o">:</span> <span class="n">ASSIGN</span><span class="p">(</span><span class="o">=</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">5</span><span class="o">:</span> <span class="n">IDENTIFIER</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">5</span><span class="o">:</span> <span class="n">ADD_OP</span><span class="p">(</span><span class="o">+</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">5</span><span class="o">:</span> <span class="n">NUMBER</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">line</span> <span class="mi">5</span><span class="o">:</span> <span class="n">END_LINE</span><span class="p">(;)</span>
+<span class="n">line</span> <span class="mi">6</span><span class="o">:</span> <span class="n">END_BLOCK</span><span class="p">(})</span></code></pre></figure>
+
+<p>To do this, PLY use some <a href="http://en.wikipedia.org/wiki/Regular_expression">regex</a> but we will speak about its implementation later.</p>
+
+<h2 id="syntactic-analysis">Syntactic analysis</h2>
+
+<p>The <a href="http://en.wikipedia.org/wiki/Parsing">syntactic analysis</a> is the part which check the syntax of our language and make the <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">abstract syntax tree</a>.</p>
+
+<p>An example of an output with our language:</p>
+
+<p><img src="http://www.dimitrifourny.com/img/ast_ex1.png" alt="AST example" /></p>
+
+<h2 id="intermediate-language-generator">Intermediate language generator</h2>
+
+<p>The final step (for us), is to translate our AST in a new language:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="k">PUSH</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span>
+<span class="n">SET</span> <span class="n">a</span>
+<span class="k">PUSH</span> <span class="n">a</span>
+<span class="k">PUSH</span> <span class="mi">5</span><span class="p">.</span><span class="mi">0</span>
+<span class="k">ADD</span>
+<span class="n">SET</span> <span class="n">a</span>
+<span class="k">JMP</span> <span class="n">cond1</span>
+<span class="n">body1</span><span class="o">:</span>
+    <span class="k">PUSH</span> <span class="n">a</span>
+    <span class="n">PRINT</span>
+    <span class="k">PUSH</span> <span class="n">a</span>
+    <span class="k">PUSH</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span>
+    <span class="k">ADD</span>
+    <span class="n">SET</span> <span class="n">a</span>
+<span class="n">cond1</span><span class="o">:</span>
+    <span class="k">PUSH</span> <span class="n">a</span>
+    <span class="k">PUSH</span> <span class="mi">10</span><span class="p">.</span><span class="mi">0</span>
+    <span class="k">SUB</span>
+    <span class="k">JNZ</span> <span class="n">body1</span></code></pre></figure>
+
+<h1 id="practice">Practice</h1>
+
+<h2 id="test-file">Test file</h2>
+
+<p>Make a file <strong>test.txt</strong> and put this:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">5</span><span class="p">;</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">print</span> <span class="n">a</span><span class="p">;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<h2 id="lexical-analysis-1">Lexical analysis</h2>
+
+<p>I give you the code before a little explanation (<strong>lex.py</strong>):</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">ply.lex</span> <span class="kn">as</span> <span class="nn">lex</span> 
+<span class="kn">import</span> <span class="nn">sys</span> 
+
+<span class="n">reserved_words</span> <span class="o">=</span> <span class="p">(</span> 
+    <span class="s">'while'</span><span class="p">,</span>
+    <span class="s">'print'</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">tokens</span> <span class="o">=</span> <span class="p">(</span> 
+    <span class="s">'END_LINE'</span><span class="p">,</span>
+    <span class="s">'NUMBER'</span><span class="p">,</span>
+    <span class="s">'ADD_OP'</span><span class="p">,</span>
+    <span class="s">'MUL_OP'</span><span class="p">,</span>
+    <span class="s">'ASSIGN'</span><span class="p">,</span>
+    <span class="s">'BEGIN_EXPRESSION'</span><span class="p">,</span>
+    <span class="s">'END_EXPRESSION'</span><span class="p">,</span>
+    <span class="s">'BEGIN_BLOCK'</span><span class="p">,</span>
+    <span class="s">'END_BLOCK'</span><span class="p">,</span>
+    <span class="s">'IDENTIFIER'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span><span class="n">s</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span><span class="n">reserved_words</span><span class="p">))</span>
+
+<span class="n">t_END_LINE</span>          <span class="o">=</span> <span class="s">r';'</span>
+<span class="n">t_ADD_OP</span>            <span class="o">=</span> <span class="s">r'</span><span class="err">\</span><span class="s">+|-'</span>
+<span class="n">t_MUL_OP</span>            <span class="o">=</span> <span class="s">r'</span><span class="err">\</span><span class="s">*|</span><span class="err">\</span><span class="s">/'</span>
+<span class="n">t_ASSIGN</span>            <span class="o">=</span> <span class="s">r'='</span>
+<span class="n">t_BEGIN_EXPRESSION</span>  <span class="o">=</span> <span class="s">r'</span><span class="err">\</span><span class="s">('</span>
+<span class="n">t_END_EXPRESSION</span>    <span class="o">=</span> <span class="s">r'</span><span class="err">\</span><span class="s">)'</span>
+<span class="n">t_BEGIN_BLOCK</span>       <span class="o">=</span> <span class="s">r'</span><span class="err">\</span><span class="s">{'</span>
+<span class="n">t_END_BLOCK</span>         <span class="o">=</span> <span class="s">r'</span><span class="err">\</span><span class="s">}'</span>
+
+<span class="k">def</span> <span class="nf">t_NUMBER</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="s">r'</span><span class="err">\</span><span class="s">d+</span><span class="err">\</span><span class="s">.?(</span><span class="err">\</span><span class="s">d+)?'</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">t</span>
+
+<span class="k">def</span> <span class="nf">t_IDENTIFIER</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="s">r'[a-zA-z_]</span><span class="err">\</span><span class="s">w*'</span>
+    <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span> <span class="ow">in</span> <span class="n">reserved_words</span><span class="p">:</span>
+        <span class="n">t</span><span class="o">.</span><span class="nb">type</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">t</span>
+
+<span class="k">def</span> <span class="nf">t_newline</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="s">r'</span><span class="err">\</span><span class="s">n+'</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">lexer</span><span class="o">.</span><span class="n">lineno</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+<span class="n">t_ignore</span> <span class="o">=</span> <span class="s">' </span><span class="se">\t</span><span class="s">'</span>
+
+<span class="k">def</span> <span class="nf">t_error</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Illegal character '</span><span class="si">%</span><span class="s">s'"</span> <span class="o">%</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">lexer</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">lex</span><span class="o">.</span><span class="n">lex</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">'r'</span><span class="p">)</span>
+    <span class="n">prog</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="n">lex</span><span class="o">.</span><span class="nb">input</span><span class="p">(</span><span class="n">prog</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">tok</span> <span class="o">=</span> <span class="n">lex</span><span class="o">.</span><span class="n">token</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tok</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">"line </span><span class="si">%</span><span class="s">d: </span><span class="si">%</span><span class="s">s(</span><span class="si">%</span><span class="s">s)"</span> <span class="o">%</span> <span class="p">(</span><span class="n">tok</span><span class="o">.</span><span class="n">lineno</span><span class="p">,</span> <span class="n">tok</span><span class="o">.</span><span class="nb">type</span><span class="p">,</span> <span class="n">tok</span><span class="o">.</span><span class="n">value</span><span class="p">))</span></code></pre></figure>
+
+<p>To begin, we need to declare some <strong>tokens</strong> to delimit our language. To do that, we declare a constante and a associate regex with <code>t_CONST_NAME = r'THE REGEX'</code>.
+Of course, you can declare a function <code>def t_CONST_NAME(t)</code> to do some more advanced thing.<br />
+Now, you can test your code with <code>$ python lex.py test.txt</code>.</p>
+
+<h2 id="syntactic-analysis-1">Syntactic analysis</h2>
+
+<p>We will use the tree builder of Matthieu Amiguet (AST.py) because it is not the thematic of this post:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="c"># coding: latin-1</span>
+
+<span class="s">''' AST.py, version 0.2
+2008-2009, Matthieu Amiguet, HE-Arc
+'''</span>
+
+<span class="kn">import</span> <span class="nn">pydot</span>
+
+<span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'Node (unspecified)'</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="s">'ellipse'</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">children</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Node</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
+        <span class="n">Node</span><span class="o">.</span><span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">children</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">children</span><span class="p">,</span><span class="s">'__len__'</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="n">children</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="n">children</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="nb">next</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">addNext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="nb">next</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="nb">next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">next</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">asciitree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s">''</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="s">"</span><span class="si">%</span><span class="s">s</span><span class="si">%</span><span class="s">s</span><span class="se">\n</span><span class="s">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="n">prefix</span> <span class="o">+=</span> <span class="s">'|  '</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">Node</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">+=</span> <span class="s">"</span><span class="si">%</span><span class="s">s*** Error: Child of type </span><span class="si">%</span><span class="s">r: </span><span class="si">%</span><span class="s">r</span><span class="se">\n</span><span class="s">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="p">),</span><span class="n">c</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="n">c</span><span class="o">.</span><span class="n">asciitree</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+    
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">asciitree</span><span class="p">()</span>
+    
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="nb">type</span>
+    
+    <span class="k">def</span> <span class="nf">makegraphicaltree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dot</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">edgeLabels</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dot</span><span class="p">:</span> <span class="n">dot</span> <span class="o">=</span> <span class="n">pydot</span><span class="o">.</span><span class="n">Dot</span><span class="p">()</span>
+            <span class="n">dot</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">pydot</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">edgeLabels</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">):</span>
+                <span class="n">c</span><span class="o">.</span><span class="n">makegraphicaltree</span><span class="p">(</span><span class="n">dot</span><span class="p">,</span> <span class="n">edgeLabels</span><span class="p">)</span>
+                <span class="n">edge</span> <span class="o">=</span> <span class="n">pydot</span><span class="o">.</span><span class="n">Edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="n">c</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
+                    <span class="n">edge</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                <span class="n">dot</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+                <span class="c">#Workaround for a bug in pydot 1.0.2 on Windows:</span>
+                <span class="c">#dot.set_graphviz_executables({'dot': r'C:\Program Files\Graphviz2.16\bin\dot.exe'})</span>
+            <span class="k">return</span> <span class="n">dot</span>
+        
+    <span class="k">def</span> <span class="nf">threadTree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">seen</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="p">(</span><span class="s">'red'</span><span class="p">,</span> <span class="s">'green'</span><span class="p">,</span> <span class="s">'blue'</span><span class="p">,</span> <span class="s">'yellow'</span><span class="p">,</span> <span class="s">'magenta'</span><span class="p">,</span> <span class="s">'cyan'</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">seen</span><span class="p">:</span> <span class="n">seen</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span> <span class="k">return</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new</span><span class="p">:</span>
+                <span class="n">graphnode</span> <span class="o">=</span> <span class="n">pydot</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">graphnode</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s">'dotted'</span><span class="p">)</span>
+                <span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">graphnode</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="nb">next</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="nb">next</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="p">:</span> <span class="k">return</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="p">(</span><span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>                
+                <span class="n">c</span><span class="o">.</span><span class="n">threadTree</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">seen</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+                <span class="n">edge</span> <span class="o">=</span> <span class="n">pydot</span><span class="o">.</span><span class="n">Edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="n">c</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">set_arrowsize</span><span class="p">(</span><span class="s">'.5'</span><span class="p">)</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">set_constraint</span><span class="p">(</span><span class="s">'false'</span><span class="p">)</span> 
+                <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
+                    <span class="n">edge</span><span class="o">.</span><span class="n">set_taillabel</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                    <span class="n">edge</span><span class="o">.</span><span class="n">set_labelfontcolor</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+                <span class="n">graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">graph</span>    
+        
+<span class="k">class</span> <span class="nc">ProgramNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'Program'</span>
+        
+<span class="k">class</span> <span class="nc">TokenNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'token'</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tok</span><span class="p">):</span>
+        <span class="n">Node</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tok</span> <span class="o">=</span> <span class="n">tok</span>
+        
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tok</span><span class="p">)</span>
+    
+<span class="k">class</span> <span class="nc">OpNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="p">):</span>
+        <span class="n">Node</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">children</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nbargs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span>
+        <span class="k">except</span> <span class="nb">AttributeError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nbargs</span> <span class="o">=</span> <span class="mi">1</span>
+        
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">"</span><span class="si">%</span><span class="s">s (</span><span class="si">%</span><span class="s">s)"</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbargs</span><span class="p">)</span>
+    
+<span class="k">class</span> <span class="nc">AssignNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'='</span>
+    
+<span class="k">class</span> <span class="nc">PrintNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'print'</span>
+    
+<span class="k">class</span> <span class="nc">WhileNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'while'</span>
+    
+<span class="k">class</span> <span class="nc">EntryNode</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s">'ENTRY'</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">Node</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    
+<span class="k">def</span> <span class="nf">addToClass</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span><span class="n">func</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">func</span>
+    <span class="k">return</span> <span class="n">decorator</span></code></pre></figure>
+
+<p>The parser is just a succession of block like this:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">p_statement</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'''statement : assignation
+                 | structure
+                 | PRINT expression'''</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">PrintNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span></code></pre></figure>
+
+<p>Here, a <code>statement</code> can be an <code>assignation</code>, a <code>structure</code> or the keyword <code>print</code> with an <code>expression</code>.
+The list <code>p</code> is just the result of parsed expression, so <code>p[0]</code> is just <code>statement</code>, <code>p[1]</code> can be an <code>assignation</code> or a <code>structure</code>… etc.</p>
+
+<p>Now, I think you will be able to understand the rest of code:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">ply.yacc</span> <span class="kn">as</span> <span class="nn">yacc</span>
+<span class="kn">from</span> <span class="nn">lex</span> <span class="kn">import</span> <span class="n">tokens</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">AST</span>
+
+<span class="n">operations</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">'+'</span> <span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">+</span><span class="n">y</span><span class="p">,</span>
+    <span class="s">'-'</span> <span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">-</span><span class="n">y</span><span class="p">,</span>
+    <span class="s">'*'</span> <span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">,</span>
+    <span class="s">'/'</span> <span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">/</span><span class="n">y</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">def</span> <span class="nf">p_expression_endline</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'''program : statement
+                 | statement END_LINE
+                 | statement END_LINE program'''</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">ProgramNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">ProgramNode</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
+
+<span class="k">def</span> <span class="nf">p_statement</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'''statement : assignation
+                 | structure
+                 | PRINT expression'''</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">PrintNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">p_assignation</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'assignation : IDENTIFIER ASSIGN expression'</span> 
+    <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">AssignNode</span><span class="p">([</span><span class="n">AST</span><span class="o">.</span><span class="n">TokenNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">p</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
+
+<span class="k">def</span> <span class="nf">p_structure</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'structure : WHILE expression BEGIN_BLOCK program END_BLOCK'</span>
+    <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">WhileNode</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">4</span><span class="p">]])</span>
+
+<span class="k">def</span> <span class="nf">p_expression_num</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'expression : NUMBER'</span>
+    <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">TokenNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">p_expression_program</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'expression : BEGIN_EXPRESSION expression END_EXPRESSION'</span>
+    <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">ProgramNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">p_expression_op</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="s">'''expression : expression ADD_OP expression
+                  | expression MUL_OP expression
+                  | IDENTIFIER'''</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">OpNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">TokenNode</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">p_error</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Syntax error in line </span><span class="si">%</span><span class="s">d"</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+    <span class="n">yacc</span><span class="o">.</span><span class="n">errok</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">program</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">yacc</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">program</span><span class="p">)</span>
+
+<span class="n">yacc</span><span class="o">.</span><span class="n">yacc</span><span class="p">(</span><span class="n">outputdir</span><span class="o">=</span><span class="s">'generated'</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">'r'</span><span class="p">)</span>
+    <span class="n">prog</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 
+    <span class="n">result</span> <span class="o">=</span> <span class="n">yacc</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">prog</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">makegraphicaltree</span><span class="p">()</span>
+    <span class="n">graph</span><span class="o">.</span><span class="n">write_pdf</span><span class="p">(</span><span class="s">'out.pdf'</span><span class="p">)</span></code></pre></figure>
+
+<p>And now you can test it with <code>$ python parser.py test.txt</code>.</p>
+
+<h2 id="intermediate-code-generator">Intermediate code generator</h2>
+
+<p>Finally, we just need to translate our AST in a new language:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">AST</span> 
+<span class="kn">from</span> <span class="nn">AST</span> <span class="kn">import</span> <span class="n">addToClass</span>
+
+<span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="nd">@addToClass</span><span class="p">(</span><span class="n">AST</span><span class="o">.</span><span class="n">Node</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+        <span class="n">c</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+ 
+    <span class="k">return</span> <span class="bp">self</span>
+
+<span class="nd">@addToClass</span><span class="p">(</span><span class="n">AST</span><span class="o">.</span><span class="n">TokenNode</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'PUSH </span><span class="si">%</span><span class="s">s'</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span>
+
+<span class="nd">@addToClass</span><span class="p">(</span><span class="n">AST</span><span class="o">.</span><span class="n">AssignNode</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">right</span><span class="p">)</span> <span class="o">==</span> <span class="n">AST</span><span class="o">.</span><span class="n">TokenNode</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'PUSH </span><span class="si">%</span><span class="s">s'</span> <span class="o">%</span> <span class="n">right</span><span class="o">.</span><span class="n">tok</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">right</span><span class="p">)</span> <span class="o">==</span> <span class="n">AST</span><span class="o">.</span><span class="n">OpNode</span><span class="p">:</span>
+        <span class="n">right</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'SET </span><span class="si">%</span><span class="s">s'</span> <span class="o">%</span> <span class="n">left</span><span class="o">.</span><span class="n">tok</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span>
+
+<span class="nd">@addToClass</span><span class="p">(</span><span class="n">AST</span><span class="o">.</span><span class="n">OpNode</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">left</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+    <span class="n">right</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s">'+'</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'ADD'</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s">'-'</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'SUB'</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s">'/'</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'DIV'</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s">'*'</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'MUL'</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="bp">self</span>
+
+<span class="nd">@addToClass</span><span class="p">(</span><span class="n">AST</span><span class="o">.</span><span class="n">WhileNode</span><span class="p">)</span> 
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span> <span class="o">=</span> <span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'JMP cond</span><span class="si">%</span><span class="s">d'</span> <span class="o">%</span> <span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'body</span><span class="si">%</span><span class="s">d:'</span> <span class="o">%</span> <span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span><span class="p">)</span>
+    <span class="n">right</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">'cond</span><span class="si">%</span><span class="s">d:'</span> <span class="o">%</span> <span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span><span class="p">)</span>
+    <span class="n">left</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'JNZ body</span><span class="si">%</span><span class="s">d'</span> <span class="o">%</span> <span class="n">AST</span><span class="o">.</span><span class="n">blockNb</span><span class="p">)</span>    
+
+    <span class="k">return</span> <span class="bp">self</span>
+
+<span class="nd">@addToClass</span><span class="p">(</span><span class="n">AST</span><span class="o">.</span><span class="n">PrintNode</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'PRINT'</span><span class="p">)</span>    
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">parser</span> <span class="kn">import</span> <span class="n">parse</span>
+    <span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">'r'</span><span class="p">)</span>
+    <span class="n">prog</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 
+    <span class="n">ast</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">prog</span><span class="p">)</span>
+    <span class="n">compiled</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="nb">compile</span><span class="p">()</span></code></pre></figure>
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p>I hope this little introduction give you the desire to continue to study the compilation theory. To train you, you can make, for example, a little obfuscator.</p>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | Fuzzing via symbolic execution</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="fuzzing-via-symbolic-execution">Fuzzing via symbolic execution</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>The symbolic execution is a technique to make an abstract interpretation of a program. In this article, we will see a short introduction. To understand how it works, we will see an example:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">rand</span><span class="p">();</span>
+<span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+
+<span class="n">b</span> <span class="o">+=</span> <span class="n">a</span><span class="o">*</span><span class="mi">2</span><span class="p">;</span>
+<span class="n">b</span><span class="o">++</span><span class="p">;</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="mi">13</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Good job!"</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Hahaha... no!"</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>For a symbolic fuzzer, we will need to look into all paths possibles: here, the symbolic fuzzer will need to enter in the <code>if</code> and in the <code>else</code>.
+To do it, he will try to calculate the value of <code>b</code> in the two context:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">if</span> <span class="p">(</span><span class="mi">2</span><span class="o">+</span><span class="n">X</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span> <span class="o">==</span> <span class="mi">13</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Good job!"</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Hahaha... no!"</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>After that, he will use a <a href="http://en.wikipedia.org/wiki/Constraint_programming">constraint solver</a> to solve <code>2+X*2+1 == 13</code>. Finally he will conclude that we have two paths: <code>X = (13-2-1)/2 = 5</code> and <code>X != 5</code>.</p>
+
+<h2 id="tools">Tools</h2>
+
+<p><a href="http://klee.github.io/klee/GetStarted.html">KLEE</a> and this dependencies.</p>
+
+<h1 id="our-software">Our software</h1>
+
+<h2 id="base">Base</h2>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdlib.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="n">str1</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
+    <span class="kt">char</span> <span class="n">str2</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">str2</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'-'</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">strcpy</span><span class="p">(</span><span class="n">str1</span><span class="p">,</span> <span class="n">str2</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">strcpy</span><span class="p">(</span><span class="n">str2</span><span class="p">,</span> <span class="n">str1</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>To found this vulnerability with a dumb fuzzing (bruteforce), good luck! Now, we will modify our source code to use KLEE:</p>
+
+<h2 id="new-source-code">New source code</h2>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdlib.h&gt;
+#include &lt;klee/klee.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="n">str1</span><span class="p">[</span><span class="mi">255</span><span class="p">];</span>
+    <span class="kt">char</span> <span class="n">str2</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="n">str1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">str1</span><span class="p">),</span> <span class="s">"str1"</span><span class="p">);</span>
+    <span class="n">klee_assume</span><span class="p">(</span><span class="n">str1</span><span class="p">[</span><span class="mi">254</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'\0'</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="n">str2</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">str2</span><span class="p">),</span> <span class="s">"str2"</span><span class="p">);</span> 
+    <span class="n">klee_assume</span><span class="p">(</span><span class="n">str2</span><span class="p">[</span><span class="mi">1023</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'\0'</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">str2</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'-'</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">strcpy</span><span class="p">(</span><span class="n">str1</span><span class="p">,</span> <span class="n">str2</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">strcpy</span><span class="p">(</span><span class="n">str2</span><span class="p">,</span> <span class="n">str1</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><code>klee_make_symbolic</code> need a pointer on the variable that we want manipulate, its size and its name (for the fuzzing rapport). <code>klee_assume</code> is usefull to add some constraint on the variable, here we need a null character at the end of string.</p>
+
+<h1 id="fuzzing">Fuzzing</h1>
+
+<p>Compile the source code:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="gp">$ </span>/opt/llvm-gcc4.2-2.9-x86_64-linux/bin/llvm-gcc -I /opt/klee/include --emit-llvm -c -g main.c
+main.c: In <span class="k">function</span> ‘main’:
+main.c:14: warning: incompatible implicit declaration of built-in <span class="k">function</span> ‘strcpy’
+main.c:16: warning: incompatible implicit declaration of built-in <span class="k">function</span> ‘strcpy’</code></pre></figure>
+
+<p>The warning is not a problem, because we will use <strong>uclibc</strong>:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="gp">$ </span>/opt/klee/Release+Asserts/bin/klee --libc<span class="o">=</span>uclibc --posix-runtime -output-dir<span class="o">=</span>output  main.o
+KLEE: NOTE: Using klee-uclibc : /opt/klee/Release+Asserts/lib/klee-uclibc.bca
+KLEE: NOTE: Using model: /opt/klee/Release+Asserts/lib/libkleeRuntimePOSIX.bca
+KLEE: output directory is <span class="s2">"/home/dimitri/projets/symbolic/output"</span>
+KLEE: WARNING: undefined reference to <span class="k">function</span>: __xstat64
+KLEE: WARNING: undefined reference to <span class="k">function</span>: fwrite
+KLEE: WARNING: undefined reference to <span class="k">function</span>: lseek64
+KLEE: WARNING ONCE: calling external: syscall<span class="o">(</span>16, 0, 21505, 35399184<span class="o">)</span>
+KLEE: WARNING ONCE: calling __user_main with extra arguments.
+KLEE: WARNING ONCE: calling external: __xstat64<span class="o">(</span>1, 35312336, 35431888<span class="o">)</span>
+KLEE: ERROR: /home/dimitri/Downloads/klee-uclibc/libc/string/strcpy.c:27: memory error: out of bound pointer
+KLEE: NOTE: now ignoring this error at this location
+
+KLEE: <span class="k">done</span>: total instructions <span class="o">=</span> 56390
+KLEE: <span class="k">done</span>: completed paths <span class="o">=</span> 510
+KLEE: <span class="k">done</span>: generated tests <span class="o">=</span> 510</code></pre></figure>
+
+<p>Nice ! Nice because we have found a <code>memory error: out of bound pointer</code>. To know what test are generated an error, we need to search a log file:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="gp">$ </span>ls -la ./output/ | grep --color err
+-rw-r--r-- 1 dimitri users       0 26 juin  11:46 test000500.ptr.err</code></pre></figure>
+
+<p>Hmm, let’s see the datas used by the test number 500:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="gp">$ </span>/opt/klee/Release+Asserts/bin/ktest-tool --write-ints ./output/test000500.ktest 
+ktest file : <span class="s1">'./output/test000500.ktest'</span>
+args       : <span class="o">[</span><span class="s1">'main.o'</span><span class="o">]</span>
+num objects: 3
+object    0: name: b<span class="s1">'model_version'</span>
+object    0: size: 4
+object    0: data: 1
+object    1: name: b<span class="s1">'str1'</span>
+object    1: size: 255
+object    1: data: b<span class="s1">'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'</span>
+object    2: name: b<span class="s1">'str2'</span>
+object    2: size: 1024
+object    2: data: b<span class="s1">'\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01-\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'</span></code></pre></figure>
+
+<p>Tada! As we have seen, the symbolic execution is a good fuzzing method when we have the source code of the application.</p>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

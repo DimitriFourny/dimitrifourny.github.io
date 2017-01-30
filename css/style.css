@@ -1,0 +1,67 @@
+body {
+  font-family: Lora,'Times New Roman',serif;
+  font-size: 18px;
+  background-color: #FFFFFF;
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: 1000px;
+  }
+}
+
+h1 {
+  font-size: 40px;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 30px;
+}
+
+pre, .syntaxhighlighter {
+  margin: 30px 0px !important;
+}
+
+p {
+  text-align: justify;
+  margin: 30px 0;
+}
+
+table a, .table a {
+  text-decoration: none;
+}
+
+table a:hover, .table a:hover {
+  text-decoration: underline;
+}
+
+.navbar {
+  border: 0px;
+  font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+  margin: 0px;
+}
+.navbar-default {
+  background-color: #FFFFFF;
+}
+
+.navbar-nav {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+
+.navbar-brand {
+  font-weight: 800;
+  padding: 15px 15px;
+}
+
+.row {
+  background-color: #FFFFFF;
+  margin-bottom: 30px;
+  border-top: 1px solid #E2E2E2;
+}
+

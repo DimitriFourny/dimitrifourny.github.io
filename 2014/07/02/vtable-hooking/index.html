@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | VTable Hooking</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="vtable-hooking">VTable Hooking</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Today, I will try to explain how we can make a hook on a C++ class method. 
+This technique working on Linux and Windows, but my example is compiled on Linux.</p>
+
+<h2 id="vtable-what-is-it">VTable, what is it?</h2>
+
+<p>C++ use the concept of inheritance. We will use two class in this article:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
+    <span class="k">public</span><span class="o">:</span>
+        <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span>  <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>   
+        <span class="p">}</span>
+    <span class="k">protected</span><span class="o">:</span>
+        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">B</span> <span class="o">:</span> <span class="n">A</span> <span class="p">{</span>
+     <span class="k">public</span><span class="o">:</span>
+        <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1338</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>   
+<span class="p">};</span></code></pre></figure>
+
+<p><strong>B</strong> have three methods:</p>
+
+<ul>
+  <li>This constructor: <strong>B()</strong></li>
+  <li>The overloaded method <strong>Hello()</strong></li>
+  <li>And the inherited method <strong>Useless()</strong></li>
+</ul>
+
+<p>And a <strong>m_value</strong> member.</p>
+
+<p>To see the compiler problem to compile it, let’s see an example:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp">    <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
+    <span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">B</span><span class="p">());</span>
+    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span></code></pre></figure>
+
+<p>At the compilation time, how the compiler can know that <code>varB-&gt;Hello()</code> is a reference to <code>A::Hello()</code> or <code>B:Hello()</code>? 
+Because of it, when a C++ program is compiled, the compiled code will use a <strong>Virtual Call Table</strong> (VTable):</p>
+
+<pre>
+*A  -&gt;  &amp;VTable (ex: 0x401111)  -&gt;  &amp;Hello      (ex: 0x40AAAA)
+        m_value (ex: 0x1337)        &amp;Useless    (ex: 0x40BBBB)
+
+*B  -&gt;  &amp;VTable (ex: 0x402222)  -&gt;  &amp;Hello      (ex: 0x40CCCC)
+        m_value (ex: 0x1338)        &amp;Useless    (ex: 0x40BBBB)
+</pre>
+
+<p>With this process, just with the object address we can call the right method!</p>
+
+<h2 id="gdb-is-our-friend">GDB is our friend</h2>
+
+<p>Now, we will compile it with <strong>g++</strong> and we will observe this comportement:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
+    <span class="k">public</span><span class="o">:</span>
+        <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span>  <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>   
+        <span class="p">}</span>
+    <span class="k">protected</span><span class="o">:</span>
+        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">B</span> <span class="o">:</span> <span class="n">A</span> <span class="p">{</span>
+     <span class="k">public</span><span class="o">:</span>
+        <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1338</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>   
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
+    <span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">B</span><span class="p">());</span>
+    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>Compile it and debug it with <strong>gdb</strong>:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="gp">$ </span>g++ vtable.cpp -g -o vtable
+<span class="gp">$ </span>gdb vtable</code></pre></figure>
+
+<p>We will study how the compiler have compiled our code:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">display</span><span class="o">/</span><span class="n">i</span> <span class="err">$</span><span class="n">pc</span>
+
+<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">disas</span> <span class="n">main</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="n">for</span> <span class="n">function</span> <span class="n">main</span><span class="p">()</span><span class="o">:</span>
+   <span class="mh">0x0000000000400887</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;:</span> <span class="k">push</span>   <span class="n">rbp</span>
+   <span class="mh">0x0000000000400888</span> <span class="o">&lt;+</span><span class="mi">1</span><span class="o">&gt;:</span> <span class="k">mov</span>    <span class="n">rbp</span><span class="p">,</span><span class="n">rsp</span>
+   <span class="mh">0x000000000040088b</span> <span class="o">&lt;+</span><span class="mi">4</span><span class="o">&gt;:</span> <span class="k">push</span>   <span class="n">r12</span>
+   <span class="mh">0x000000000040088d</span> <span class="o">&lt;+</span><span class="mi">6</span><span class="o">&gt;:</span> <span class="k">push</span>   <span class="n">rbx</span>
+   <span class="mh">0x000000000040088e</span> <span class="o">&lt;+</span><span class="mi">7</span><span class="o">&gt;:</span> <span class="k">sub</span>    <span class="n">rsp</span><span class="p">,</span><span class="mh">0x40</span>
+   <span class="mh">0x0000000000400892</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">edi</span><span class="p">,</span><span class="mh">0x10</span>
+<span class="o">=&gt;</span> <span class="mh">0x0000000000400897</span> <span class="o">&lt;+</span><span class="mi">16</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400760</span> <span class="o">&lt;</span><span class="n">_Znwm</span><span class="err">@</span><span class="n">plt</span><span class="o">&gt;</span>
+   <span class="mh">0x000000000040089c</span> <span class="o">&lt;+</span><span class="mi">21</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rbx</span><span class="p">,</span><span class="n">rax</span>
+   <span class="mh">0x000000000040089f</span> <span class="o">&lt;+</span><span class="mi">24</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rbx</span>
+   <span class="mh">0x00000000004008a2</span> <span class="o">&lt;+</span><span class="mi">27</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400ace</span> <span class="o">&lt;</span><span class="n">A</span><span class="o">::</span><span class="n">A</span><span class="p">()</span><span class="o">&gt;</span>
+   <span class="mh">0x00000000004008a7</span> <span class="o">&lt;+</span><span class="mi">32</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span><span class="p">,</span><span class="n">rbx</span>
+   <span class="mh">0x00000000004008ab</span> <span class="o">&lt;+</span><span class="mi">36</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
+   <span class="mh">0x00000000004008af</span> <span class="o">&lt;+</span><span class="mi">40</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
+   <span class="mh">0x00000000004008b2</span> <span class="o">&lt;+</span><span class="mi">43</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
+   <span class="mh">0x00000000004008b5</span> <span class="o">&lt;+</span><span class="mi">46</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdx</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
+   <span class="mh">0x00000000004008b9</span> <span class="o">&lt;+</span><span class="mi">50</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rdx</span>
+   <span class="mh">0x00000000004008bc</span> <span class="o">&lt;+</span><span class="mi">53</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="n">rax</span></code></pre></figure>
+
+<p>We start at:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm">   <span class="mh">0x0000000000400892</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">edi</span><span class="p">,</span><span class="mh">0x10</span>
+<span class="o">=&gt;</span> <span class="mh">0x0000000000400897</span> <span class="o">&lt;+</span><span class="mi">16</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400760</span> <span class="o">&lt;</span><span class="n">_Znwm</span><span class="err">@</span><span class="n">plt</span><span class="o">&gt;</span></code></pre></figure>
+
+<p><strong>edi</strong> contain the class size and <strong>_Znwm@plt</strong> use malloc to allocate some memory for our object.</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">info</span> <span class="n">registers</span> 
+<span class="n">rax</span>            <span class="mh">0x602010</span> <span class="mh">0x602010</span>
+<span class="n">rbx</span>            <span class="mh">0x602010</span> <span class="mh">0x602010</span>
+
+    <span class="mh">0x000000000040089c</span> <span class="o">&lt;+</span><span class="mi">21</span><span class="o">&gt;:</span>   <span class="k">mov</span>    <span class="n">rbx</span><span class="p">,</span><span class="n">rax</span>
+    <span class="mh">0x000000000040089f</span> <span class="o">&lt;+</span><span class="mi">24</span><span class="o">&gt;:</span>   <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rbx</span>
+ <span class="o">=&gt;</span> <span class="mh">0x00000000004008a2</span> <span class="o">&lt;+</span><span class="mi">27</span><span class="o">&gt;:</span>   <span class="k">call</span>   <span class="mh">0x400ace</span> <span class="o">&lt;</span><span class="n">A</span><span class="o">::</span><span class="n">A</span><span class="p">()</span><span class="o">&gt;</span></code></pre></figure>
+
+<p>At the line <strong>&lt;+27&gt;</strong>, we call the constructor of the class A with one parameter, the pointer returned by <strong>_Znwm@plt</strong>:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">x</span><span class="o">/</span><span class="mi">3</span><span class="n">x</span> <span class="err">$</span><span class="n">rax</span>
+<span class="mh">0x602010</span><span class="o">:</span>   <span class="mh">0x0000000000000000</span>  <span class="mh">0x0000000000000000</span>
+<span class="mh">0x602020</span><span class="o">:</span>   <span class="mh">0x0000000000000000</span>
+
+<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">ni</span>
+<span class="n">Init</span> <span class="n">A</span>
+<span class="mh">0x00000000004008a7</span>  <span class="mi">38</span>      <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="n">new</span> <span class="n">A</span><span class="p">()</span><span class="c">;</span>
+<span class="mi">1</span><span class="o">:</span> <span class="n">x</span><span class="o">/</span><span class="n">i</span> <span class="err">$</span><span class="n">pc</span>
+<span class="o">=&gt;</span> <span class="mh">0x4008a7</span> <span class="o">&lt;</span><span class="n">main</span><span class="p">()</span><span class="o">+</span><span class="mi">32</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span><span class="p">,</span><span class="n">rbx</span>
+
+<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">x</span><span class="o">/</span><span class="mi">3</span><span class="n">x</span> <span class="err">$</span><span class="n">rax</span>
+<span class="mh">0x602010</span><span class="o">:</span>   <span class="mh">0x0000000000400df0</span>  <span class="mh">0x0000000000001337</span>
+<span class="mh">0x602020</span><span class="o">:</span>   <span class="mh">0x0000000000000000</span></code></pre></figure>
+
+<p>What is it? It is just our object allocated in memory! Here, <strong>0x400df0</strong> is a pointer to our VTable and <strong>0x1337</strong> is the value of our <strong>m_value</strong>!
+We continue the debug:</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm">   <span class="mh">0x00000000004008a2</span> <span class="o">&lt;+</span><span class="mi">27</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400ace</span> <span class="o">&lt;</span><span class="n">A</span><span class="o">::</span><span class="n">A</span><span class="p">()</span><span class="o">&gt;</span>
+   <span class="mh">0x00000000004008a7</span> <span class="o">&lt;+</span><span class="mi">32</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span><span class="p">,</span><span class="n">rbx</span>
+   <span class="mh">0x00000000004008ab</span> <span class="o">&lt;+</span><span class="mi">36</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
+   <span class="mh">0x00000000004008af</span> <span class="o">&lt;+</span><span class="mi">40</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
+   <span class="mh">0x00000000004008b2</span> <span class="o">&lt;+</span><span class="mi">43</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
+   <span class="mh">0x00000000004008b5</span> <span class="o">&lt;+</span><span class="mi">46</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdx</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
+   <span class="mh">0x00000000004008b9</span> <span class="o">&lt;+</span><span class="mi">50</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rdx</span>
+<span class="o">=&gt;</span> <span class="mh">0x00000000004008bc</span> <span class="o">&lt;+</span><span class="mi">53</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="n">rax</span></code></pre></figure>
+
+<p>This manipulation class the <strong>Hello()</strong> of our object: we just call the pointer stocked at <strong>VTable[0]</strong>! And, of course, we stock in <strong>rdi</strong> the pointer on our object to pass it in parameter.<br />
+Why we do this? When we do <code>this.m_value = 0x1337</code>, our method will need the address of our object (<strong>this</strong>), so we need to send it!</p>
+
+<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">info</span> <span class="n">registers</span> <span class="err">$</span><span class="n">rdi</span>
+<span class="n">rdi</span>            <span class="mh">0x602010</span> <span class="mh">0x602010</span>
+
+<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">x</span><span class="o">/</span><span class="mi">2</span><span class="n">x</span> <span class="err">$</span><span class="n">rdi</span>
+<span class="mh">0x602010</span><span class="o">:</span>   <span class="mh">0x0000000000400df0</span>  <span class="mh">0x0000000000001337</span></code></pre></figure>
+
+<h1 id="hooking">Hooking</h1>
+
+<h2 id="read-the-vtable">Read the VTable</h2>
+
+<p>Like with <strong>gdb</strong>, nothing magical:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
+    <span class="k">public</span><span class="o">:</span>
+        <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span>  <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>   
+        <span class="p">}</span>
+    <span class="k">protected</span><span class="o">:</span>
+        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">B</span> <span class="o">:</span> <span class="n">A</span> <span class="p">{</span>
+     <span class="k">public</span><span class="o">:</span>
+        <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1338</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>   
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
+    <span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">B</span><span class="p">());</span>
+    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">addrVarA</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">varA</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"addrVarA: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">addrVarA</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">tableVarA</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">addrVarA</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"tableVarA: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">tableVarA</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">vtableA</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">tableVarA</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> 
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">tableVarA[0] (VTable addr):   0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">vtableA</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">VTable[0] (Hello ptr):        0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">vtableA</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">VTable[1] (Useless ptr):      0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">vtableA</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"tableVarA[1] (m_value):         0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">tableVarA</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">addrVarB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">varB</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"addrVarB: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">addrVarB</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">tableVarB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">addrVarB</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"tableVarB: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">tableVarB</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">vtableB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">tableVarB</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> 
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">tableVarB[0] (VTable addr):   0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">vtableB</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">VTable[0] (Hello ptr):        0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">vtableB</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">VTable[1] (Useless ptr):      0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">vtableB</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"tableVarB[1] (m_value):         0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">tableVarB</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<pre>
+Init A
+I'm a class A
+I'm an useless method
+Init A
+Init B
+I'm a class B
+I'm an useless method
+------------------------------
+addrVarA: 0x6095DD28
+tableVarA: 0x1523010
+    tableVarA[0] (VTable addr):   0x400DF0
+    VTable[0] (Hello ptr):        0x400AFE
+    VTable[1] (Useless ptr):      0x400B16
+tableVarA[1] (m_value):         0x1337
+------------------------------
+addrVarB: 0x6095DD20
+tableVarB: 0x1523030
+    tableVarB[0] (VTable addr):   0x400DD0
+    VTable[0] (Hello ptr):        0x400B6A
+    VTable[1] (Useless ptr):      0x400B16
+tableVarB[1] (m_value):         0x1338
+</pre>
+
+<p>Do you see? The <strong>Hello()</strong> pointer is different for the two object, but the <strong>Useless()</strong> pointer is the same!</p>
+
+<h2 id="hook-my-vtable">Hook my VTable</h2>
+
+<p>This is easy: overwrite the <strong>VTable[i]</strong> pointer! And don’t forget to manage the <strong>class pointer</strong> in parameter.</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;unistd.h&gt;
+</span>
+<span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
+    <span class="k">public</span><span class="o">:</span>
+        <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span>  <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>                 <span class="c1">// Index 0
+</span>            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>  <span class="c1">// Index 1 
+</span>        <span class="p">}</span>
+    <span class="k">protected</span><span class="o">:</span>
+        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">void</span> <span class="nf">hook_vtable</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">pClass</span><span class="p">,</span> <span class="kt">int</span> <span class="n">methodIndex</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pFunction</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">classTable</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">pClass</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">vTable</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">classTable</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">pageSize</span> <span class="o">=</span> <span class="n">getpagesize</span><span class="p">();</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pMethod</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vTable</span><span class="p">[</span><span class="n">methodIndex</span><span class="p">]);</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">pMethodAligned</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">pMethod</span> <span class="o">-</span> <span class="p">(</span><span class="n">pMethod</span>  <span class="o">%</span> <span class="n">pageSize</span><span class="p">));</span>    
+    
+    <span class="k">if</span> <span class="p">(</span><span class="n">mprotect</span><span class="p">(</span><span class="n">pMethodAligned</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Do not forget PROT_EXEC: our code is in the same page!
+</span>        <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
+        <span class="k">return</span><span class="p">;</span>   
+    <span class="p">}</span> 
+    
+    <span class="n">vTable</span><span class="p">[</span><span class="n">methodIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">pFunction</span><span class="p">;</span>
+    
+    <span class="k">if</span> <span class="p">(</span><span class="n">mprotect</span><span class="p">(</span><span class="n">pMethodAligned</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// VirtualProtect on Windows
+</span>        <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
+        <span class="k">return</span><span class="p">;</span>    
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">hello_hooked</span><span class="p">(</span><span class="n">A</span><span class="o">*</span> <span class="n">objectA</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">classTable</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">objectA</span><span class="p">);</span>
+    
+    <span class="n">printf</span><span class="p">(</span><span class="s">"I'm not a class A but your mValue is 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">classTable</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
+
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+    <span class="n">hook_vtable</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">varA</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">hello_hooked</span><span class="p">));</span>
+    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<pre>
+Init A
+I'm a class A
+I'm not a class A but your mValue is 0x1337
+</pre>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

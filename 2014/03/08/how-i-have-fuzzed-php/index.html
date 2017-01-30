@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | How I have fuzzed PHP</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="how-i-have-fuzzed-php">How I have fuzzed PHP</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Recently, I have got the idea to make a fuzzer for PHP.
+I have downloaded the last version of PHP, <a href="http://windows.php.net/qa/">PHP 5.6 (5.6.0alpha3)</a>, I have started my fuzzer and I have found 4 PoC:</p>
+
+<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+	<span class="nb">imageaffinematrixget</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">str_repeat</span><span class="p">(</span><span class="s1">'A'</span><span class="p">,</span> <span class="mi">2000</span><span class="p">));</span>
+<span class="cp">?&gt;</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+	<span class="nv">$o</span> <span class="o">=</span> <span class="p">(</span><span class="nx">object</span><span class="p">)</span> <span class="nb">str_repeat</span><span class="p">(</span><span class="nb">urldecode</span><span class="p">(</span><span class="s2">"%u0c0c%u0c0c"</span><span class="p">),</span> <span class="mi">2000</span><span class="p">);</span>
+	<span class="nb">imageaffinematrixget</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nv">$o</span><span class="p">);</span>
+<span class="cp">?&gt;</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+	<span class="nb">gmp_testbit</span><span class="p">(</span><span class="nb">str_repeat</span><span class="p">(</span><span class="s2">"A"</span><span class="p">,</span> <span class="mi">2000</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+<span class="cp">?&gt;</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+	<span class="nv">$o</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">UConverter</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+	<span class="nv">$o</span><span class="o">-&gt;</span><span class="na">toUCallback</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nv">$b</span><span class="p">);</span>
+<span class="cp">?&gt;</span></code></pre></figure>
+
+<p>But I have failed to exploit it, so if you find how to exploit it I will be happy if you could send me an example.</p>
+
+<h2 id="php-functions-fuzzer">PHP functions fuzzer</h2>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="n">logStr</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'fuzzcrash.txt'</span><span class="p">,</span> <span class="s">'a'</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">logStr</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">1964</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s">'php.exe'</span><span class="p">,</span> <span class="s">'fuzz_func.php'</span><span class="p">,</span> <span class="s">'out.txt'</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)])</span>
+    <span class="k">except</span> <span class="nb">OSError</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">(</span><span class="s">"["</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s">"] CRASH!!!</span><span class="se">\n</span><span class="s">"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">(</span><span class="s">"["</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s">"] Bad exit code</span><span class="se">\n</span><span class="s">"</span><span class="p">)</span>
+
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+
+<span class="nb">error_reporting</span><span class="p">(</span><span class="k">E_ALL</span><span class="p">);</span>
+
+<span class="k">include</span> <span class="s1">'funcPHP.php'</span><span class="p">;</span>
+
+<span class="k">function</span> <span class="nf">fuzz_func</span><span class="p">(</span><span class="nv">$func</span><span class="p">,</span> <span class="nv">$parameters</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">for</span> <span class="p">(</span><span class="nv">$numParamToTest</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$numParamToTest</span> <span class="o">&lt;</span> <span class="nb">count</span><span class="p">(</span><span class="nv">$parameters</span><span class="p">);</span> <span class="nv">$numParamToTest</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nv">$params</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+
+		<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="nb">count</span><span class="p">(</span><span class="nv">$parameters</span><span class="p">);</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">if</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">==</span> <span class="nv">$numParamToTest</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// On test ce param&amp;#233;tre
+</span>				<span class="k">if</span> <span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">isArray</span><span class="p">())</span> <span class="p">{</span> <span class="c1">// Array
+</span>						<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">fuzz_array,"</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="k">else</span> <span class="p">{</span> <span class="c1">// String
+</span>					<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">fuzz_var,"</span><span class="p">;</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+			<span class="k">else</span> <span class="p">{</span> <span class="c1">// On ne fuzz pas ce param&amp;#233;tre
+</span>				<span class="k">if</span> <span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">isArray</span><span class="p">())</span> <span class="p">{</span> <span class="c1">// Array
+</span>						<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">nofuzz_array,"</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="k">else</span> <span class="p">{</span> <span class="c1">// String
+</span>					<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">nofuzz_var,"</span><span class="p">;</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+
+			<span class="nb">usleep</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+		<span class="p">}</span>
+		<span class="nv">$params</span> <span class="o">=</span> <span class="nb">substr</span><span class="p">(</span><span class="nv">$params</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span> <span class="c1">// Delete last ','
+</span>
+		<span class="k">try</span> <span class="p">{</span>
+			<span class="nv">$fuzz_var</span> <span class="o">=</span> <span class="nb">str_repeat</span><span class="p">(</span><span class="s2">"A"</span><span class="p">,</span> <span class="mi">2000</span><span class="p">);</span>
+			<span class="nv">$fuzz_array</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$fuzz_var</span><span class="p">);</span>
+			<span class="nv">$nofuzz_var</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+			<span class="nv">$nofuzz_array</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$nofuzz_var</span><span class="p">);</span>
+
+			<span class="c1">//printf($func."(".$params.");\n");
+</span>			<span class="k">eval</span><span class="p">(</span><span class="nv">$func</span><span class="o">.</span><span class="s2">"("</span><span class="o">.</span><span class="nv">$params</span><span class="o">.</span><span class="s2">");"</span><span class="p">);</span>
+		<span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">Exception</span> <span class="nv">$e</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nv">$e</span><span class="o">-&gt;</span><span class="na">getMessage</span><span class="p">();</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nv">$f</span> <span class="o">=</span> <span class="s2">"fuzzFunction_"</span><span class="o">.</span><span class="nb">date</span><span class="p">(</span><span class="s1">'H_m_s'</span><span class="p">,</span> <span class="nb">time</span><span class="p">())</span><span class="o">.</span><span class="s2">".txt"</span><span class="p">;</span>
+<span class="nv">$listFunctions</span> <span class="o">=</span> <span class="nb">get_defined_functions</span><span class="p">();</span>
+<span class="nv">$listFunctions</span> <span class="o">=</span> <span class="nv">$listFunctions</span><span class="p">[</span><span class="s1">'internal'</span><span class="p">];</span>
+
+<span class="nv">$r</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+<span class="nv">$error</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+<span class="nv">$filename</span> <span class="o">=</span> <span class="nv">$argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+<span class="nv">$i</span> <span class="o">=</span> <span class="nv">$argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+<span class="nv">$r</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ReflectionFunction</span><span class="p">(</span><span class="nv">$listFunctions</span><span class="p">[</span><span class="nv">$i</span><span class="p">]);</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"["</span><span class="o">.</span><span class="nv">$i</span><span class="o">.</span><span class="s2">"] "</span><span class="o">.</span><span class="nv">$listFunctions</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">.</span><span class="s2">" - "</span><span class="o">.</span><span class="nv">$r</span><span class="o">-&gt;</span><span class="na">getNumberOfParameters</span><span class="p">()</span><span class="o">.</span><span class="s2">" parametres</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="nx">FILE_APPEND</span><span class="p">);</span>
+
+<span class="nx">fuzz_func</span><span class="p">(</span><span class="nv">$listFunctions</span><span class="p">[</span><span class="nv">$i</span><span class="p">],</span> <span class="nv">$r</span><span class="o">-&gt;</span><span class="na">getParameters</span><span class="p">());</span>
+
+<span class="cp">?&gt;</span></code></pre></figure>
+
+<h2 id="php-class-fuzzer">PHP class fuzzer</h2>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="n">logStr</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'fuzzcrash.txt'</span><span class="p">,</span> <span class="s">'a'</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">logStr</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">160</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s">'php.exe'</span><span class="p">,</span> <span class="s">'fuzz_class.php'</span><span class="p">,</span> <span class="s">'out.txt'</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)])</span>
+    <span class="k">except</span> <span class="nb">OSError</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">(</span><span class="s">"["</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s">"] CRASH!!!</span><span class="se">\n</span><span class="s">"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+            <span class="n">log</span><span class="p">(</span><span class="s">"["</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s">"] Bad exit code</span><span class="se">\n</span><span class="s">"</span><span class="p">)</span>
+
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+
+<span class="nb">error_reporting</span><span class="p">(</span><span class="k">E_ALL</span><span class="p">);</span>
+
+<span class="k">include</span> <span class="s1">'classPHP.php'</span><span class="p">;</span>
+
+<span class="k">function</span> <span class="nf">fuzz_method</span><span class="p">(</span><span class="nv">$object</span><span class="p">,</span> <span class="nv">$method</span><span class="p">,</span> <span class="nv">$parameters</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">for</span> <span class="p">(</span><span class="nv">$numParamToTest</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$numParamToTest</span> <span class="o">&lt;</span> <span class="nb">count</span><span class="p">(</span><span class="nv">$parameters</span><span class="p">);</span> <span class="nv">$numParamToTest</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nv">$params</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+
+		<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="nb">count</span><span class="p">(</span><span class="nv">$parameters</span><span class="p">);</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">if</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">==</span> <span class="nv">$numParamToTest</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// On test ce param&amp;#233;tre
+</span>				<span class="k">if</span> <span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">getClass</span><span class="p">())</span> <span class="p">{</span>
+					<span class="k">return</span> <span class="s2">"Can't fuzz a class"</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="k">elseif</span> <span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">isArray</span><span class="p">())</span> <span class="p">{</span> <span class="c1">// Array
+</span>						<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">fuzz_array,"</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="k">else</span> <span class="p">{</span> <span class="c1">// String
+</span>					<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">fuzz_var,"</span><span class="p">;</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+			<span class="k">else</span> <span class="p">{</span> <span class="c1">// On ne fuzz pas ce param&amp;#233;tre
+</span>				<span class="k">if</span> <span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">getClass</span><span class="p">())</span> <span class="p">{</span>
+					<span class="k">return</span> <span class="s2">"Can't fuzz a class"</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="k">elseif</span> <span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">isArray</span><span class="p">())</span> <span class="p">{</span> <span class="c1">// Array
+</span>						<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">nofuzz_array,"</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="k">else</span> <span class="p">{</span> <span class="c1">// String
+</span>					<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">nofuzz_var,"</span><span class="p">;</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+
+			<span class="nb">usleep</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+		<span class="p">}</span>
+		<span class="nv">$params</span> <span class="o">=</span> <span class="nb">substr</span><span class="p">(</span><span class="nv">$params</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span> <span class="c1">// Delete last ','
+</span>
+		<span class="k">try</span> <span class="p">{</span>
+			<span class="nv">$fuzz_var</span> <span class="o">=</span> <span class="nb">str_repeat</span><span class="p">(</span><span class="s2">"A"</span><span class="p">,</span> <span class="mi">2000</span><span class="p">);</span>
+			<span class="nv">$fuzz_array</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$fuzz_var</span><span class="p">);</span>
+			<span class="nv">$nofuzz_var</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+			<span class="nv">$nofuzz_array</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$nofuzz_var</span><span class="p">);</span>
+
+			<span class="nb">printf</span><span class="p">(</span><span class="s2">"</span><span class="se">\$</span><span class="s2">object-&gt;"</span><span class="o">.</span><span class="nv">$method</span><span class="o">.</span><span class="s2">"("</span><span class="o">.</span><span class="nv">$params</span><span class="o">.</span><span class="s2">");</span><span class="se">\n</span><span class="s2">"</span><span class="p">);</span>
+			<span class="k">eval</span><span class="p">(</span><span class="s2">"</span><span class="se">\$</span><span class="s2">object-&gt;"</span><span class="o">.</span><span class="nv">$method</span><span class="o">.</span><span class="s2">"("</span><span class="o">.</span><span class="nv">$params</span><span class="o">.</span><span class="s2">");"</span><span class="p">);</span>
+		<span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">Exception</span> <span class="nv">$e</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nv">$e</span><span class="o">-&gt;</span><span class="na">getMessage</span><span class="p">();</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">function</span> <span class="nf">fuzz_class</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="nv">$class</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nv">$r</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ReflectionClass</span><span class="p">(</span><span class="nv">$class</span><span class="p">);</span>
+	<span class="nv">$construct</span> <span class="o">=</span> <span class="nv">$r</span><span class="o">-&gt;</span><span class="na">getConstructor</span><span class="p">();</span> 
+	<span class="k">if</span> <span class="p">(</span><span class="nv">$construct</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="s2">"This class don't have any constructor."</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">elseif</span> <span class="p">(</span><span class="o">!</span><span class="nv">$construct</span><span class="o">-&gt;</span><span class="na">isPublic</span><span class="p">())</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="s2">"The class' constructor is private/protected."</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="nv">$constructParameters</span> <span class="o">=</span> <span class="nv">$construct</span><span class="o">-&gt;</span><span class="na">getParameters</span><span class="p">();</span>
+
+	<span class="nv">$params</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+	<span class="k">foreach</span> <span class="p">(</span><span class="nv">$constructParameters</span> <span class="k">as</span> <span class="nv">$parameter</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="p">(</span><span class="nv">$parameter</span><span class="o">-&gt;</span><span class="na">getClass</span><span class="p">())</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="s2">"Can't fuzz a class"</span><span class="p">;</span>
+		<span class="p">}</span>
+
+		<span class="k">if</span> <span class="p">(</span><span class="nv">$parameter</span><span class="o">-&gt;</span><span class="na">isArray</span><span class="p">())</span> <span class="p">{</span> <span class="c1">// Array
+</span>				<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">fuzz_array,"</span><span class="p">;</span>
+		<span class="p">}</span>
+		<span class="k">else</span> <span class="p">{</span> <span class="c1">// String
+</span>			<span class="nv">$params</span> <span class="o">.=</span> <span class="s2">"</span><span class="se">\$</span><span class="s2">fuzz_var,"</span><span class="p">;</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="nv">$params</span> <span class="o">=</span> <span class="nb">substr</span><span class="p">(</span><span class="nv">$params</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span> <span class="c1">// Delete last ','
+</span>	<span class="nv">$object</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+
+	<span class="k">try</span> <span class="p">{</span>
+		<span class="nv">$fuzz_var</span> <span class="o">=</span> <span class="nb">str_repeat</span><span class="p">(</span><span class="s2">"A"</span><span class="p">,</span> <span class="mi">2000</span><span class="p">);</span>
+		<span class="nv">$fuzz_array</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$fuzz_var</span><span class="p">);</span>
+		<span class="nb">printf</span><span class="p">(</span><span class="s2">"</span><span class="se">\$</span><span class="s2">object = new "</span><span class="o">.</span><span class="nv">$class</span><span class="o">.</span><span class="s2">"("</span><span class="o">.</span><span class="nv">$params</span><span class="o">.</span><span class="s2">");</span><span class="se">\n</span><span class="s2">"</span><span class="p">);</span>
+		<span class="k">eval</span><span class="p">(</span><span class="s2">"</span><span class="se">\$</span><span class="s2">object = new "</span><span class="o">.</span><span class="nv">$class</span><span class="o">.</span><span class="s2">"("</span><span class="o">.</span><span class="nv">$params</span><span class="o">.</span><span class="s2">");"</span><span class="p">);</span>
+	<span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">Exception</span> <span class="nv">$e</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nv">$e</span><span class="o">-&gt;</span><span class="na">getMessage</span><span class="p">();</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="nv">$object</span> <span class="o">==</span> <span class="s1">'null'</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="s2">"Can't allocate the new object."</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="nv">$methods</span> <span class="o">=</span> <span class="nv">$r</span><span class="o">-&gt;</span><span class="na">getMethods</span><span class="p">(</span><span class="nx">ReflectionMethod</span><span class="o">::</span><span class="na">IS_PUBLIC</span><span class="p">);</span>
+	<span class="nv">$error</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+
+	<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="nb">count</span><span class="p">(</span><span class="nv">$methods</span><span class="p">);</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"    ["</span><span class="o">.</span><span class="nv">$i</span><span class="o">.</span><span class="s2">"] "</span><span class="o">.</span><span class="nv">$methods</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">.</span><span class="s2">" - "</span><span class="o">.</span><span class="nv">$methods</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">getNumberOfParameters</span><span class="p">()</span><span class="o">.</span><span class="s2">" parametres</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="nx">FILE_APPEND</span><span class="p">);</span>
+		<span class="nv">$error</span> <span class="o">=</span> <span class="nx">fuzz_method</span><span class="p">(</span><span class="nv">$object</span><span class="p">,</span> <span class="nv">$methods</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">,</span> <span class="nv">$methods</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">-&gt;</span><span class="na">getParameters</span><span class="p">());</span>
+
+		<span class="k">if</span> <span class="p">(</span><span class="nv">$error</span> <span class="o">!=</span> <span class="s2">""</span><span class="p">)</span> <span class="p">{</span>
+			<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"    [-] "</span><span class="o">.</span><span class="nv">$error</span><span class="o">.</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="nx">FILE_APPEND</span><span class="p">);</span>
+		<span class="p">}</span>
+
+		<span class="nb">usleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="s1">''</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nv">$f</span> <span class="o">=</span> <span class="s2">"fuzzClass_"</span><span class="o">.</span><span class="nb">date</span><span class="p">(</span><span class="s1">'H_m_s'</span><span class="p">,</span> <span class="nb">time</span><span class="p">())</span><span class="o">.</span><span class="s2">".txt"</span><span class="p">;</span>
+<span class="nv">$listClass</span> <span class="o">=</span> <span class="nb">get_declared_classes</span><span class="p">();</span>
+
+<span class="nv">$r</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+<span class="nv">$error</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+<span class="nv">$filename</span> <span class="o">=</span> <span class="nv">$argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+<span class="nv">$i</span> <span class="o">=</span> <span class="nv">$argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"["</span><span class="o">.</span><span class="nv">$i</span><span class="o">.</span><span class="s2">"] "</span><span class="o">.</span><span class="nv">$listClass</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="o">.</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="nx">FILE_APPEND</span><span class="p">);</span>
+
+<span class="nv">$error</span> <span class="o">=</span> <span class="nx">fuzz_class</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="nv">$listClass</span><span class="p">[</span><span class="nv">$i</span><span class="p">]);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$error</span> <span class="o">!=</span> <span class="s2">""</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s2">"[-] "</span><span class="o">.</span><span class="nv">$error</span><span class="o">.</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="nx">FILE_APPEND</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cp">?&gt;</span></code></pre></figure>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>
