@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | Attacking AES and DSA</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  	<link href="/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		        <li><a href="/feed.xml">RSS</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 id="attacking-aes-and-dsa">Attacking AES and DSA</h1>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Recently I was involved in a security conference called <a href="https://secuday.github.io/">SecuDay</a> where I have presented <a href="https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf">Attacking Games for Fun and Profit</a>. 
+At the end of the conference, we are invited to resolve some challenges conceived by <a href="http://www.lifl.fr/~bouillag/">Charles Bouillaguet</a>.
+There was three levels, easy and medium level are based on the bruteforce of a <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard">Advanced Encryption Standard</a> 128-bits encryption and the hard level was to crack a bad implementation of the <a href="https://en.wikipedia.org/wiki/Digital_Signature_Algorithm">Digital Signature Algorithm</a>.
+The same implementation failure of DSA was used to break the Sony PS3.</p>
+
+<h1 id="advanced-encryption-standard">Advanced Encryption Standard</h1>
+
+<h2 id="presentation">Presentation</h2>
+
+<p>AES is an old symmetric-encryption published in 1977. It’s based on multiple substitutions and permutations and designed to be fast in both software and hardware.
+We can use a key size of 128, 192 or 256 bits. The idea of this challenge is to show that even if AES is effective, a bad choice of the key can compromise all the system.</p>
+
+<p>Here, we will use AES in CBC (Cipher Block Chaining) mode. In this mode, each block will be encrypted thanks to the previous block.
+In consequence, the first block needs to be calculated: it’s called the IV (Initialization Vector). In OpenSSL, the IV is based on a password:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>IV = md5(md5(password+salt) + password + salt)
+</code></pre>
+</div>
+
+<p>In addition, a salt will be used. This salt will be generated randomly by OpenSSL and it will be used to generate the IV and added in the beginning of the encrypted file.
+In consequence, if we encrypt two times the same file with the same password, it will generate two totally different outputs.</p>
+
+<h2 id="easy-level">Easy Level</h2>
+
+<p>In the first level, we need to bruteforce a file which use a password contained in a dictionnary of 45.000 passwords.
+In consequence, I have used a totally dumb method: to launch the OpenSSL shell and test all the passwords. 
+Finally I have searched an english text (ASCII only) in all the outputs generated: I have got the valid password in less than 5 minutes. 
+“If it looks stupid but it works, it’s not stupid”.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="c"># Test all the passwords</span>
+<span class="kn">import</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">progressbar</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'words.txt'</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
+
+<span class="n">bar</span> <span class="o">=</span> <span class="n">progressbar</span><span class="o">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">max_value</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">))</span>
+<span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="nb">file</span> <span class="o">=</span> <span class="s">''</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
+    <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="nb">file</span> <span class="o">=</span> <span class="s">'out/'</span><span class="o">+</span><span class="n">key</span><span class="o">+</span><span class="s">'.txt'</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s">'openssl'</span><span class="p">,</span> <span class="s">'enc'</span><span class="p">,</span> <span class="s">'-d'</span><span class="p">,</span> <span class="s">'-aes-128-cbc'</span><span class="p">,</span> <span class="s">'-base64'</span><span class="p">,</span> <span class="s">'-pass'</span><span class="p">,</span> <span class="s">'pass:'</span><span class="o">+</span><span class="n">key</span><span class="p">,</span> <span class="s">'-in'</span><span class="p">,</span> <span class="s">'easy.txt'</span><span class="p">,</span> <span class="s">'-out'</span><span class="p">,</span> <span class="nb">file</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="n">b</span><span class="s">''</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span> 
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">end'</span><span class="p">)</span>
+
+<span class="c"># Search the valid output</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
+
+<span class="k">def</span> <span class="nf">is_ascii</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">128</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="n">path</span> <span class="o">=</span> <span class="s">"out/"</span>
+<span class="n">dirs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span> <span class="n">path</span> <span class="p">)</span>
+
+<span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="nb">file</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
+
+   <span class="k">try</span><span class="p">:</span>
+       <span class="n">buf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+       <span class="k">if</span> <span class="n">is_ascii</span><span class="p">(</span><span class="n">buf</span><span class="p">):</span>
+           <span class="k">print</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+   <span class="k">except</span><span class="p">:</span>
+       <span class="k">pass</span>
+   <span class="k">finally</span><span class="p">:</span>
+       <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></code></pre></figure>
+
+<h2 id="medium-level">Medium Level</h2>
+
+<p>For this second level, the idea was the same but the password has been modified. One letter has been capitalized and one digit has been inserted.
+If you use the same method, you will get the password in 48 hours: I think that we can do something better.
+I have done all the AES directly in python, including the IV calculation. You add the multithreading and you can get the password in less than 5 minutes:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">progressbar</span>
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">from</span> <span class="nn">Crypto.Cipher</span> <span class="kn">import</span> <span class="n">AES</span>
+<span class="kn">from</span> <span class="nn">Crypto.Protocol.KDF</span> <span class="kn">import</span> <span class="n">PBKDF1</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="k">def</span> <span class="nf">passToKeyIv</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">salt</span><span class="p">):</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">'latin-1'</span><span class="p">)</span>
+
+    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+    <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">password</span><span class="o">+</span><span class="n">salt</span><span class="p">)</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">md5</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+
+    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+    <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="n">password</span><span class="o">+</span><span class="n">salt</span><span class="p">)</span>
+    <span class="n">iv</span> <span class="o">=</span> <span class="n">md5</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">is_ascii</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span> <span class="o">&lt;</span> <span class="mi">128</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">polypassword</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">letter_position</span><span class="p">,</span> <span class="n">digit_position</span><span class="p">,</span> <span class="n">digit</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">!=</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]:</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">letter_position</span><span class="p">]</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">letter_position</span><span class="p">]</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">digit_position</span><span class="p">]</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">digit</span><span class="p">)</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">digit_position</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">password</span>
+
+<span class="k">def</span> <span class="nf">testPassword</span><span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">digit</span><span class="p">,</span> <span class="n">progress</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">password_base</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
+        <span class="n">progress</span><span class="p">[</span><span class="n">digit</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">for</span> <span class="n">letter_position</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">password_base</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">digit_position</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">password_base</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">password</span> <span class="o">=</span> <span class="n">polypassword</span><span class="p">(</span><span class="n">password_base</span><span class="p">,</span> <span class="n">letter_position</span><span class="p">,</span> <span class="n">digit_position</span><span class="p">,</span> <span class="n">digit</span><span class="p">)</span>
+
+                <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span> <span class="o">=</span> <span class="n">passToKeyIv</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">salt</span><span class="p">)</span>
+                <span class="n">aes</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">aes</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">binary</span><span class="p">[</span><span class="mi">16</span><span class="p">:])</span>
+
+                <span class="k">if</span> <span class="n">is_ascii</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Password = "</span><span class="o">+</span><span class="n">password</span><span class="p">)</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'medium.txt'</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
+<span class="n">text</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">binary</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">salt</span> <span class="o">=</span> <span class="n">binary</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">16</span><span class="p">]</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'words.txt'</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
+
+<span class="n">max_bar</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span>
+<span class="n">bar</span> <span class="o">=</span> <span class="n">progressbar</span><span class="o">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">max_value</span><span class="o">=</span><span class="n">max_bar</span><span class="p">)</span>
+<span class="n">progress</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">10</span>
+<span class="n">msg</span> <span class="o">=</span> <span class="s">""</span>
+
+<span class="k">for</span> <span class="n">digit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">testPassword</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">digit</span><span class="p">,</span> <span class="n">progress</span><span class="p">))</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">progress</span><span class="p">))</span></code></pre></figure>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>D:\SecuDay\medium&gt;python attack2.py
+ 42% (194135 of 454030) |########################                                  | Elapsed Time: 0:04:55 ETA: 0:06:35
+Password = handCuff5s
+</code></pre>
+</div>
+
+<p>I have tested this method for the first level, and I have got the password in less than one second:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>D:\SecuDay\easy&gt;python attack2.py
+ 33% (15262 of 45403) |####################                                        | Elapsed Time: 0:00:00 ETA: 0:00:01
+Password = eventuality
+</code></pre>
+</div>
+
+<p>To situate the time to replicate this bruteforce, my processor is an <a href="http://ark.intel.com/products/80807/Intel-Core-i7-4790K-Processor-8M-Cache-up-to-4_40-GHz">Intel Core i7-4790k</a> (Quad cores, 4.4 Ghz).</p>
+
+<h1 id="digital-signature-algorithm">Digital Signature Algorithm</h1>
+
+<h2 id="presentation-1">Presentation</h2>
+
+<p>DSA is an algorithm to sign messages. It’s royalty-free and was published in 1991. Like RSA, is based on the <a href="https://en.wikipedia.org/wiki/P_versus_NP_problem">P versus NP problem</a>.
+The DSA signature is composed of two numbers (r, s):</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>r = g^k mod p mod q
+s = k^-1 (H(m) + x*r) mod q
+</code></pre>
+</div>
+
+<p>p and q are two prime numbers. x and k are generated randomly and they are less than q. H(m) is the hash of the message, here we will use SHA-256.
+This algorithm can be used with OpenSSL. We can verify a message like that:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>openssl dgst -sha256 -verify pk.pem -signature message.der message.txt
+</code></pre>
+</div>
+
+<p>The couple (k, x) will be our private key.</p>
+
+<h2 id="hard-level">Hard Level</h2>
+
+<p>We have a website than generate poems and generate its DSA signature. Of course, the website give us one public key to verify the message according to the signature.
+The target was to recover the private key to generate a self-signed message which is corresponding to the same public key.
+When we send a request to the server, we got a message in this format:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nt">"poem"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Le vieux marin breton..."</span><span class="p">,</span><span class="w"> 
+    </span><span class="nt">"signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"MEQCICKAWoFX1uNjpdNHYRn31F1feKxXaO9OyFym4UolBE2JAiALqJLv8h7Bypra/jLdDKi38TRgs3l9td54FViWEPU/vA=="</span><span class="w">
+</span><span class="p">}</span><span class="w"> 
+</span></code></pre>
+</div>
+
+<p>It’s actually a JSON message containing our poem and our signature. The signature is encoded in base64 and we can recover the couple (r, s) by parsing the <a href="https://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One">ASN.1</a> format.
+So in consequence, the first step was to extract all this information and save them:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">base64</span><span class="o">,</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">codecs</span>
+
+<span class="k">def</span> <span class="nf">parse_asn1</span><span class="p">(</span><span class="n">der</span><span class="p">):</span>
+    <span class="n">vr</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">der</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mh">0x30</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="nb">ValueError</span><span class="p">(</span><span class="s">"Invalid format header (0x30)"</span><span class="p">)</span>
+
+    <span class="c"># VR</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="n">der</span><span class="p">[</span><span class="n">cursor</span><span class="p">]</span> <span class="o">!=</span> <span class="mh">0x02</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="nb">ValueError</span><span class="p">(</span><span class="s">"Invalid VR header (0x02)"</span><span class="p">)</span>
+
+    <span class="n">cursor</span> <span class="o">+=</span> <span class="mi">1</span>    
+    <span class="n">vr_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">der</span><span class="p">[</span><span class="n">cursor</span><span class="p">])</span>
+
+    <span class="n">cursor</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">vr</span> <span class="o">=</span> <span class="n">der</span><span class="p">[</span><span class="n">cursor</span> <span class="p">:</span> <span class="n">cursor</span><span class="o">+</span><span class="n">vr_length</span><span class="p">]</span>
+
+    <span class="n">cursor</span> <span class="o">+=</span> <span class="n">vr_length</span> 
+    <span class="k">if</span> <span class="n">der</span><span class="p">[</span><span class="n">cursor</span><span class="p">]</span> <span class="o">!=</span> <span class="mh">0x02</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="nb">ValueError</span><span class="p">(</span><span class="s">"Invalid VS header (0x02)"</span><span class="p">)</span>
+
+    <span class="n">cursor</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">vs_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">der</span><span class="p">[</span><span class="n">cursor</span><span class="p">])</span>
+
+    <span class="n">cursor</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="n">der</span><span class="p">[</span><span class="n">cursor</span><span class="p">:]</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">vr</span><span class="p">,</span><span class="n">vs</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">hex_bignumber</span><span class="p">(</span><span class="n">number</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="s">""</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">number</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s">"</span><span class="si">%02</span><span class="s">X"</span> <span class="o">%</span> <span class="n">n</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="n">answer</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s">'http://security.fil.cool/hard/crypto-poet'</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">answer</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="n">signature</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">'signature'</span><span class="p">]</span>
+<span class="n">signature</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+
+<span class="c"># backup</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'input.der'</span><span class="p">,</span> <span class="s">'wb'</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">codecs</span><span class="o">.</span><span class="nb">open</span><span class="p">(</span><span class="s">'poem.txt'</span><span class="p">,</span> <span class="s">'w'</span><span class="p">,</span> <span class="s">'utf-8'</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'poem'</span><span class="p">])</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c"># parse</span>
+<span class="n">der</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">signature</span><span class="p">]</span> <span class="c"># DER format</span>
+<span class="p">(</span><span class="n">vr</span><span class="p">,</span><span class="n">vs</span><span class="p">)</span> <span class="o">=</span> <span class="n">parse_asn1</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">"r = "</span><span class="o">+</span><span class="n">hex_bignumber</span><span class="p">(</span><span class="n">vr</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"s = "</span><span class="o">+</span><span class="n">hex_bignumber</span><span class="p">(</span><span class="n">vs</span><span class="p">))</span></code></pre></figure>
+
+<p>After multiple call, we see that the number r is always the same. In consequence, we can conclude that the number k is static:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>r = g^k mod p mod q
+</code></pre>
+</div>
+
+<p>If two messages have the same k, all the system breaks (the modulation per q is not done for a better readability):</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>sa = k^-1 (H(ma) + x*r)
+sb = k^-1 (H(mb) + x*r)
+
+=&gt; sa - sb = k^-1 [H(ma) + x*r - H(mb) - x*r]
+=&gt; sa - sb = k^-1 [H(ma) - H(mb)]
+=&gt; k = [H(ma) - H(mb)] / (sa - sb)
+</code></pre>
+</div>
+
+<p>And now that we have k, we can recover x (m can be the message A or B):</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>s = k^-1 (H(m) + x*r) mod q
+=&gt; x = [(s*k) - H(m)] - r^-1 mod q
+</code></pre>
+</div>
+
+<p>I have implemented this algorithm with <a href="https://pypi.python.org/pypi/gmpy2">gmpy2</a>:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">hashlib</span><span class="o">,</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">gmpy2</span> <span class="kn">import</span> <span class="n">is_prime</span><span class="p">,</span> <span class="n">mpq</span><span class="p">,</span> <span class="n">powmod</span>
+
+<span class="k">def</span> <span class="nf">int_to_hexarray</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">n_hex</span> <span class="o">=</span> <span class="s">"</span><span class="si">%</span><span class="s">x"</span> <span class="o">%</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_hex</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">n_hex</span> <span class="o">=</span> <span class="s">'0'</span> <span class="o">+</span> <span class="n">n_hex</span>
+
+    <span class="n">n_array</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">n_hex</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">],</span> <span class="mi">16</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_hex</span><span class="p">),</span> <span class="mi">2</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">n_array</span>
+
+<span class="c">#####################</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'poem1.txt'</span><span class="p">,</span> <span class="s">'rb'</span><span class="p">)</span>
+<span class="n">poem1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">s1</span> <span class="o">=</span> <span class="mh">0x0588B660896F999520217C3A0290A48DDEF103342F30C3AFE69CF88F6275D573</span>
+
+<span class="c">#####################</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'poem2.txt'</span><span class="p">,</span> <span class="s">'rb'</span><span class="p">)</span>
+<span class="n">poem2</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">s2</span> <span class="o">=</span> <span class="mh">0x7B2C4707F3AD96AD93BE8A01F7A8B10F3B0AE7CC148F5F719F1DF28990BBC9B9</span>
+
+<span class="c">#####################</span>
+<span class="n">r</span> <span class="o">=</span> <span class="mh">0x22805A8157D6E363A5D3476119F7D45D5F78AC5768EF4EC85CA6E14A25044D89</span> <span class="c"># the same for poem1 and poem2</span>
+
+<span class="c"># pub info</span>
+<span class="n">p</span> <span class="o">=</span> <span class="mh">0x00d899aed2c32937911ea8bdc7dce006cc471a178b908806e6f67d20ccb8017de4f437947d161b5d478f23d98a9ba67118f5b1121ad04db0214fea8b9a23c2cd341dab342ad8b453b771b78b978a0f73ec445d36fb42ee5eff4890753a35cf88eb3b9efa74533a2ef5d69042990f286b8528e6e1bd25ed645febf44cb9f54533fff683ccdbe77a929e883d5a714c61af9f5d745443f7e18ea163ba69012e64096ab3929206b9bfa0ce881f5a4d7d6ac15c93fd4eb4935363b40fe787aa0ceed6f556b7bbcec3c36047ebe2787f0c2f1fcfb4d925b35bfadf0c61cb135684c772c21e9b110b316410d59d5aa94e6c1fda3bb8a4b6550b3e3675f41bd64aea47d323</span>
+<span class="n">q</span> <span class="o">=</span> <span class="mh">0x008a8624d936fcf2e1b5f70ec351a4d0184d211e00b11883a5cee71e2b7ffa90a9</span>
+<span class="n">g</span> <span class="o">=</span> <span class="mh">0x7c9d027c3b807cc7c7681ea2cd283e8bbf9d0c80a20518584a2b3ffe077a69fc8c045907a56a6f5497b30de96e9fe58ebbae0f64ca52a3da18348b2ba242bf8ae75a73c3bfa6e9154476d306c6cfea7c056da1834c8c441cce3f939b5a1cc0f4d2ed67588c89ec0ba2adfdd1c3c0b1ccb0dba29858b172928f6fbd94c0ea31849c8fb18de7c6df962583ff9a9e36271c6e8f95269b776bc1ecba78d9d51465ff5e2c6332ceb198996c0c6c7c16a63dc115ff4f02ef5fc5ec2e7d2bc8ded843e6abefdfc454e420db1c95194047b06ccb9436267e8630401008907eebc309e320c4514d10702f93fd9dfef0d851f1548c27f0551e92259c908a2aca878fd453a7</span>
+
+<span class="c"># Calculte hashs</span>
+<span class="n">h1</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">poem1</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="n">h1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="n">h2</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">poem2</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="n">h2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h2</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="c"># Search k</span>
+<span class="c"># https://rdist.root.org/2010/11/19/dsa-requirements-for-random-k-value/</span>
+<span class="n">k</span> <span class="o">=</span> <span class="p">(</span><span class="n">h1</span> <span class="o">-</span> <span class="n">h2</span><span class="p">)</span> <span class="o">*</span> <span class="n">powmod</span><span class="p">(</span><span class="n">s1</span> <span class="o">-</span> <span class="n">s2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+
+<span class="c"># Verify k : we recalculate r</span>
+<span class="n">verif_r</span> <span class="o">=</span> <span class="n">powmod</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"r = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"  = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">verif_r</span><span class="p">))</span>
+
+<span class="c"># Search x</span>
+<span class="c"># https://rdist.root.org/2009/05/17/the-debian-pgp-disaster-that-almost-was/</span>
+<span class="n">r_</span> <span class="o">=</span>  <span class="n">powmod</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="p">(((</span><span class="n">s1</span> <span class="o">*</span> <span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">h1</span><span class="p">)</span> <span class="o">*</span> <span class="n">r_</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">x = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+<span class="c"># Verify x : we recalculate s1 and s2</span>
+<span class="n">k_</span> <span class="o">=</span> <span class="n">powmod</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+<span class="n">verif_s1</span> <span class="o">=</span> <span class="n">k_</span> <span class="o">*</span> <span class="p">(</span><span class="n">h1</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">s1 = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">s1</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"   = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">verif_s1</span><span class="p">))</span>
+<span class="n">verif_s2</span> <span class="o">=</span> <span class="n">k_</span> <span class="o">*</span> <span class="p">(</span><span class="n">h2</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"s2 = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">s2</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"   = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">verif_s2</span><span class="p">))</span>
+
+<span class="c"># Private key reversed, now we will sign our own file</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'message.txt'</span><span class="p">,</span> <span class="s">'rb'</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="n">hs</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="n">hs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="n">msg_s</span> <span class="o">=</span> <span class="n">k_</span> <span class="o">*</span> <span class="p">(</span><span class="n">hs</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">msg_s = "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">msg_s</span><span class="p">))</span>
+
+<span class="c"># save the DER signature file</span>
+<span class="n">r_array</span> <span class="o">=</span> <span class="n">int_to_hexarray</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+<span class="n">s_array</span> <span class="o">=</span> <span class="n">int_to_hexarray</span><span class="p">(</span><span class="n">msg_s</span><span class="p">)</span>
+
+<span class="n">der</span> <span class="o">=</span> <span class="p">[</span><span class="mh">0x30</span><span class="p">]</span>
+<span class="n">der</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">2</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">r_array</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">s_array</span><span class="p">)]</span>
+<span class="n">der</span> <span class="o">+=</span> <span class="p">[</span><span class="mh">0x02</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">r_array</span><span class="p">)]</span> <span class="o">+</span> <span class="n">r_array</span>
+<span class="n">der</span> <span class="o">+=</span> <span class="p">[</span><span class="mh">0x02</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">s_array</span><span class="p">)]</span> <span class="o">+</span> <span class="n">s_array</span>
+<span class="n">der</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'message.der'</span><span class="p">,</span> <span class="s">'wb'</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c"># openssl dgst -sha256 -verify pk.pem -signature message.der message.txt</span></code></pre></figure>
+
+<p>And finally:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>D:\SecuDay\hard&gt;python resolv.py
+
+r = 15605417920377590881469389245680896390382750610028822061399189974844690419081
+  = 15605417920377590881469389245680896390382750610028822061399189974844690419081
+
+x = 27710599426643914408854717972801960575756827944301668676079434617639908625579
+
+s1 = 2503114164189881647415455885730602322305901068129039816129641154861069620595
+   = 2503114164189881647415455885730602322305901068129039816129641154861069620595
+s2 = 55712711884964560558335380354585001459364905638090643973787639922932968049081
+   = 55712711884964560558335380354585001459364905638090643973787639922932968049081
+
+msg_s = 55334051898166299680758219392896539106835523742624946935556046710719151299620
+</code></pre>
+</div>
+
+<p>Thank you to all the organizers of the SecuDay conference.</p>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>
