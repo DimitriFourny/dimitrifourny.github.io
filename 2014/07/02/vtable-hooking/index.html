@@ -31,6 +31,7 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		        <li><a href="/feed.xml">RSS</a></li>
@@ -106,13 +107,11 @@ This technique working on Linux and Windows, but my example is compiled on Linux
 <p>At the compilation time, how the compiler can know that <code>varB-&gt;Hello()</code> is a reference to <code>A::Hello()</code> or <code>B:Hello()</code>? 
 Because of it, when a C++ program is compiled, the compiled code will use a <strong>Virtual Call Table</strong> (VTable):</p>
 
-<pre>
-*A  -&gt;  &amp;VTable (ex: 0x401111)  -&gt;  &amp;Hello      (ex: 0x40AAAA)
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">*A  -&gt;  &amp;VTable (ex: 0x401111)  -&gt;  &amp;Hello      (ex: 0x40AAAA)
         m_value (ex: 0x1337)        &amp;Useless    (ex: 0x40BBBB)
 
 *B  -&gt;  &amp;VTable (ex: 0x402222)  -&gt;  &amp;Hello      (ex: 0x40CCCC)
-        m_value (ex: 0x1338)        &amp;Useless    (ex: 0x40BBBB)
-</pre>
+        m_value (ex: 0x1338)        &amp;Useless    (ex: 0x40BBBB)</code></pre></figure>
 
 <p>With this process, just with the object address we can call the right method!</p>
 
@@ -170,79 +169,79 @@ Because of it, when a C++ program is compiled, the compiled code will use a <str
 
 <p>We will study how the compiler have compiled our code:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">display</span><span class="o">/</span><span class="n">i</span> <span class="err">$</span><span class="n">pc</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ display/i $pc
 
-<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">disas</span> <span class="n">main</span>
-<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="n">for</span> <span class="n">function</span> <span class="n">main</span><span class="p">()</span><span class="o">:</span>
-   <span class="mh">0x0000000000400887</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;:</span> <span class="k">push</span>   <span class="n">rbp</span>
-   <span class="mh">0x0000000000400888</span> <span class="o">&lt;+</span><span class="mi">1</span><span class="o">&gt;:</span> <span class="k">mov</span>    <span class="n">rbp</span><span class="p">,</span><span class="n">rsp</span>
-   <span class="mh">0x000000000040088b</span> <span class="o">&lt;+</span><span class="mi">4</span><span class="o">&gt;:</span> <span class="k">push</span>   <span class="n">r12</span>
-   <span class="mh">0x000000000040088d</span> <span class="o">&lt;+</span><span class="mi">6</span><span class="o">&gt;:</span> <span class="k">push</span>   <span class="n">rbx</span>
-   <span class="mh">0x000000000040088e</span> <span class="o">&lt;+</span><span class="mi">7</span><span class="o">&gt;:</span> <span class="k">sub</span>    <span class="n">rsp</span><span class="p">,</span><span class="mh">0x40</span>
-   <span class="mh">0x0000000000400892</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">edi</span><span class="p">,</span><span class="mh">0x10</span>
-<span class="o">=&gt;</span> <span class="mh">0x0000000000400897</span> <span class="o">&lt;+</span><span class="mi">16</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400760</span> <span class="o">&lt;</span><span class="n">_Znwm</span><span class="err">@</span><span class="n">plt</span><span class="o">&gt;</span>
-   <span class="mh">0x000000000040089c</span> <span class="o">&lt;+</span><span class="mi">21</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rbx</span><span class="p">,</span><span class="n">rax</span>
-   <span class="mh">0x000000000040089f</span> <span class="o">&lt;+</span><span class="mi">24</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rbx</span>
-   <span class="mh">0x00000000004008a2</span> <span class="o">&lt;+</span><span class="mi">27</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400ace</span> <span class="o">&lt;</span><span class="n">A</span><span class="o">::</span><span class="n">A</span><span class="p">()</span><span class="o">&gt;</span>
-   <span class="mh">0x00000000004008a7</span> <span class="o">&lt;+</span><span class="mi">32</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span><span class="p">,</span><span class="n">rbx</span>
-   <span class="mh">0x00000000004008ab</span> <span class="o">&lt;+</span><span class="mi">36</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
-   <span class="mh">0x00000000004008af</span> <span class="o">&lt;+</span><span class="mi">40</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
-   <span class="mh">0x00000000004008b2</span> <span class="o">&lt;+</span><span class="mi">43</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
-   <span class="mh">0x00000000004008b5</span> <span class="o">&lt;+</span><span class="mi">46</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdx</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
-   <span class="mh">0x00000000004008b9</span> <span class="o">&lt;+</span><span class="mi">50</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rdx</span>
-   <span class="mh">0x00000000004008bc</span> <span class="o">&lt;+</span><span class="mi">53</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="n">rax</span></code></pre></figure>
+gdb-peda$ disas main
+Dump of assembler code for function main():
+   0x0000000000400887 &lt;+0&gt;: push   rbp
+   0x0000000000400888 &lt;+1&gt;: mov    rbp,rsp
+   0x000000000040088b &lt;+4&gt;: push   r12
+   0x000000000040088d &lt;+6&gt;: push   rbx
+   0x000000000040088e &lt;+7&gt;: sub    rsp,0x40
+   0x0000000000400892 &lt;+11&gt;:    mov    edi,0x10
+=&gt; 0x0000000000400897 &lt;+16&gt;:    call   0x400760 &lt;_Znwm@plt&gt;
+   0x000000000040089c &lt;+21&gt;:    mov    rbx,rax
+   0x000000000040089f &lt;+24&gt;:    mov    rdi,rbx
+   0x00000000004008a2 &lt;+27&gt;:    call   0x400ace &lt;A::A()&gt;
+   0x00000000004008a7 &lt;+32&gt;:    mov    QWORD PTR [rbp-0x48],rbx
+   0x00000000004008ab &lt;+36&gt;:    mov    rax,QWORD PTR [rbp-0x48]
+   0x00000000004008af &lt;+40&gt;:    mov    rax,QWORD PTR [rax]
+   0x00000000004008b2 &lt;+43&gt;:    mov    rax,QWORD PTR [rax]
+   0x00000000004008b5 &lt;+46&gt;:    mov    rdx,QWORD PTR [rbp-0x48]
+   0x00000000004008b9 &lt;+50&gt;:    mov    rdi,rdx
+   0x00000000004008bc &lt;+53&gt;:    call   rax</code></pre></figure>
 
 <p>We start at:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm">   <span class="mh">0x0000000000400892</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">edi</span><span class="p">,</span><span class="mh">0x10</span>
-<span class="o">=&gt;</span> <span class="mh">0x0000000000400897</span> <span class="o">&lt;+</span><span class="mi">16</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400760</span> <span class="o">&lt;</span><span class="n">_Znwm</span><span class="err">@</span><span class="n">plt</span><span class="o">&gt;</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">   0x0000000000400892 &lt;+11&gt;:    mov    edi,0x10
+=&gt; 0x0000000000400897 &lt;+16&gt;:    call   0x400760 &lt;_Znwm@plt&gt;</code></pre></figure>
 
 <p><strong>edi</strong> contain the class size and <strong>_Znwm@plt</strong> use malloc to allocate some memory for our object.</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">info</span> <span class="n">registers</span> 
-<span class="n">rax</span>            <span class="mh">0x602010</span> <span class="mh">0x602010</span>
-<span class="n">rbx</span>            <span class="mh">0x602010</span> <span class="mh">0x602010</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ info registers 
+rax            0x602010 0x602010
+rbx            0x602010 0x602010
 
-    <span class="mh">0x000000000040089c</span> <span class="o">&lt;+</span><span class="mi">21</span><span class="o">&gt;:</span>   <span class="k">mov</span>    <span class="n">rbx</span><span class="p">,</span><span class="n">rax</span>
-    <span class="mh">0x000000000040089f</span> <span class="o">&lt;+</span><span class="mi">24</span><span class="o">&gt;:</span>   <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rbx</span>
- <span class="o">=&gt;</span> <span class="mh">0x00000000004008a2</span> <span class="o">&lt;+</span><span class="mi">27</span><span class="o">&gt;:</span>   <span class="k">call</span>   <span class="mh">0x400ace</span> <span class="o">&lt;</span><span class="n">A</span><span class="o">::</span><span class="n">A</span><span class="p">()</span><span class="o">&gt;</span></code></pre></figure>
+    0x000000000040089c &lt;+21&gt;:   mov    rbx,rax
+    0x000000000040089f &lt;+24&gt;:   mov    rdi,rbx
+ =&gt; 0x00000000004008a2 &lt;+27&gt;:   call   0x400ace &lt;A::A()&gt;</code></pre></figure>
 
 <p>At the line <strong>&lt;+27&gt;</strong>, we call the constructor of the class A with one parameter, the pointer returned by <strong>_Znwm@plt</strong>:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">x</span><span class="o">/</span><span class="mi">3</span><span class="n">x</span> <span class="err">$</span><span class="n">rax</span>
-<span class="mh">0x602010</span><span class="o">:</span>   <span class="mh">0x0000000000000000</span>  <span class="mh">0x0000000000000000</span>
-<span class="mh">0x602020</span><span class="o">:</span>   <span class="mh">0x0000000000000000</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ x/3x $rax
+0x602010:   0x0000000000000000  0x0000000000000000
+0x602020:   0x0000000000000000
 
-<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">ni</span>
-<span class="n">Init</span> <span class="n">A</span>
-<span class="mh">0x00000000004008a7</span>  <span class="mi">38</span>      <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="n">new</span> <span class="n">A</span><span class="p">()</span><span class="c">;</span>
-<span class="mi">1</span><span class="o">:</span> <span class="n">x</span><span class="o">/</span><span class="n">i</span> <span class="err">$</span><span class="n">pc</span>
-<span class="o">=&gt;</span> <span class="mh">0x4008a7</span> <span class="o">&lt;</span><span class="n">main</span><span class="p">()</span><span class="o">+</span><span class="mi">32</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span><span class="p">,</span><span class="n">rbx</span>
+gdb-peda$ ni
+Init A
+0x00000000004008a7  38      A* varA = new A();
+1: x/i $pc
+=&gt; 0x4008a7 &lt;main()+32&gt;:    mov    QWORD PTR [rbp-0x48],rbx
 
-<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">x</span><span class="o">/</span><span class="mi">3</span><span class="n">x</span> <span class="err">$</span><span class="n">rax</span>
-<span class="mh">0x602010</span><span class="o">:</span>   <span class="mh">0x0000000000400df0</span>  <span class="mh">0x0000000000001337</span>
-<span class="mh">0x602020</span><span class="o">:</span>   <span class="mh">0x0000000000000000</span></code></pre></figure>
+gdb-peda$ x/3x $rax
+0x602010:   0x0000000000400df0  0x0000000000001337
+0x602020:   0x0000000000000000</code></pre></figure>
 
 <p>What is it? It is just our object allocated in memory! Here, <strong>0x400df0</strong> is a pointer to our VTable and <strong>0x1337</strong> is the value of our <strong>m_value</strong>!
 We continue the debug:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm">   <span class="mh">0x00000000004008a2</span> <span class="o">&lt;+</span><span class="mi">27</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="mh">0x400ace</span> <span class="o">&lt;</span><span class="n">A</span><span class="o">::</span><span class="n">A</span><span class="p">()</span><span class="o">&gt;</span>
-   <span class="mh">0x00000000004008a7</span> <span class="o">&lt;+</span><span class="mi">32</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span><span class="p">,</span><span class="n">rbx</span>
-   <span class="mh">0x00000000004008ab</span> <span class="o">&lt;+</span><span class="mi">36</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
-   <span class="mh">0x00000000004008af</span> <span class="o">&lt;+</span><span class="mi">40</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
-   <span class="mh">0x00000000004008b2</span> <span class="o">&lt;+</span><span class="mi">43</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rax</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="p">[rax]</span>
-   <span class="mh">0x00000000004008b5</span> <span class="o">&lt;+</span><span class="mi">46</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdx</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="err">[</span><span class="n">rbp</span><span class="o">-</span><span class="mh">0x48</span><span class="err">]</span>
-   <span class="mh">0x00000000004008b9</span> <span class="o">&lt;+</span><span class="mi">50</span><span class="o">&gt;:</span>    <span class="k">mov</span>    <span class="n">rdi</span><span class="p">,</span><span class="n">rdx</span>
-<span class="o">=&gt;</span> <span class="mh">0x00000000004008bc</span> <span class="o">&lt;+</span><span class="mi">53</span><span class="o">&gt;:</span>    <span class="k">call</span>   <span class="n">rax</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">   0x00000000004008a2 &lt;+27&gt;:    call   0x400ace &lt;A::A()&gt;
+   0x00000000004008a7 &lt;+32&gt;:    mov    QWORD PTR [rbp-0x48],rbx
+   0x00000000004008ab &lt;+36&gt;:    mov    rax,QWORD PTR [rbp-0x48]
+   0x00000000004008af &lt;+40&gt;:    mov    rax,QWORD PTR [rax]
+   0x00000000004008b2 &lt;+43&gt;:    mov    rax,QWORD PTR [rax]
+   0x00000000004008b5 &lt;+46&gt;:    mov    rdx,QWORD PTR [rbp-0x48]
+   0x00000000004008b9 &lt;+50&gt;:    mov    rdi,rdx
+=&gt; 0x00000000004008bc &lt;+53&gt;:    call   rax</code></pre></figure>
 
 <p>This manipulation class the <strong>Hello()</strong> of our object: we just call the pointer stocked at <strong>VTable[0]</strong>! And, of course, we stock in <strong>rdi</strong> the pointer on our object to pass it in parameter.<br />
 Why we do this? When we do <code>this.m_value = 0x1337</code>, our method will need the address of our object (<strong>this</strong>), so we need to send it!</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">info</span> <span class="n">registers</span> <span class="err">$</span><span class="n">rdi</span>
-<span class="n">rdi</span>            <span class="mh">0x602010</span> <span class="mh">0x602010</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ info registers $rdi
+rdi            0x602010 0x602010
 
-<span class="n">gdb</span><span class="o">-</span><span class="n">peda</span><span class="err">$</span> <span class="n">x</span><span class="o">/</span><span class="mi">2</span><span class="n">x</span> <span class="err">$</span><span class="n">rdi</span>
-<span class="mh">0x602010</span><span class="o">:</span>   <span class="mh">0x0000000000400df0</span>  <span class="mh">0x0000000000001337</span></code></pre></figure>
+gdb-peda$ x/2x $rdi
+0x602010:   0x0000000000400df0  0x0000000000001337</code></pre></figure>
 
 <h1 id="hooking">Hooking</h1>
 
@@ -316,8 +315,7 @@ Why we do this? When we do <code>this.m_value = 0x1337</code>, our method will n
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span></code></pre></figure>
 
-<pre>
-Init A
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">Init A
 I'm a class A
 I'm an useless method
 Init A
@@ -337,8 +335,7 @@ tableVarB: 0x1523030
     tableVarB[0] (VTable addr):   0x400DD0
     VTable[0] (Hello ptr):        0x400B6A
     VTable[1] (Useless ptr):      0x400B16
-tableVarB[1] (m_value):         0x1338
-</pre>
+tableVarB[1] (m_value):         0x1338</code></pre></figure>
 
 <p>Do you see? The <strong>Hello()</strong> pointer is different for the two object, but the <strong>Useless()</strong> pointer is the same!</p>
 
@@ -406,11 +403,9 @@ tableVarB[1] (m_value):         0x1338
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span></code></pre></figure>
 
-<pre>
-Init A
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">Init A
 I'm a class A
-I'm not a class A but your mValue is 0x1337
-</pre>
+I'm not a class A but your mValue is 0x1337</code></pre></figure>
 
 			</div>
 		</div>

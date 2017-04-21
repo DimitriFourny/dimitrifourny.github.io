@@ -31,6 +31,7 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		        <li><a href="/feed.xml">RSS</a></li>
@@ -140,31 +141,31 @@ An example with our language:</p>
 
 <p>An example of an output with our language:</p>
 
-<p><img src="http://www.dimitrifourny.com/img/ast_ex1.png" alt="AST example" /></p>
+<p><img src="/img/ast_ex1.png" alt="AST example" /></p>
 
 <h2 id="intermediate-language-generator">Intermediate language generator</h2>
 
 <p>The final step (for us), is to translate our AST in a new language:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="k">PUSH</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span>
-<span class="n">SET</span> <span class="n">a</span>
-<span class="k">PUSH</span> <span class="n">a</span>
-<span class="k">PUSH</span> <span class="mi">5</span><span class="p">.</span><span class="mi">0</span>
-<span class="k">ADD</span>
-<span class="n">SET</span> <span class="n">a</span>
-<span class="k">JMP</span> <span class="n">cond1</span>
-<span class="n">body1</span><span class="o">:</span>
-    <span class="k">PUSH</span> <span class="n">a</span>
-    <span class="n">PRINT</span>
-    <span class="k">PUSH</span> <span class="n">a</span>
-    <span class="k">PUSH</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span>
-    <span class="k">ADD</span>
-    <span class="n">SET</span> <span class="n">a</span>
-<span class="n">cond1</span><span class="o">:</span>
-    <span class="k">PUSH</span> <span class="n">a</span>
-    <span class="k">PUSH</span> <span class="mi">10</span><span class="p">.</span><span class="mi">0</span>
-    <span class="k">SUB</span>
-    <span class="k">JNZ</span> <span class="n">body1</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">PUSH 0.0
+SET a
+PUSH a
+PUSH 5.0
+ADD
+SET a
+JMP cond1
+body1:
+    PUSH a
+    PRINT
+    PUSH a
+    PUSH 1.0
+    ADD
+    SET a
+cond1:
+    PUSH a
+    PUSH 10.0
+    SUB
+    JNZ body1</code></pre></figure>
 
 <h1 id="practice">Practice</h1>
 

