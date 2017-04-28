@@ -48,10 +48,10 @@
 
 <h2 id="introduction">Introduction</h2>
 
-<p>You always have a lot of possibility when you make a shellcode, especially on Windows.
+<p>You always have a lot of possibilities when you make a shellcode payload, especially on Windows.
 Do you need to write all your ASM manually or can you be helped by your compiler? Do I need to directly use syscall or to search the functions in memory?
 Because it’s not always simple to make it, I have made the decision to write an article about that.
-I have the habit to do all the work in C and compile it with Visual Studio: the source code is more nice in C, the compiler do a better job to optimize it and you can implement your own obfuscator with LLVM if you want.</p>
+I have the habit to do all the work in C and compile it with Visual Studio: the source code is nicer in C, the compiler do a better job to optimize it and you can implement your own obfuscator with LLVM if you want.</p>
 
 <p>For this example, I will work on a x86 shellcode. Of course this can be totally applied to a x86_64 shellcode or for an other processor.</p>
 
@@ -59,7 +59,7 @@ I have the habit to do all the work in C and compile it with Visual Studio: the 
 
 <h2 id="introduction-1">Introduction</h2>
 
-<p>When a shellcode is loaded in Windows, the first step is to locate the functions that we will use. 
+<p>When a shellcode payload is loaded in Windows, the first step is to locate the functions that we will use. 
 The first step will be to search the Dynamic Link Library (DLL) where the function is stored.
 To do that, we will need to use different structures that I will describe in the following sections.</p>
 
@@ -89,7 +89,7 @@ The TEB has the following structure:</p>
 
 <h2 id="process-environment-block">Process Environment Block</h2>
 
-<p>If the TEB give information about a thread, the PEB will give us information about the process itself.
+<p>If the TEB gives information about a thread, the PEB will give us information about the process itself.
 And the information that we need is the location of the basics DLL.
 In fact, when a process is loaded in memory by Windows, at least two DLL are mapped:</p>
 
@@ -98,9 +98,9 @@ In fact, when a process is loaded in memory by Windows, at least two DLL are map
   <li><em>kernel32.dll</em>, which use the NTDLL functions in a higher level. For example, <em>kernel32!CreateFileA</em> will call <em>ntdll!NtCreateFileW</em> which will call <em>ntoskrnl!ZwCreateFileW</em>.</li>
 </ul>
 
-<p>Depending of Windows version, others DLL can be already present in memory but to be perfectly portable we will just assume that these two DLL are the only DLL already loaded.</p>
+<p>On Windows version, others DLL can be already be present in memory but to be perfectly portable we will just assume that these two DLL are the only DLL already loaded.</p>
 
-<p>Let’s take a look of the TEB structure:</p>
+<p>Let’s take a look at the TEB structure:</p>
 
 <figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">0:000&gt; dt nt!_PEB 
     +0x000 InheritedAddressSpace : UChar
@@ -121,7 +121,7 @@ In fact, when a process is loaded in memory by Windows, at least two DLL are map
     ...
     +0x25c WaitOnAddressHashTable : [128] Ptr32 Void</code></pre></figure>
 
-<p>You can see that we have <em>PEB.BeingDebugged</em>, which is used by <em>IsDebuggerPresent()</em>. But the interesting part for us is that we have <em>PEB.Ldr</em> which correspond to the following structure:</p>
+<p>You can see that we have <em>PEB.BeingDebugged</em>, which is used by <em>IsDebuggerPresent()</em>. But the interesting part for us is that we have <em>PEB.Ldr</em> which corresponds to the following structure:</p>
 
 <figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">0:000&gt; dt nt!_PEB_LDR_DATA
     +0x000 Length           : Uint4B
@@ -157,8 +157,8 @@ Traditionnaly, the first element in <em>InLoadOrderModuleList</em> is the execut
 
 <h2 id="djb-hash">DJB Hash</h2>
 
-<p>Like I have said before, we will not trust the DLL orders and we will do ours research based on the DLL name.
-But in a shellcode, it’s not always a good idea to use ASCII strings or worst, an UNICODE string: it will just make our shellcode bigger!
+<p>Like I have said before, we will not trust the DLL orders and we will do our research based on the DLL name.
+But in a shellcode, it’s not always a good idea to use ASCII strings or worst, a UNICODE string: it will just make our shellcode bigger!
 So I recommend you to use a hash system to compare the DLL name. I will use a DJB hash because it’s a simple and sufficient hash:</p>
 
 <figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="kt">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
@@ -172,13 +172,13 @@ So I recommend you to use a hash system to compare the DLL name. I will use a DJ
     <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
 <span class="p">}</span></code></pre></figure>
 
-<p>Due to the fact that the dll name can be in uppercase or lowercase, it’s can be a good idea to support it in your hash algorithm to have something like this:</p>
+<p>Due to the fact that the dll name can be in uppercase or lowercase, it’s a good idea to support it in your hash algorithm to have something like this:</p>
 
 <figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">   djbHashW(L"ntdll.dll") == djbHashW(L"NTDLL.DLL")</code></pre></figure>
 
 <h2 id="code">Code</h2>
 
-<p>Now that we have speak about how to do it, it’s time to code our idea:</p>
+<p>Now that we have spoken about how to do it, it’s time to code our idea:</p>
 
 <figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LSA_UNICODE_STRING</span> <span class="p">{</span>
     <span class="n">USHORT</span> <span class="n">Length</span><span class="p">;</span>
@@ -255,13 +255,13 @@ So I recommend you to use a hash system to compare the DLL name. I will use a DJ
   <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span></code></pre></figure>
 
-<p>And if you want to use others DLL, you will just need to load them with <em>LoadLibrary()</em>. Don’t worry, we will do that in our shellcode with <em>user32.dll</em>.</p>
+<p>And if you want to use other DLLs, you will just need to load them with <em>LoadLibrary()</em>. Don’t worry, we will do that in our shellcode with <em>user32.dll</em>.</p>
 
 <h1 id="function-address">Function address</h1>
 
 <h2 id="introduction-2">Introduction</h2>
 
-<p>Now that we have the DLL, we will need to search where are ours functions in the DLL memory. Fortunately for us, it’s not really difficult with a good comprehension of the PE headers.
+<p>Now that we have the DLL, we will need to search where are our functions in the DLL memory. Fortunately for us, it’s not really difficult with a good comprehension of the PE headers.
 Always keep in mind that when we talk about the PE headers, the majority of the addresses are relative to the executable address.</p>
 
 <h2 id="portable-executable-headers">Portable Executable headers</h2>
@@ -334,7 +334,7 @@ Always keep in mind that when we talk about the PE headers, the majority of the 
         +0x05c NumberOfRvaAndSizes : Uint4B
         +0x060 DataDirectory    : [16] _IMAGE_DATA_DIRECTORY</code></pre></figure>
 
-<p>The data directory contain the addresses of some interesting members, and for us it contain above all the addresses of the exported functions.</p>
+<p>The data directory contain the addresses of some interesting members, and for us it contains above all the addresses of the exported functions.</p>
 
 <figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">0:000&gt; dt nt!_IMAGE_DATA_DIRECTORY
     +0x000 VirtualAddress   : Uint4B
@@ -359,7 +359,7 @@ Always keep in mind that when we talk about the PE headers, the majority of the 
 <p>A function can be exported by name or by ordinal. In consequence, three arrays are kept updated:</p>
 
 <ul>
-  <li><em>AddressOfFunctions</em>, which keep the functions addresses ordered by ordinal</li>
+  <li><em>AddressOfFunctions</em>, which keep the function’s addresses ordered by ordinal</li>
   <li><em>AddressOfNames</em>, which keep the function names</li>
   <li><em>AddressOfNameOrdinals</em>, which keep the ordinals. This array is in the <em>same order</em> than the AddressOfNames array.</li>
 </ul>
@@ -536,7 +536,7 @@ This will give us an ordinal that we can use in <em>AddressOfFunctions[ordinal]<
 
 <p>The order of the functions declarations is very important: it will define the compilation order.
 In consequence, if we want to call the shellcode directly, it’s a good idea to declare in first our main because it will be our entry point.
-I don’t know if it’s a specificity of Visual Studio or if all compiler do the same thing.</p>
+I don’t know if it’s a specificity of Visual Studio or if all compilers do the same thing.</p>
 
 <p>The ASCII string use the define <em>MAKESTR</em> to declare the string like an array. It will force the string to be allocated like this:</p>
 
