@@ -417,7 +417,7 @@ This will give us an ordinal that we can use in <em>AddressOfFunctions[ordinal]<
 #include "peb.h"
 </span>
 <span class="k">typedef</span> <span class="n">HMODULE</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_LoadLibraryA</span><span class="p">)(</span><span class="n">LPCSTR</span> <span class="n">lpFileName</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="kt">int</span> <span class="p">(</span><span class="n">WINAPI</span> <span class="n">_MessageBoxA</span><span class="p">)(</span><span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpText</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="n">UINT</span> <span class="n">uType</span><span class="p">);</span>
+<span class="k">typedef</span> <span class="kt">int</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_MessageBoxA</span><span class="p">)(</span><span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpText</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="n">UINT</span> <span class="n">uType</span><span class="p">);</span>
 
 <span class="kt">int</span> <span class="n">main</span><span class="p">();</span>
 <span class="n">DWORD</span> <span class="n">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">);</span>
@@ -445,7 +445,7 @@ This will give us an ordinal that we can use in <em>AddressOfFunctions[ordinal]<
     <span class="p">}</span>
 
     <span class="n">DWORD</span> <span class="n">hashMessageBoxA</span> <span class="o">=</span> <span class="mh">0x384F14B4</span><span class="p">;</span> <span class="c1">// djbHash("MessageBoxA");
-</span>    <span class="n">_LoadLibraryA</span> <span class="n">xMessageBoxA</span> <span class="o">=</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">hUser32</span><span class="p">,</span> <span class="n">hashMessageBoxA</span><span class="p">);</span>
+</span>    <span class="n">_MessageBoxA</span> <span class="n">xMessageBoxA</span> <span class="o">=</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">hUser32</span><span class="p">,</span> <span class="n">hashMessageBoxA</span><span class="p">);</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">xMessageBoxA</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
     <span class="p">}</span>

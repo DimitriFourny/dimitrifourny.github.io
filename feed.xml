@@ -12,10 +12,10 @@
 
 &lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
 
-&lt;p&gt;You always have a lot of possibility when you make a shellcode, especially on Windows.
+&lt;p&gt;You always have a lot of possibilities when you make a shellcode payload, especially on Windows.
 Do you need to write all your ASM manually or can you be helped by your compiler? Do I need to directly use syscall or to search the functions in memory?
 Because it’s not always simple to make it, I have made the decision to write an article about that.
-I have the habit to do all the work in C and compile it with Visual Studio: the source code is more nice in C, the compiler do a better job to optimize it and you can implement your own obfuscator with LLVM if you want.&lt;/p&gt;
+I have the habit to do all the work in C and compile it with Visual Studio: the source code is nicer in C, the compiler do a better job to optimize it and you can implement your own obfuscator with LLVM if you want.&lt;/p&gt;
 
 &lt;p&gt;For this example, I will work on a x86 shellcode. Of course this can be totally applied to a x86_64 shellcode or for an other processor.&lt;/p&gt;
 
@@ -23,7 +23,7 @@ I have the habit to do all the work in C and compile it with Visual Studio: the 
 
 &lt;h2 id=&quot;introduction-1&quot;&gt;Introduction&lt;/h2&gt;
 
-&lt;p&gt;When a shellcode is loaded in Windows, the first step is to locate the functions that we will use. 
+&lt;p&gt;When a shellcode payload is loaded in Windows, the first step is to locate the functions that we will use. 
 The first step will be to search the Dynamic Link Library (DLL) where the function is stored.
 To do that, we will need to use different structures that I will describe in the following sections.&lt;/p&gt;
 
@@ -53,7 +53,7 @@ The TEB has the following structure:&lt;/p&gt;
 
 &lt;h2 id=&quot;process-environment-block&quot;&gt;Process Environment Block&lt;/h2&gt;
 
-&lt;p&gt;If the TEB give information about a thread, the PEB will give us information about the process itself.
+&lt;p&gt;If the TEB gives information about a thread, the PEB will give us information about the process itself.
 And the information that we need is the location of the basics DLL.
 In fact, when a process is loaded in memory by Windows, at least two DLL are mapped:&lt;/p&gt;
 
@@ -62,9 +62,9 @@ In fact, when a process is loaded in memory by Windows, at least two DLL are map
   &lt;li&gt;&lt;em&gt;kernel32.dll&lt;/em&gt;, which use the NTDLL functions in a higher level. For example, &lt;em&gt;kernel32!CreateFileA&lt;/em&gt; will call &lt;em&gt;ntdll!NtCreateFileW&lt;/em&gt; which will call &lt;em&gt;ntoskrnl!ZwCreateFileW&lt;/em&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Depending of Windows version, others DLL can be already present in memory but to be perfectly portable we will just assume that these two DLL are the only DLL already loaded.&lt;/p&gt;
+&lt;p&gt;On Windows version, others DLL can be already be present in memory but to be perfectly portable we will just assume that these two DLL are the only DLL already loaded.&lt;/p&gt;
 
-&lt;p&gt;Let’s take a look of the TEB structure:&lt;/p&gt;
+&lt;p&gt;Let’s take a look at the TEB structure:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-unknown&quot; data-lang=&quot;unknown&quot;&gt;0:000&amp;gt; dt nt!_PEB 
     +0x000 InheritedAddressSpace : UChar
@@ -85,7 +85,7 @@ In fact, when a process is loaded in memory by Windows, at least two DLL are map
     ...
     +0x25c WaitOnAddressHashTable : [128] Ptr32 Void&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;You can see that we have &lt;em&gt;PEB.BeingDebugged&lt;/em&gt;, which is used by &lt;em&gt;IsDebuggerPresent()&lt;/em&gt;. But the interesting part for us is that we have &lt;em&gt;PEB.Ldr&lt;/em&gt; which correspond to the following structure:&lt;/p&gt;
+&lt;p&gt;You can see that we have &lt;em&gt;PEB.BeingDebugged&lt;/em&gt;, which is used by &lt;em&gt;IsDebuggerPresent()&lt;/em&gt;. But the interesting part for us is that we have &lt;em&gt;PEB.Ldr&lt;/em&gt; which corresponds to the following structure:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-unknown&quot; data-lang=&quot;unknown&quot;&gt;0:000&amp;gt; dt nt!_PEB_LDR_DATA
     +0x000 Length           : Uint4B
@@ -121,8 +121,8 @@ Traditionnaly, the first element in &lt;em&gt;InLoadOrderModuleList&lt;/em&gt; i
 
 &lt;h2 id=&quot;djb-hash&quot;&gt;DJB Hash&lt;/h2&gt;
 
-&lt;p&gt;Like I have said before, we will not trust the DLL orders and we will do ours research based on the DLL name.
-But in a shellcode, it’s not always a good idea to use ASCII strings or worst, an UNICODE string: it will just make our shellcode bigger!
+&lt;p&gt;Like I have said before, we will not trust the DLL orders and we will do our research based on the DLL name.
+But in a shellcode, it’s not always a good idea to use ASCII strings or worst, a UNICODE string: it will just make our shellcode bigger!
 So I recommend you to use a hash system to compare the DLL name. I will use a DJB hash because it’s a simple and sufficient hash:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;djbHashW&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;wchar_t&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
@@ -136,13 +136,13 @@ So I recommend you to use a hash system to compare the DLL name. I will use a DJ
     &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hash&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;Due to the fact that the dll name can be in uppercase or lowercase, it’s can be a good idea to support it in your hash algorithm to have something like this:&lt;/p&gt;
+&lt;p&gt;Due to the fact that the dll name can be in uppercase or lowercase, it’s a good idea to support it in your hash algorithm to have something like this:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-unknown&quot; data-lang=&quot;unknown&quot;&gt;   djbHashW(L&quot;ntdll.dll&quot;) == djbHashW(L&quot;NTDLL.DLL&quot;)&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;h2 id=&quot;code&quot;&gt;Code&lt;/h2&gt;
 
-&lt;p&gt;Now that we have speak about how to do it, it’s time to code our idea:&lt;/p&gt;
+&lt;p&gt;Now that we have spoken about how to do it, it’s time to code our idea:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_LSA_UNICODE_STRING&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;USHORT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -219,13 +219,13 @@ So I recommend you to use a hash system to compare the DLL name. I will use a DJ
   &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;And if you want to use others DLL, you will just need to load them with &lt;em&gt;LoadLibrary()&lt;/em&gt;. Don’t worry, we will do that in our shellcode with &lt;em&gt;user32.dll&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;And if you want to use other DLLs, you will just need to load them with &lt;em&gt;LoadLibrary()&lt;/em&gt;. Don’t worry, we will do that in our shellcode with &lt;em&gt;user32.dll&lt;/em&gt;.&lt;/p&gt;
 
 &lt;h1 id=&quot;function-address&quot;&gt;Function address&lt;/h1&gt;
 
 &lt;h2 id=&quot;introduction-2&quot;&gt;Introduction&lt;/h2&gt;
 
-&lt;p&gt;Now that we have the DLL, we will need to search where are ours functions in the DLL memory. Fortunately for us, it’s not really difficult with a good comprehension of the PE headers.
+&lt;p&gt;Now that we have the DLL, we will need to search where are our functions in the DLL memory. Fortunately for us, it’s not really difficult with a good comprehension of the PE headers.
 Always keep in mind that when we talk about the PE headers, the majority of the addresses are relative to the executable address.&lt;/p&gt;
 
 &lt;h2 id=&quot;portable-executable-headers&quot;&gt;Portable Executable headers&lt;/h2&gt;
@@ -298,7 +298,7 @@ Always keep in mind that when we talk about the PE headers, the majority of the 
         +0x05c NumberOfRvaAndSizes : Uint4B
         +0x060 DataDirectory    : [16] _IMAGE_DATA_DIRECTORY&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;The data directory contain the addresses of some interesting members, and for us it contain above all the addresses of the exported functions.&lt;/p&gt;
+&lt;p&gt;The data directory contain the addresses of some interesting members, and for us it contains above all the addresses of the exported functions.&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-unknown&quot; data-lang=&quot;unknown&quot;&gt;0:000&amp;gt; dt nt!_IMAGE_DATA_DIRECTORY
     +0x000 VirtualAddress   : Uint4B
@@ -323,7 +323,7 @@ Always keep in mind that when we talk about the PE headers, the majority of the 
 &lt;p&gt;A function can be exported by name or by ordinal. In consequence, three arrays are kept updated:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;&lt;em&gt;AddressOfFunctions&lt;/em&gt;, which keep the functions addresses ordered by ordinal&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;AddressOfFunctions&lt;/em&gt;, which keep the function’s addresses ordered by ordinal&lt;/li&gt;
   &lt;li&gt;&lt;em&gt;AddressOfNames&lt;/em&gt;, which keep the function names&lt;/li&gt;
   &lt;li&gt;&lt;em&gt;AddressOfNameOrdinals&lt;/em&gt;, which keep the ordinals. This array is in the &lt;em&gt;same order&lt;/em&gt; than the AddressOfNames array.&lt;/li&gt;
 &lt;/ul&gt;
@@ -500,14 +500,14 @@ This will give us an ordinal that we can use in &lt;em&gt;AddressOfFunctions[ord
 
 &lt;p&gt;The order of the functions declarations is very important: it will define the compilation order.
 In consequence, if we want to call the shellcode directly, it’s a good idea to declare in first our main because it will be our entry point.
-I don’t know if it’s a specificity of Visual Studio or if all compiler do the same thing.&lt;/p&gt;
+I don’t know if it’s a specificity of Visual Studio or if all compilers do the same thing.&lt;/p&gt;
 
 &lt;p&gt;The ASCII string use the define &lt;em&gt;MAKESTR&lt;/em&gt; to declare the string like an array. It will force the string to be allocated like this:&lt;/p&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nasm&quot; data-lang=&quot;nasm&quot;&gt;&lt;span class=&quot;k&quot;&gt;mov&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;szUser32&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;   &lt;span class=&quot;mi&quot;&gt;72657375&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;h&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;; user&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;mov&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;dword&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;szUser32&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;642&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;E3233h&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;; 32.d&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;mov&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;word&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;szUser32&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;C6Ch&lt;/span&gt;       &lt;span class=&quot;c&quot;&gt;; ll&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;mov&lt;/span&gt;  &lt;span class=&quot;err&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ebp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;szUser32&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Ah&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;                   &lt;span class=&quot;c&quot;&gt;; '\x00'&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-unknown&quot; data-lang=&quot;unknown&quot;&gt;mov  dword ptr [ebp+szUser32],   72657375h   ; user
+mov  dword ptr [ebp+szUser32+4], 642E3233h   ; 32.d
+mov  word ptr [ebp+szUser32+8],  6C6Ch       ; ll
+mov  [ebp+szUser32+0Ah], 0                   ; '\x00'&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;And the code is generated by a Python script because it’s really redundant:&lt;/p&gt;
 
