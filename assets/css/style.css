@@ -1,0 +1,113 @@
+body {
+  font-family: "Menlo", "Meslo LG", monospace;
+  font-size: 14px;
+  background-color: #1d1f21;
+  color: #c9cacc;
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: 1000px;
+  }
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2bbc8a;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 30px;
+  color: #2bbc8a;
+}
+
+pre {
+  border: none;
+  background-color: transparent;
+}
+
+p {
+  text-align: justify;
+  margin: 30px 0;
+}
+
+code {
+  background-color: #1d1f21;
+  color: #22bbbb;
+}
+
+a {
+  text-decoration: none;
+  color: #c9cacc;
+  background-image: linear-gradient(transparent, transparent 5px, #c9cacc 5px, #c9cacc);
+  background-position: bottom;
+  background-size: 100% 6px;
+  background-repeat: repeat-x;
+}
+a:hover {
+  text-decoration: none;
+  color: #c9cacc;
+  background-image: linear-gradient(transparent, transparent 4px, #d480aa 4px, #d480aa);
+}
+
+table a, .table a {
+  text-decoration: none;
+  color: #c9cacc;
+  background-image: linear-gradient(transparent, transparent 5px, #c9cacc 5px, #c9cacc);
+  background-position: bottom;
+  background-size: 100% 6px;
+  background-repeat: repeat-x;
+}
+
+table a:hover, .table a:hover {
+  background-image: linear-gradient(transparent, transparent 4px, #d480aa 4px, #d480aa);
+}
+
+.navbar {
+  border: 0px;
+  font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+  margin: 0px;
+}
+.navbar-default {
+  background-color: #1d1f21;
+}
+.navbar-default .navbar-brand, .navbar-default .navbar-brand:hover {
+  color: #2bbc8a;
+}
+
+.navbar-nav {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+.navbar-nav a {
+  background-image: none;
+}
+.navbar-default .navbar-nav > .active > a, 
+.navbar-default .navbar-nav > .active > a:hover, 
+.navbar-default .navbar-nav > .active > a:focus,
+.navbar-default .navbar-nav > li > a:hover, 
+.navbar-default .navbar-nav > li > a:focus {
+  color: #2bbc8a;
+}
+
+.navbar-brand {
+  font-weight: 800;
+  padding: 15px 15px;
+  text-decoration: none;
+  background-image: none;
+}
+.navbar-brand:hover {
+  background-image: none;
+}
+
+.row {
+  background-color: #1d1f21;
+  margin-bottom: 30px;
+  border-top: 1px dashed #c9cacc;
+}
+

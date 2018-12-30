@@ -7,13 +7,13 @@
   	<meta name="description" content="Passionate security researcher.">
   	<meta name="author" content="Dimitri Fourny">
 	
-	<link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-  	<link href="/css/syntax.css" rel="stylesheet">
+	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+  	<link href="/assets/css/syntax.css" rel="stylesheet">
 
     <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/img/favicon.png">
+  	<link rel="shortcut icon" href="/assets/img/favicon.png">
 </head>
 
 <body>
@@ -31,10 +31,9 @@
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
                 <li class="active"><a href="/">Home</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
+                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		        <li><a href="/feed.xml">RSS</a></li>
 		      </ul>
 		    </div>
 		</div>
@@ -44,95 +43,110 @@
 		
 		<div class="row">
 			<div class="col-sm-12">
-				<h1 id="make-a-plugin-for-windbg">Make a plugin for WinDbg</h1>
-
+                <h1 id="make-a-plugin-for-windbg">Make a plugin for WinDbg</h1>
 <h2 id="introduction">Introduction</h2>
 
-<p><a href="http://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx">WinDbg</a> is a powerfull Windows debugger, it can debug x86 application and x64 application, in user-land or in kernel-land. Despite its usefull commands, we would like to make some plugin to do a faster and better debugging session. Fortunately for us, it is posible to write some WinDbg plugin in C or C++ to add lot of commands in our favorite debugger.<br />
-I will use C++, but it is possible to use a another language if this language support the DLL creation. With Python, you can use <a href="https://pykd.codeplex.com/">PyKd</a>. The plugin that you will be able to code after this article and with a little <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff561248%28v=vs.85%29.aspx">documentation</a> looks like that:</p>
+<p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
+application, in user-land or in kernel-land. Despite its useful commands, we 
+would like to make some plugin to do a faster and better debugging session. 
+Fortunately for us, it’s possible to write WinDbg plugins in C or C++ to add a 
+lot of commands in our favorite debugger.I will use C++, but it’s possible to 
+use another language if this language support the DLL creation. With Python, you 
+can use PyKd. The plugin that you will be able to code after this article and 
+with a little documentation looks like that:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">0:004&gt; !load C:\Users\Dimitri\Desktop\DbgDf0\Release\DbgDf0.dll
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:004&gt; !load C:\Users\Dimitri\Desktop\DbgDf0\Release\DbgDf0.dll
 
 0:004&gt; !df0 mod
-Image Base 	Size 		ASLR 	DEP 	Safe SEH 	Module Name 
-0x00400000 	0x001C0000	Yes		Yes		No			HxD.exe 
-0x77820000 	0x00180000	Yes		Yes		No			ntdll.dll 
-0x75930000 	0x00110000	Yes		Yes		Yes			kernel32.dll 
-0x753E0000 	0x00047000	Yes		Yes		Yes			KERNELBASE.dll 
-0x77300000 	0x00100000	Yes		Yes		Yes			user32.dll 
-0x75FA0000 	0x00090000	Yes		Yes		Yes			GDI32.dll 
-0x76100000 	0x0000A000	Yes		Yes		Yes			LPK.dll 
-0x761C0000 	0x0009D000	Yes		Yes		Yes			USP10.dll 
-0x76110000 	0x000AC000	Yes		Yes		Yes			msvcrt.dll 
-0x75EA0000 	0x000A0000	Yes		Yes		Yes			ADVAPI32.dll 
-0x77400000 	0x00019000	Yes		Yes		Yes			sechost.dll 
-0x75690000 	0x000F0000	Yes		Yes		Yes			RPCRT4.dll 
-0x75380000 	0x00060000	Yes		Yes		Yes			SspiCli.dll 
-0x75370000 	0x0000C000	Yes		Yes		Yes			CRYPTBASE.dll 
-0x75430000 	0x0008F000	Yes		Yes		Yes			oleaut32.dll 
-0x76260000 	0x0015C000	Yes		Yes		Yes			ole32.dll 
-0x752A0000 	0x00009000	Yes		Yes		Yes			version.dll 
-0x72820000 	0x0019E000	Yes		Yes		Yes			comctl32.dll 
-0x75F40000 	0x00057000	Yes		Yes		Yes			SHLWAPI.dll 
-0x76680000 	0x00C49000	Yes		Yes		Yes			shell32.dll 
-0x754D0000 	0x000F5000	Yes		Yes		Yes			wininet.dll 
-0x75D60000 	0x00136000	Yes		Yes		Yes			urlmon.dll 
-0x75810000 	0x0011E000	Yes		Yes		Yes			CRYPT32.dll 
-0x76670000 	0x0000C000	Yes		Yes		Yes			MSASN1.dll 
-0x763E0000 	0x001FF000	Yes		Yes		Yes			iertutil.dll 
-0x75630000 	0x00060000	Yes		Yes		Yes			imm32.dll 
-0x76030000 	0x000CC000	Yes		Yes		Yes			MSCTF.dll 
-0x75240000 	0x00051000	Yes		Yes		Yes			winspool.drv 
-0x75CE0000 	0x0007B000	Yes		Yes		Yes			comdlg32.dll 
-0x71FD0000 	0x00032000	Yes		Yes		Yes			winmm.dll 
-0x10000000 	0x0005A000	Yes		Yes		Yes			guard32.dll 
-0x75230000 	0x00007000	Yes		Yes		Yes			fltlib.dll 
-0x71E90000 	0x00080000	Yes		Yes		Yes			uxtheme.dll 
-0x71E70000 	0x00013000	Yes		Yes		Yes			dwmapi.dll 
-0x754C0000 	0x00005000	Yes		Yes		No			PSAPI.dll 
-0x71CE0000 	0x00005000	Yes		Yes		Yes			msimg32.dll 
-0x75B00000 	0x0019D000	Yes		Yes		Yes			SETUPAPI.dll 
-0x75A40000 	0x00027000	Yes		Yes		Yes			CFGMGR32.dll 
-0x763C0000 	0x00012000	Yes		Yes		Yes			DEVOBJ.dll 
-0x765E0000 	0x00083000	Yes		Yes		Yes			CLBCatQ.DLL 
-0x71D30000 	0x000F5000	Yes		Yes		Yes			propsys.dll 
-0x75200000 	0x00021000	Yes		Yes		Yes			ntmarta.dll 
-0x755D0000 	0x00045000	Yes		Yes		Yes			WLDAP32.dll 
+Image Base 	Size 		ASLR    DEP     Safe SEH    Module Name 
+0x00400000 	0x001C0000	Yes     Yes     No          HxD.exe 
+0x77820000 	0x00180000	Yes     Yes     No          ntdll.dll 
+0x75930000 	0x00110000	Yes     Yes     Yes         kernel32.dll 
+0x753E0000 	0x00047000	Yes     Yes     Yes         KERNELBASE.dll 
+0x77300000 	0x00100000	Yes     Yes     Yes         user32.dll 
+0x75FA0000 	0x00090000	Yes     Yes     Yes         GDI32.dll 
+0x76100000 	0x0000A000	Yes     Yes     Yes         LPK.dll 
+0x761C0000 	0x0009D000	Yes     Yes     Yes         USP10.dll 
+0x76110000 	0x000AC000	Yes     Yes     Yes         msvcrt.dll 
+0x75EA0000 	0x000A0000	Yes     Yes     Yes         ADVAPI32.dll 
+0x77400000 	0x00019000	Yes     Yes     Yes         sechost.dll 
+0x75690000 	0x000F0000	Yes     Yes     Yes         RPCRT4.dll 
+0x75380000 	0x00060000	Yes     Yes     Yes         SspiCli.dll 
+0x75370000 	0x0000C000	Yes     Yes     Yes         CRYPTBASE.dll 
+0x75430000 	0x0008F000	Yes     Yes     Yes         oleaut32.dll 
+0x76260000 	0x0015C000	Yes     Yes     Yes         ole32.dll 
+0x752A0000 	0x00009000	Yes     Yes     Yes         version.dll 
+0x72820000 	0x0019E000	Yes     Yes     Yes         comctl32.dll 
+0x75F40000 	0x00057000	Yes     Yes     Yes         SHLWAPI.dll 
+0x76680000 	0x00C49000	Yes     Yes     Yes         shell32.dll 
+0x754D0000 	0x000F5000	Yes     Yes     Yes         wininet.dll 
+0x75D60000 	0x00136000	Yes     Yes     Yes         urlmon.dll 
+0x75810000 	0x0011E000	Yes     Yes     Yes         CRYPT32.dll 
+0x76670000 	0x0000C000	Yes     Yes     Yes         MSASN1.dll 
+0x763E0000 	0x001FF000	Yes     Yes     Yes         iertutil.dll 
+0x75630000 	0x00060000	Yes     Yes     Yes         imm32.dll 
+0x76030000 	0x000CC000	Yes     Yes     Yes         MSCTF.dll 
+0x75240000 	0x00051000	Yes     Yes     Yes         winspool.drv 
+0x75CE0000 	0x0007B000	Yes     Yes     Yes         comdlg32.dll 
+0x71FD0000 	0x00032000	Yes     Yes     Yes         winmm.dll 
+0x10000000 	0x0005A000	Yes     Yes     Yes         guard32.dll 
+0x75230000 	0x00007000	Yes     Yes     Yes         fltlib.dll 
+0x71E90000 	0x00080000	Yes     Yes     Yes         uxtheme.dll 
+0x71E70000 	0x00013000	Yes     Yes     Yes         dwmapi.dll 
+0x754C0000 	0x00005000	Yes     Yes     No          PSAPI.dll 
+0x71CE0000 	0x00005000	Yes     Yes     Yes         msimg32.dll 
+0x75B00000 	0x0019D000	Yes     Yes     Yes         SETUPAPI.dll 
+0x75A40000 	0x00027000	Yes     Yes     Yes         CFGMGR32.dll 
+0x763C0000 	0x00012000	Yes     Yes     Yes         DEVOBJ.dll 
+0x765E0000 	0x00083000	Yes     Yes     Yes         CLBCatQ.DLL 
+0x71D30000 	0x000F5000	Yes     Yes     Yes         propsys.dll 
+0x75200000 	0x00021000	Yes     Yes     Yes         ntmarta.dll 
+0x755D0000 	0x00045000	Yes     Yes     Yes         WLDAP32.dll 
 
 0:004&gt; !unload DbgDf0
-Unloading C:\Users\Dimitri\Desktop\DbgDf0\Release\DbgDf0.dll extension DLL</code></pre></figure>
+Unloading C:\Users\Dimitri\Desktop\DbgDf0\Release\DbgDf0.dll extension DLL
+</code></pre></div></div>
 
-<p>This command looks in the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/aa813706%28v=vs.85%29.aspx">Process Environment Block (PEB)</a> the module list in memory and check if ASLR, DEP or SafeSEH is activated on these modules.<br />
-An usefull fonctionnality! So, after that, you can add a ROP Gadget searcher for example to save a precious time.</p>
+<p>This command looks in <em>the Process Environment Block (PEB)</em> the module list in 
+memory and check if ASLR, DEP or SafeSEH is activated on these modules. An 
+useful functionality! So, after that, you can add a ROP gadgets searcher for 
+example to save a precious time.</p>
 
 <h2 id="bases">Bases</h2>
 
-<p>First of all, you need to know that WinDbg is just a DLL which export <strong>by name</strong> its functions. Some is needed for WinDbg to load our plugin, and the others are just ours commands!<br />
-Let me show you an example with my DbgDf0 plugin:</p>
+<p>First of all, you need to know that a WinDbg plugin is just a DLL which export 
+by name its functions. Some exported functions are needed for WinDbg to load our
+plugin, and the others are just our commands! Let me show you an example with my 
+DbgDf0 plugin:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="k">extern</span> <span class="s">"C"</span> <span class="p">{</span>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">extern</span> <span class="s">"C"</span> <span class="p">{</span>
 	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">VOID</span> <span class="n">CheckVersion</span><span class="p">();</span>
 	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">LPEXT_API_VERSION</span> <span class="n">ExtensionApiVersion</span><span class="p">();</span>
 	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">VOID</span> <span class="n">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">);</span>
 	<span class="n">_declspec</span><span class="p">(</span><span class="n">dllexport</span><span class="p">)</span> <span class="n">DECLARE_API</span><span class="p">(</span><span class="n">df0</span><span class="p">);</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
-<p>The first is <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff539096%28v=vs.85%29.aspx">CheckVersion()</a>, it is <strong>optional</strong> and it help you to check the WinDbg version and show a warning. Personnally, I don’t implement this function but I have implemented this function to show you an example.<br />
-Afterward, <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff543968%28v=vs.85%29.aspx">ExtensionApiVersion()</a> is <strong>required</strong> and return the plugin version.<br />
-An example with <em>ExtensionApiVersion()</em> wich return 1.0.0:</p>
+<p>The first is <code class="highlighter-rouge">CheckVersion()</code>, it’s optional and it helps you to check the 
+WinDbg version and show a warning if you don’t have the correct version. 
+Personnally, I never implement this function but I have implemented it to show 
+you that it’s possible.
+Another function, <code class="highlighter-rouge">ExtensionApiVersion()</code>, is required and return the plugin 
+version. An example with <code class="highlighter-rouge">ExtensionApiVersion()</code> wich return 1.0.0:</p>
 
-<figure class="highlight"><pre><code class="language-unknown" data-lang="unknown">0:003&gt; .chain
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:003&gt; .chain
 Extension DLL search Path:
     ...
 Extension DLL chain:
     C:\Users\Dimitri\Desktop\DbgDf0\Release\DbgDf0.dll: API 1.0.0, built Fri Feb 28 19:24:19 2014
         [path: C:\Users\Dimitri\Desktop\DbgDf0\Release\DbgDf0.dll]
-    ...</code></pre></figure>
+</code></pre></div></div>
 
-<p>The next function, <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff561303%28v=vs.85%29.aspx">WinDbgExtensionDllInit()</a> is <strong>required and important</strong> because it save a pointer to WinDbg API list!<br />
-Finally, <em>DECLARE_API(df0)</em> is our function that we can call with <em>!df0</em> in WinDbg:</p>
+<p>The next function, <code class="highlighter-rouge">WinDbgExtensionDllInit()</code> is required and important because 
+it saves a pointer to WinDbg API list. Finally, <code class="highlighter-rouge">DECLARE_API(df0)</code> is our 
+function that we can call with <code class="highlighter-rouge">!df0</code> in WinDbg:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#define DECLARE_API(s)                             \
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#define DECLARE_API(s)                             \
     VOID										   \
     s(                                             \
         HANDLE                 hCurrentProcess,    \
@@ -140,22 +154,27 @@ Finally, <em>DECLARE_API(df0)</em> is our function that we can call with <em>!df
         ULONG                  dwCurrentPc,        \
         ULONG                  dwProcessor,        \
         PCSTR                  args                \
-     )</span></code></pre></figure>
+     )
+</span></code></pre></div></div>
 
-<p>Last thing to know, all WinDbg SDK files are make for Visual Studio 2013. And if you don’t like Windows 8, you can find struct in <em>C:\Program Files (x86)\Windows Kits\8.1\Debuggers\inc\wdbgexts.h</em> and copy them in your own header (windbg.h for me).</p>
+<p>Last thing to know, all WinDbg SDK files are make for Visual Studio 2013. And if
+you don’t like Windows 8, you can find the structures in 
+<code class="highlighter-rouge">C:\Program Files (x86)\Windows Kits\8.1\Debuggers\inc\wdbgexts.h</code> and copy them 
+in your own header (<code class="highlighter-rouge">windbg.h</code> for me).</p>
 
 <h2 id="functions">Functions</h2>
 
 <p>To get WinDbg API, you need to recover a specific pointer:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">VOID</span> <span class="nf">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">)</span>
-<span class="p">{</span>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">VOID</span> <span class="nf">WinDbgExtensionDllInit</span><span class="p">(</span><span class="n">PWINDBG_EXTENSION_APIS</span> <span class="n">lpExtensionApis</span><span class="p">,</span> 
+    <span class="n">USHORT</span> <span class="n">usMajorVersion</span><span class="p">,</span> <span class="n">USHORT</span> <span class="n">usMinorVersion</span><span class="p">)</span> <span class="p">{</span>
      <span class="n">ExtensionApis</span> <span class="o">=</span> <span class="o">*</span><span class="n">lpExtensionApis</span><span class="p">;</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
 <p>Some preprocessor will help you to make a more readable source:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#define dprintf          (ExtensionApis.lpOutputRoutine)
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#define dprintf          (ExtensionApis.lpOutputRoutine)
 #define GetExpression    (ExtensionApis.lpGetExpressionRoutine)
 #define CheckControlC    (ExtensionApis.lpCheckControlCRoutine)
 #define GetContext       (ExtensionApis.lpGetThreadContextRoutine)
@@ -165,16 +184,19 @@ Finally, <em>DECLARE_API(df0)</em> is our function that we can call with <em>!df
 #define GetSymbol        (ExtensionApis.lpGetSymbolRoutine)
 #define ReadMemory       (ExtensionApis.lpReadProcessMemoryRoutine)
 #define WriteMemory      (ExtensionApis.lpWriteProcessMemoryRoutine)
-#define StackTrace       (ExtensionApis.lpStackTraceRoutine)</span></code></pre></figure>
+#define StackTrace       (ExtensionApis.lpStackTraceRoutine)
+</span></code></pre></div></div>
 
-<p>Now, we will use <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff542750%28v=vs.85%29.aspx">dprintf</a> to show a message in WinDbg and work like <em>printf</em> from C standard library.<br />
-To read WinDbg debugged process memory, we could use <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff554287%28v=vs.85%29.aspx">ReadMemory</a> wich work like <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms680553%28v=vs.85%29.aspx">ReadProcessMemory</a>.</p>
+<p>Now, we will use <code class="highlighter-rouge">dprintf</code> to show a message in WinDbg: it works like <code class="highlighter-rouge">printf</code> 
+from the C standard library.
+To read WinDbg debugged process memory, we can use <code class="highlighter-rouge">ReadMemory</code> wich works like 
+<code class="highlighter-rouge">ReadProcessMemory</code>.</p>
 
 <h2 id="code">Code</h2>
 
 <p>You have now the base to writte a plugin like this:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;Windows.h&gt;
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
 #include "windbg.h"
 #include "ntdll.h"
 </span>
@@ -264,8 +286,8 @@ To read WinDbg debugged process memory, we could use <a href="http://msdn.micros
 		<span class="n">dprintf</span><span class="p">(</span><span class="s">"</span><span class="se">\t\t</span><span class="s">%s </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">aModuleName</span><span class="p">);</span>
 
 		<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">module</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">module</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span>
-		<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">listModules</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">listModules</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span> <span class="c1">// Next
-</span>	<span class="p">}</span> <span class="k">while</span> <span class="p">((</span><span class="n">DWORD</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span> <span class="o">!=</span> <span class="n">firstModule</span><span class="p">);</span>
+		<span class="n">ReadMemory</span><span class="p">((</span><span class="n">ULONG_PTR</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">listModules</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">listModules</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">returnLength</span><span class="p">);</span> <span class="c1">// Next</span>
+	<span class="p">}</span> <span class="k">while</span> <span class="p">((</span><span class="n">DWORD</span><span class="p">)</span> <span class="n">listModules</span><span class="p">.</span><span class="n">Flink</span> <span class="o">!=</span> <span class="n">firstModule</span><span class="p">);</span>
 
 	<span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
 <span class="p">}</span>
@@ -275,12 +297,13 @@ To read WinDbg debugged process memory, we could use <a href="http://msdn.micros
 	<span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s">"mod"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
 		<span class="n">listMod</span><span class="p">(</span><span class="n">hCurrentProcess</span><span class="p">);</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></figure>
+<span class="p">}</span>
+</code></pre></div></div>
 
 <p>And the headers to test:</p>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="c1">// windbg.h
-</span>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// windbg.h</span>
+
 <span class="cp">#if !defined(WDBGAPI)
 #define WDBGAPI __stdcall
 #endif
@@ -558,10 +581,11 @@ To read WinDbg debugged process memory, we could use <a href="http://msdn.micros
     <span class="n">USHORT</span>  <span class="n">MinorVersion</span><span class="p">;</span>
     <span class="n">USHORT</span>  <span class="n">Revision</span><span class="p">;</span>
     <span class="n">USHORT</span>  <span class="n">Reserved</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">EXT_API_VERSION</span><span class="p">,</span> <span class="o">*</span><span class="n">LPEXT_API_VERSION</span><span class="p">;</span></code></pre></figure>
+<span class="p">}</span> <span class="n">EXT_API_VERSION</span><span class="p">,</span> <span class="o">*</span><span class="n">LPEXT_API_VERSION</span><span class="p">;</span>
+</code></pre></div></div>
 
-<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="c1">// ntdll.h
-</span>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// ntdll.h</span>
+
 <span class="cp">#include &lt;Windows.h&gt;
 </span>
 <span class="k">typedef</span> <span class="n">NTSTATUS</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryInformationProcess</span><span class="p">)(</span>
@@ -646,7 +670,8 @@ To read WinDbg debugged process memory, we could use <a href="http://msdn.micros
     <span class="n">PVOID</span> <span class="n">Reserved2</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
     <span class="n">ULONG_PTR</span> <span class="n">UniqueProcessId</span><span class="p">;</span>
     <span class="n">PVOID</span> <span class="n">Reserved3</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">PROCESS_BASIC_INFORMATION</span><span class="p">;</span></code></pre></figure>
+<span class="p">}</span> <span class="n">PROCESS_BASIC_INFORMATION</span><span class="p">;</span>
+</code></pre></div></div>
 
 			</div>
 		</div>
