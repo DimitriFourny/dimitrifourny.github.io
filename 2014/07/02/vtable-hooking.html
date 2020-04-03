@@ -30,23 +30,21 @@
 
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
-                <li class="active"><a href="/">Home</a></li>
+            <li ><a href="/about.html">About</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		      </ul>
 		    </div>
 		</div>
-	</div>
+  </div>
 
 	<div class="container">
 		
 		<div class="row">
 			<div class="col-sm-12">
-                <h1 id="vtable-hooking">VTable Hooking</h1>
-<h2 id="introduction">Introduction</h2>
-
-<p>Today, I will try to explain how we can make a hook on a C++ class method. This 
+        <h1>VTable Hooking </h1>
+        <p>Today, I will try to explain how we can make a hook on a C++ class method. This 
 technique works on Linux and Windows, but my examples are compiled on Linux.</p>
 
 <h2 id="vtable-what-is-it">VTable, what is it?</h2>
@@ -54,7 +52,7 @@ technique works on Linux and Windows, but my examples are compiled on Linux.</p>
 <p>C++ use the concept of inheritance. We will use two class in this article:</p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
-    <span class="k">public</span><span class="o">:</span>
+    <span class="nl">public:</span>
         <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
@@ -67,12 +65,12 @@ technique works on Linux and Windows, but my examples are compiled on Linux.</p>
         <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>   
         <span class="p">}</span>
-    <span class="k">protected</span><span class="o">:</span>
+    <span class="nl">protected:</span>
         <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="k">class</span> <span class="nc">B</span> <span class="o">:</span> <span class="n">A</span> <span class="p">{</span>
-     <span class="k">public</span><span class="o">:</span>
+     <span class="nl">public:</span>
         <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1338</span><span class="p">;</span>
@@ -95,11 +93,11 @@ technique works on Linux and Windows, but my examples are compiled on Linux.</p>
 
 <p>To see the compiler problem to compile it, let’s see an example:</p>
 
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="n">A</span><span class="p">();</span>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">A</span><span class="o">*</span> <span class="n">varA</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">A</span><span class="p">();</span>
 <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
 <span class="n">varA</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
 
-<span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">B</span><span class="p">());</span>
+<span class="n">A</span><span class="o">*</span> <span class="n">varB</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">A</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="nf">B</span><span class="p">());</span>
 <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Hello</span><span class="p">();</span>
 <span class="n">varB</span><span class="o">-&gt;</span><span class="n">Useless</span><span class="p">();</span>
 </code></pre></div></div>
@@ -124,7 +122,7 @@ compiled, the compiled code will use a Virtual Call Table (<em>VTable</em>):</p>
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
 </span>
 <span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
-    <span class="k">public</span><span class="o">:</span>
+    <span class="nl">public:</span>
         <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
@@ -137,12 +135,12 @@ compiled, the compiled code will use a Virtual Call Table (<em>VTable</em>):</p>
         <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>   
         <span class="p">}</span>
-    <span class="k">protected</span><span class="o">:</span>
+    <span class="nl">protected:</span>
         <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="k">class</span> <span class="nc">B</span> <span class="o">:</span> <span class="n">A</span> <span class="p">{</span>
-     <span class="k">public</span><span class="o">:</span>
+     <span class="nl">public:</span>
         <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1338</span><span class="p">;</span>
@@ -267,7 +265,7 @@ gdb-peda$ x/2x $rdi
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
 </span>
 <span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
-    <span class="k">public</span><span class="o">:</span>
+    <span class="nl">public:</span>
         <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
@@ -280,12 +278,12 @@ gdb-peda$ x/2x $rdi
         <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>   
         <span class="p">}</span>
-    <span class="k">protected</span><span class="o">:</span>
+    <span class="nl">protected:</span>
         <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="k">class</span> <span class="nc">B</span> <span class="o">:</span> <span class="n">A</span> <span class="p">{</span>
-     <span class="k">public</span><span class="o">:</span>
+     <span class="nl">public:</span>
         <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init B</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1338</span><span class="p">;</span>
@@ -370,7 +368,7 @@ the object pointer stored in the first parameter.</p>
 #include &lt;unistd.h&gt;
 </span>
 <span class="k">class</span> <span class="nc">A</span> <span class="p">{</span>
-    <span class="k">public</span><span class="o">:</span>
+    <span class="nl">public:</span>
         <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"Init A</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
             <span class="n">m_value</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
@@ -383,7 +381,7 @@ the object pointer stored in the first parameter.</p>
         <span class="kt">void</span> <span class="k">virtual</span> <span class="n">Useless</span><span class="p">()</span> <span class="p">{</span>
             <span class="n">printf</span><span class="p">(</span><span class="s">"I'm an useless method</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>  <span class="c1">// Index 1 </span>
         <span class="p">}</span>
-    <span class="k">protected</span><span class="o">:</span>
+    <span class="nl">protected:</span>
         <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_value</span><span class="p">;</span>
 <span class="p">};</span>
 

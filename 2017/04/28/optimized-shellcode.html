@@ -30,23 +30,21 @@
 
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
-                <li class="active"><a href="/">Home</a></li>
+            <li ><a href="/about.html">About</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		      </ul>
 		    </div>
 		</div>
-	</div>
+  </div>
 
 	<div class="container">
 		
 		<div class="row">
 			<div class="col-sm-12">
-                <h1 id="writing-optimized-windows-shellcode">Writing Optimized Windows Shellcode</h1>
-<h2 id="introduction">Introduction</h2>
-
-<p>You always have a lot of possibilities when you make a shellcode payload, 
+        <h1>Writing Optimized Windows Shellcode </h1>
+        <p>You always have a lot of possibilities when you make a shellcode payload, 
 especially on Windows. Do you need to write all your ASM manually or can you be 
 helped by your compiler? Do I need to directly use syscall or to search the 
 functions in memory? Because it’s not always simple to make it, I have made the 
@@ -59,7 +57,7 @@ LLVM if you want.</p>
 applied to a x86_64 shellcode or for another processor.</p>
 
 <h1 id="find-the-basics-dll">Find the basics DLL</h1>
-<h2 id="introduction-1">Introduction</h2>
+<h2 id="introduction">Introduction</h2>
 
 <p>When a shellcode payload is loaded in Windows, the first step is to locate the 
 functions that we will use. We start by searching the Dynamic Link Library 
@@ -289,7 +287,7 @@ idea to support it in your hash algorithm to have something like this:</p>
 <code class="highlighter-rouge">LoadLibrary()</code>. Don’t worry, we will do that in our shellcode with <code class="highlighter-rouge">user32.dll</code>.</p>
 
 <h1 id="function-address">Function address</h1>
-<h2 id="introduction-2">Introduction</h2>
+<h2 id="introduction-1">Introduction</h2>
 
 <p>Now that we have the DLL, we will need to search where are our functions in the 
 DLL memory. Fortunately for us, it’s not really difficult with a good PE headers 
@@ -462,14 +460,14 @@ this time):</p>
 <span class="cp">#include "makestr.h"
 #include "peb.h"
 </span>
-<span class="k">typedef</span> <span class="n">HMODULE</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_LoadLibraryA</span><span class="p">)(</span><span class="n">LPCSTR</span> <span class="n">lpFileName</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="kt">int</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_MessageBoxA</span><span class="p">)(</span><span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpText</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="n">UINT</span> <span class="n">uType</span><span class="p">);</span>
+<span class="k">typedef</span> <span class="nf">HMODULE</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_LoadLibraryA</span><span class="p">)(</span><span class="n">LPCSTR</span> <span class="n">lpFileName</span><span class="p">);</span>
+<span class="k">typedef</span> <span class="nf">int</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_MessageBoxA</span><span class="p">)(</span><span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpText</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="n">UINT</span> <span class="n">uType</span><span class="p">);</span>
 
-<span class="kt">int</span> <span class="n">main</span><span class="p">();</span>
-<span class="n">DWORD</span> <span class="n">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">);</span>
-<span class="n">PVOID</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">);</span>
-<span class="n">DWORD</span> <span class="n">djbHash</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
-<span class="n">DWORD</span> <span class="n">djbHashW</span><span class="p">(</span><span class="kt">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">();</span>
+<span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">);</span>
+<span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">);</span>
+<span class="n">DWORD</span> <span class="nf">djbHash</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
+<span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="kt">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
     <span class="n">DWORD</span> <span class="n">hashKernel32</span> <span class="o">=</span> <span class="mh">0x6DDB9555</span><span class="p">;</span> <span class="c1">// djbHashW(L"KERNEL32.DLL");</span>
@@ -590,10 +588,10 @@ compilers do the same thing.</p>
 <p>The ASCII string use the define <code class="highlighter-rouge">MAKESTR</code> to declare the string like an array. 
 It will force the string to be allocated like this:</p>
 
-<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">mov</span>  <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="n">szUser32</span><span class="err">]</span><span class="p">,</span>   <span class="mi">72657375</span><span class="n">h</span>   <span class="c">; user</span>
-<span class="k">mov</span>  <span class="n">dword</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="n">szUser32</span><span class="o">+</span><span class="mi">4</span><span class="err">]</span><span class="p">,</span> <span class="mi">642</span><span class="n">E3233h</span>   <span class="c">; 32.d</span>
-<span class="k">mov</span>  <span class="n">word</span> <span class="n">ptr</span> <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="n">szUser32</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span>  <span class="mi">6</span><span class="n">C6Ch</span>       <span class="c">; ll</span>
-<span class="k">mov</span>  <span class="err">[</span><span class="n">ebp</span><span class="o">+</span><span class="n">szUser32</span><span class="o">+</span><span class="mi">0</span><span class="n">Ah</span><span class="err">]</span><span class="p">,</span> <span class="mi">0</span>                   <span class="c">; '\x00'</span>
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">mov</span>  <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="p">],</span>   <span class="mh">72657375h</span>   <span class="c1">; user</span>
+<span class="nf">mov</span>  <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="mh">642E3233h</span>   <span class="c1">; 32.d</span>
+<span class="nf">mov</span>  <span class="kt">word</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span>  <span class="mh">6C6Ch</span>       <span class="c1">; ll</span>
+<span class="nf">mov</span>  <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mh">0Ah</span><span class="p">],</span> <span class="mi">0</span>                   <span class="c1">; '\x00'</span>
 </code></pre></div></div>
 
 <p>And the code is generated by a Python script because it’s really redundant:</p>
@@ -654,7 +652,7 @@ efforts for example.</p>
 
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
 </span>
-<span class="k">typedef</span> <span class="kt">void</span><span class="p">(</span><span class="kr">__stdcall</span><span class="o">*</span> <span class="n">_function</span><span class="p">)();</span>
+<span class="k">typedef</span> <span class="nf">void</span><span class="p">(</span><span class="kr">__stdcall</span><span class="o">*</span> <span class="n">_function</span><span class="p">)();</span>
 
 <span class="kt">char</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span> 
     <span class="s">"</span><span class="se">\x55\x8B\xEC\x83\xEC\x1C\x53\x56\x57\x64\xA1\x30\x00\x00\x00\x8B</span><span class="s">"</span>

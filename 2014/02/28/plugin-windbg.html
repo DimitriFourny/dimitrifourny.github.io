@@ -30,23 +30,21 @@
 
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
-                <li class="active"><a href="/">Home</a></li>
+            <li ><a href="/about.html">About</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		      </ul>
 		    </div>
 		</div>
-	</div>
+  </div>
 
 	<div class="container">
 		
 		<div class="row">
 			<div class="col-sm-12">
-                <h1 id="make-a-plugin-for-windbg">Make a plugin for WinDbg</h1>
-<h2 id="introduction">Introduction</h2>
-
-<p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
+        <h1>Make a plugin for WinDbg </h1>
+        <p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
 application, in user-land or in kernel-land. Despite its useful commands, we 
 would like to make some plugin to do a faster and better debugging session. 
 Fortunately for us, it’s possible to write WinDbg plugins in C or C++ to add a 
@@ -313,32 +311,32 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
 #endif
 </span>
 <span class="k">typedef</span>
-<span class="n">VOID</span>
+<span class="nf">VOID</span>
 <span class="p">(</span><span class="n">WDBGAPIV</span><span class="o">*</span><span class="n">PWINDBG_OUTPUT_ROUTINE</span><span class="p">)(</span>
     <span class="n">PCSTR</span> <span class="n">lpFormat</span><span class="p">,</span>
     <span class="p">...</span>
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG_PTR</span>
+<span class="nf">ULONG_PTR</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_EXPRESSION</span><span class="p">)(</span>
     <span class="n">PCSTR</span> <span class="n">lpExpression</span>
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_EXPRESSION32</span><span class="p">)(</span>
     <span class="n">PCSTR</span> <span class="n">lpExpression</span>
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG64</span>
+<span class="nf">ULONG64</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_EXPRESSION64</span><span class="p">)(</span>
     <span class="n">PCSTR</span> <span class="n">lpExpression</span>
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">VOID</span>
+<span class="nf">VOID</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_SYMBOL</span><span class="p">)(</span>
     <span class="n">PVOID</span>      <span class="n">offset</span><span class="p">,</span>
     <span class="n">PCHAR</span>      <span class="n">pchBuffer</span><span class="p">,</span>
@@ -346,7 +344,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">VOID</span>
+<span class="nf">VOID</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_SYMBOL32</span><span class="p">)(</span>
     <span class="n">ULONG</span>      <span class="n">offset</span><span class="p">,</span>
     <span class="n">PCHAR</span>      <span class="n">pchBuffer</span><span class="p">,</span>
@@ -354,7 +352,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">VOID</span>
+<span class="nf">VOID</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_SYMBOL64</span><span class="p">)(</span>
     <span class="n">ULONG64</span>    <span class="n">offset</span><span class="p">,</span>
     <span class="n">PCHAR</span>      <span class="n">pchBuffer</span><span class="p">,</span>
@@ -362,7 +360,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_DISASM</span><span class="p">)(</span>
     <span class="n">ULONG_PTR</span> <span class="o">*</span><span class="n">lpOffset</span><span class="p">,</span>
     <span class="n">PCSTR</span>      <span class="n">lpBuffer</span><span class="p">,</span>
@@ -370,7 +368,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_DISASM32</span><span class="p">)(</span>
     <span class="n">ULONG</span>     <span class="o">*</span><span class="n">lpOffset</span><span class="p">,</span>
     <span class="n">PCSTR</span>      <span class="n">lpBuffer</span><span class="p">,</span>
@@ -378,7 +376,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_DISASM64</span><span class="p">)(</span>
     <span class="n">ULONG64</span>   <span class="o">*</span><span class="n">lpOffset</span><span class="p">,</span>
     <span class="n">PCSTR</span>      <span class="n">lpBuffer</span><span class="p">,</span>
@@ -386,13 +384,13 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_CHECK_CONTROL_C</span><span class="p">)(</span>
     <span class="n">VOID</span>
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE</span><span class="p">)(</span>
     <span class="n">ULONG_PTR</span>  <span class="n">offset</span><span class="p">,</span>
     <span class="n">PVOID</span>      <span class="n">lpBuffer</span><span class="p">,</span>
@@ -401,7 +399,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE32</span><span class="p">)(</span>
     <span class="n">ULONG</span>      <span class="n">offset</span><span class="p">,</span>
     <span class="n">PVOID</span>      <span class="n">lpBuffer</span><span class="p">,</span>
@@ -410,7 +408,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_READ_PROCESS_MEMORY_ROUTINE64</span><span class="p">)(</span>
     <span class="n">ULONG64</span>    <span class="n">offset</span><span class="p">,</span>
     <span class="n">PVOID</span>      <span class="n">lpBuffer</span><span class="p">,</span>
@@ -419,7 +417,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE</span><span class="p">)(</span>
     <span class="n">ULONG_PTR</span>  <span class="n">offset</span><span class="p">,</span>
     <span class="n">LPCVOID</span>    <span class="n">lpBuffer</span><span class="p">,</span>
@@ -428,7 +426,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE32</span><span class="p">)(</span>
     <span class="n">ULONG</span>      <span class="n">offset</span><span class="p">,</span>
     <span class="n">LPCVOID</span>    <span class="n">lpBuffer</span><span class="p">,</span>
@@ -437,7 +435,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_WRITE_PROCESS_MEMORY_ROUTINE64</span><span class="p">)(</span>
     <span class="n">ULONG64</span>    <span class="n">offset</span><span class="p">,</span>
     <span class="n">LPCVOID</span>    <span class="n">lpBuffer</span><span class="p">,</span>
@@ -446,7 +444,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_GET_THREAD_CONTEXT_ROUTINE</span><span class="p">)(</span>
     <span class="n">ULONG</span>       <span class="n">Processor</span><span class="p">,</span>
     <span class="n">PCONTEXT</span>    <span class="n">lpContext</span><span class="p">,</span>
@@ -454,7 +452,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_SET_THREAD_CONTEXT_ROUTINE</span><span class="p">)(</span>
     <span class="n">ULONG</span>       <span class="n">Processor</span><span class="p">,</span>
     <span class="n">PCONTEXT</span>    <span class="n">lpContext</span><span class="p">,</span>
@@ -462,7 +460,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_IOCTL_ROUTINE</span><span class="p">)(</span>
     <span class="n">USHORT</span>   <span class="n">IoctlType</span><span class="p">,</span>
     <span class="n">PVOID</span>    <span class="n">lpvData</span><span class="p">,</span>
@@ -470,7 +468,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_OLDKD_READ_PHYSICAL_MEMORY</span><span class="p">)(</span>
     <span class="n">ULONGLONG</span>        <span class="n">address</span><span class="p">,</span>
     <span class="n">PVOID</span>            <span class="n">buffer</span><span class="p">,</span>
@@ -479,7 +477,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_OLDKD_WRITE_PHYSICAL_MEMORY</span><span class="p">)(</span>
     <span class="n">ULONGLONG</span>        <span class="n">address</span><span class="p">,</span>
     <span class="n">PVOID</span>            <span class="n">buffer</span><span class="p">,</span>
@@ -511,7 +509,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
 
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_STACKTRACE_ROUTINE</span><span class="p">)(</span>
     <span class="n">ULONG</span>             <span class="n">FramePointer</span><span class="p">,</span>
     <span class="n">ULONG</span>             <span class="n">StackPointer</span><span class="p">,</span>
@@ -521,7 +519,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_STACKTRACE_ROUTINE32</span><span class="p">)(</span>
     <span class="n">ULONG</span>             <span class="n">FramePointer</span><span class="p">,</span>
     <span class="n">ULONG</span>             <span class="n">StackPointer</span><span class="p">,</span>
@@ -531,7 +529,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
     <span class="p">);</span>
 
 <span class="k">typedef</span>
-<span class="n">ULONG</span>
+<span class="nf">ULONG</span>
 <span class="p">(</span><span class="n">WDBGAPI</span><span class="o">*</span><span class="n">PWINDBG_STACKTRACE_ROUTINE64</span><span class="p">)(</span>
     <span class="n">ULONG64</span>           <span class="n">FramePointer</span><span class="p">,</span>
     <span class="n">ULONG64</span>           <span class="n">StackPointer</span><span class="p">,</span>
@@ -588,7 +586,7 @@ To read WinDbg debugged process memory, we can use <code class="highlighter-roug
 
 <span class="cp">#include &lt;Windows.h&gt;
 </span>
-<span class="k">typedef</span> <span class="n">NTSTATUS</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryInformationProcess</span><span class="p">)(</span>
+<span class="k">typedef</span> <span class="nf">NTSTATUS</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryInformationProcess</span><span class="p">)(</span>
   <span class="n">_In_</span>       <span class="n">HANDLE</span> <span class="n">ProcessHandle</span><span class="p">,</span>
   <span class="n">_In_</span>       <span class="n">DWORD</span> <span class="n">ProcessInformationClass</span><span class="p">,</span>
   <span class="n">_Out_</span>      <span class="n">PVOID</span> <span class="n">ProcessInformation</span><span class="p">,</span>

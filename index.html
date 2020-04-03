@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   	<meta charset="utf-8">
-  	<title>Dimitri Fourny | Home</title>
+  	<title>Dimitri Fourny | Blog</title>
   	<meta name="viewport" content="width=device-width, initial-scale=1.0">
   	<meta name="description" content="Passionate security researcher.">
   	<meta name="author" content="Dimitri Fourny">
@@ -30,116 +30,177 @@
 
 		    <div class="navbar-collapse collapse" id="navbar-main">
 		      <ul class="nav navbar-nav navbar-right">
-                <li class="active"><a href="/">Home</a></li>
+            <li ><a href="/about.html">About</a></li>
 		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-                <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
+            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
 		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
 		      </ul>
 		    </div>
 		</div>
-	</div>
+  </div>
 
 	<div class="container">
 		
 		<div class="row">
 			<div class="col-sm-12">
-				<h1 id="hello-world">About me</h1>
 
-<p>Welcome on my personal website!
-I’m Dimitri Fourny, a french security researcher who works in the field of 
-vulnerability research and exploitation. On this website, I try to keep all my 
-blog posts and my projects even if there is a gap between the first ones and 
-the last ones. I hope that it will satisfy your curiosity.</p>
-
-<h2 id="articles">Articles</h2>
+<h1>External articles</h1>
 
 <table class="table">
 	<tr>
 		<th>Date</th>
-		<th>Article</th>
-	</tr>
-
-	<tr>
-            <td>08/08/2019</td>
-            <td><a href="https://labs.bluefrostsecurity.de/blog/2019/08/08/escaping-the-chrome-sandbox-via-an-indexeddb-race-condition/">Escaping the Chrome Sandbox via an IndexedDB Race Condition</a></td>
-        </tr>
-	
-	<tr>
-            <td>29/04/2019</td>
-            <td><a href="https://labs.bluefrostsecurity.de/blog/2019/04/29/dont-follow-the-masses-bug-hunting-in-javascript-engines/">Don't Follow The Masses: Bug Hunting in JavaScript Engines</a></td>
-        </tr>
-	
-        <tr>
-            <td>28/04/2017</td>
-            <td><a href="/2017/04/28/optimized-shellcode.html">Writing Optimized Windows Shellcode</a></td>
-        </tr>
-    
-        <tr>
-            <td>08/03/2017</td>
-            <td><a href="/2017/03/08/attacking-aes-dsa.html">Attacking AES and DSA</a></td>
-        </tr>
-    
-        <tr>
-            <td>02/07/2014</td>
-            <td><a href="/2014/07/02/vtable-hooking.html">VTable Hooking</a></td>
-        </tr>
-    
-        <tr>
-            <td>16/03/2014</td>
-            <td><a href="/2014/03/16/driver-write-what-where.html">Driver write-what-where vulnerability</a></td>
-        </tr>
-    
-        <tr>
-            <td>14/03/2014</td>
-            <td><a href="/2014/03/14/driver-dereferenced.html">Driver dereferenced pointer in Windows 7 x64</a></td>
-        </tr>
-    
-        <tr>
-            <td>28/02/2014</td>
-            <td><a href="/2014/02/28/plugin-windbg.html">Make a plugin for WinDbg</a></td>
-        </tr>
-    
-        <tr>
-            <td>26/02/2014</td>
-            <td><a href="/2014/02/26/kernel-buffer-overflow.html">Kernel buffer overflow on Windows</a></td>
-        </tr>
-    
-        <tr>
-            <td>06/02/2014</td>
-            <td><a href="/2014/02/06/buffer-overflow.html">How to detect and exploit a buffer overflow</a></td>
-        </tr>
-    
+    <th>Article</th>
+  </tr>
+  <tr>
+    <td>08/08/2019</td>
+    <td><a href="https://labs.bluefrostsecurity.de/blog/2019/08/08/escaping-the-chrome-sandbox-via-an-indexeddb-race-condition/">Escaping the Chrome Sandbox via an IndexedDB Race Condition</a></td>
+  </tr>
+  <tr>
+    <td>29/04/2019</td>
+    <td><a href="https://labs.bluefrostsecurity.de/blog/2019/04/29/dont-follow-the-masses-bug-hunting-in-javascript-engines/">Don't Follow The Masses: Bug Hunting in JavaScript Engines</a></td>
+  </tr>
 </table>
+  
+    <h1 class="post-title"><a href="/2017/04/28/optimized-shellcode.html">Writing Optimized Windows Shellcode</a></h1>
+    <p class="post-date">28/04/2017</p>
+    <p>
+      <p>You always have a lot of possibilities when you make a shellcode payload, 
+especially on Windows. Do you need to write all your ASM manually or can you be 
+helped by your compiler? Do I need to directly use syscall or to search the 
+functions in memory? Because it’s not always simple to make it, I have made the 
+decision to write an article about that. I have the habit to do all the work in 
+C and compile it with Visual Studio: the source code is nicer in C, the compiler 
+do a better job to optimize it and you can implement your own obfuscator with 
+LLVM if you want.</p>
 
-<h2 id="sources">Sources</h2>
 
-<table class="table">
-	<tr>
-		<th>Year</th>
-		<th>Project</th>
-		<th>Description</th>
-	</tr>
-    <tr>
-        <td>2017</td>
-        <td><a href="https://github.com/DimitriFourny/koalaOS"><i class="icon-download-alt"></i> KoalaOS</a></td>
-        <td>KoalaOS is a microkernel with a bootloader coded in C++.</td>
-    </tr>
-    <tr>
-        <td>2017</td>
-        <td><a href="https://github.com/DimitriFourny/csgo-hack"><i class="icon-download-alt"></i> CS:GO Hack</a></td>
-        <td>Proof Of Concept of a CS:GO hack written in C++.</td>
-    </tr>
-    <tr>
-		<td>2016</td>
-		<td><a href="https://github.com/DimitriFourny/resources/tree/master/pe_armor"><i class="icon-download-alt"></i> PEArmor</a></td>
-		<td>Metamorphic PE packer generated and assembled by a Python code.</td>
-	</tr>
-	<tr>
-		<td>2014</td>
-		<td><a href="https://github.com/DimitriFourny/resources/tree/master/kbase"><i class="icon-download-alt"></i> kBase</a></td>
-		<td>Ring0 rootkit example to hide files and process on Windows.</td>
-	</tr>
-</table>
+
+      
+        <p class="read-more"><a href="/2017/04/28/optimized-shellcode.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2017/03/08/attacking-aes-dsa.html">Attacking AES and DSA</a></h1>
+    <p class="post-date">08/03/2017</p>
+    <p>
+      <p>Recently I was involved in a security conference called 
+<a href="https://secuday.github.io/">SecuDay</a> where I have presented 
+<a href="https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf">Attacking Games for Fun and Profit</a>. 
+At the end of the conference, we have been invited to resolve some challenges 
+conceived by <a href="http://www.lifl.fr/~bouillag/">Charles Bouillaguet</a>. There was 
+three levels, easy and medium level are based on the bruteforce of an 
+<a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard">Advanced Encryption Standard</a> 
+128-bits encryption and the hard level was to crack a bad implementation of the 
+<a href="https://en.wikipedia.org/wiki/Digital_Signature_Algorithm">Digital Signature Algorithm</a>. 
+The same implementation failure of DSA was used to break the Sony PS3.</p>
+
+
+
+      
+        <p class="read-more"><a href="/2017/03/08/attacking-aes-dsa.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2014/07/02/vtable-hooking.html">VTable Hooking</a></h1>
+    <p class="post-date">02/07/2014</p>
+    <p>
+      <p>Today, I will try to explain how we can make a hook on a C++ class method. This 
+technique works on Linux and Windows, but my examples are compiled on Linux.</p>
+
+
+
+      
+        <p class="read-more"><a href="/2014/07/02/vtable-hooking.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2014/03/16/driver-write-what-where.html">Driver write-what-where vulnerability</a></h1>
+    <p class="post-date">16/03/2014</p>
+    <p>
+      <p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
+x64. To do that, we will use the last level of 
+<a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3. We need to do some 
+changes to make a driver which work on a x64 system:</p>
+
+
+
+      
+        <p class="read-more"><a href="/2014/03/16/driver-write-what-where.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2014/03/14/driver-dereferenced.html">Driver dereferenced pointer in Windows 7 x64</a></h1>
+    <p class="post-date">14/03/2014</p>
+    <p>
+      <p>In my previous article, I have talked about the exploitation of kernel buffer 
+overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64 
+on the 0vercl0k’s level 2 driver. 0vercl0k have coded this driver for a x86 
+environment, so we need to do some changes:</p>
+
+
+
+      
+        <p class="read-more"><a href="/2014/03/14/driver-dereferenced.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2014/02/28/plugin-windbg.html">Make a plugin for WinDbg</a></h1>
+    <p class="post-date">28/02/2014</p>
+    <p>
+      <p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
+application, in user-land or in kernel-land. Despite its useful commands, we 
+would like to make some plugin to do a faster and better debugging session. 
+Fortunately for us, it’s possible to write WinDbg plugins in C or C++ to add a 
+lot of commands in our favorite debugger.I will use C++, but it’s possible to 
+use another language if this language support the DLL creation. With Python, you 
+can use PyKd. The plugin that you will be able to code after this article and 
+with a little documentation looks like that:</p>
+
+
+
+      
+        <p class="read-more"><a href="/2014/02/28/plugin-windbg.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2014/02/26/kernel-buffer-overflow.html">Kernel buffer overflow on Windows</a></h1>
+    <p class="post-date">26/02/2014</p>
+    <p>
+      <p>The buffer overflow are cool in user-land but they can be more funny in 
+kernel-land. This time, we will use a buffer overflow to make an escalade 
+privilege to get the SYSTEM rights, so we will could make anything we want on 
+the system. To train us, we don’t need to code a driver by ourself: 0vercl0k 
+have done it for us! So we got the level 1 files and we start our XP VM.</p>
+
+
+
+      
+        <p class="read-more"><a href="/2014/02/26/kernel-buffer-overflow.html">Read more...</a></p>
+      
+    </p>
+
+  
+    <h1 class="post-title"><a href="/2014/02/06/buffer-overflow.html">How to detect and exploit a buffer overflow</a></h1>
+    <p class="post-date">06/02/2014</p>
+    <p>
+      <p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
+In this article, I will try to show you how to exploit a buffer overflow on 
+Windows with WinDbg and a little Python code.</p>
+
+
+
+      
+        <p class="read-more"><a href="/2014/02/06/buffer-overflow.html">Read more...</a></p>
+      
+    </p>
+
+  
 
 			</div>
 		</div>
