@@ -5,12 +5,6 @@ body {
   color: #c9cacc;
 }
 
-@media (min-width: 1200px) {
-  .container {
-    width: 1000px;
-  }
-}
-
 h1 {
   font-size: 18px;
   font-weight: 700;
