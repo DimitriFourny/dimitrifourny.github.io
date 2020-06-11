@@ -61,6 +61,23 @@
   </tr>
 </table>
   
+    <h1 class="post-title"><a href="/2020/06/11/dumping-veh-win10.html">Dumping the VEH in Windows 10</a></h1>
+    <p class="post-date">11/06/2020</p>
+    <p>
+      <p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
+Even if you have an official Windows API to add and remove handlers via <code class="highlighter-rouge">AddVectoredExceptionHandler</code> and
+<code class="highlighter-rouge">RemoveVectoredExceptionHandler</code>, there is no official way to list all registered handlers in an application.
+Inside the source code of ReactOS you can find <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c">a source file</a> with these API reimplemented and it can give us
+good information about how it works.</p>
+
+
+
+      
+        <p class="read-more"><a href="/2020/06/11/dumping-veh-win10.html">Read more...</a></p>
+      
+    </p>
+
+  
     <h1 class="post-title"><a href="/2017/04/28/optimized-shellcode.html">Writing Optimized Windows Shellcode</a></h1>
     <p class="post-date">28/04/2017</p>
     <p>
