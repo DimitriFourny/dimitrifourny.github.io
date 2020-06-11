@@ -5,6 +5,12 @@ body {
   color: #c9cacc;
 }
 
+@media (min-width:992px) {
+  .container {
+   width:870px;
+  }
+}
+
 h1 {
   font-size: 18px;
   font-weight: 700;
@@ -132,4 +138,9 @@ table a:hover, .table a:hover {
 
 .read-more {
   float: right;
+}
+
+img {
+  display: block;
+  margin: 20px auto;
 }
