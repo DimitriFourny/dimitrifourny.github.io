@@ -1,87 +1,140 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  	<meta charset="utf-8">
-  	<title>Dimitri Fourny | Blog</title>
-  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  	<meta name="description" content="Passionate security researcher.">
-  	<meta name="author" content="Dimitri Fourny">
-	
-	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/assets/css/style.css" rel="stylesheet">
-  	<link href="/assets/css/syntax.css" rel="stylesheet">
+<!--
+    So Simple Jekyll Theme 3.2.0
+    Copyright 2013-2019 Michael Rose - mademistakes.com | @mmistakes
+    Free for personal and commercial use under the MIT license
+    https://github.com/mmistakes/so-simple-theme/blob/master/LICENSE
+-->
+<html lang="en-US" class="no-js">
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  
 
-    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/assets/img/favicon.png">
+  
+    <title>Dimitri Fourny</title>
+    <meta name="description" content="Personal website and computer security blog.">
+    <link rel="canonical" href="https://dimitrifourny.github.io//">
+  
+
+  <script>
+    /* Cut the mustard */
+    if ( 'querySelector' in document && 'addEventListener' in window ) {
+      document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + 'js';
+    }
+  </script>
+
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/skins/default.css">
+  <!-- start custom head snippets -->
+
+<!-- insert favicons. use http://realfavicongenerator.net/ -->
+<link rel="shortcut icon" href="/assets/img/favicon.png">
+
+<!-- end custom head snippets -->
+
 </head>
 
-<body>
-	<div class="navbar navbar-default navbar-static-top" role="navigation">
-		<div class="container">
-			<div class="navbar-header">
-				<a class="navbar-brand" href="/">Dimitri Fourny</a>
-	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
-	            	<span class="icon-bar"></span>
-	            	<span class="icon-bar"></span>
-	            	<span class="icon-bar"></span>
-	          	</button>
-		    </div>
 
-		    <div class="navbar-collapse collapse" id="navbar-main">
-		      <ul class="nav navbar-nav navbar-right">
-            <li ><a href="/about.html">About</a></li>
-		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
-		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		      </ul>
-		    </div>
-		</div>
+  <body class="layout--home  ">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#primary-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+  <div class="navigation-wrapper">
+    <a href="#menu-toggle" id="menu-toggle">Menu</a>
+    <nav id="primary-nav" class="site-nav animated drop">
+      <ul><li><a href="/">Home</a></li><li><a href="/about">About</a></li><li><a href="https://twitter.com/DimitriFourny">Twitter</a></li><li><a href="https://github.com/DimitriFourny">Github</a></li><li><a href="http://fr.linkedin.com/pub/dimitri-fourny/">Linkedin</a></li></ul>
+    </nav>
+  </div><!-- /.navigation-wrapper -->
+
+
+    <header class="masthead">
+  <div class="wrap">
+    
+    
+    
+      
+        <h1 class="site-title animated fadeIn"><a href="/">Dimitri Fourny</a></h1>
+      
+      <p class="site-description animated fadeIn" itemprop="description">Personal website and computer security blog.</p>
+    
   </div>
+</header><!-- /.masthead -->
 
-	<div class="container">
-		
-		<div class="row">
-			<div class="col-sm-12">
 
-<h1>External articles</h1>
+    <main id="main" class="main-content" aria-label="Content">
+  <article>
+    
 
-<table class="table">
-	<tr>
-		<th>Date</th>
-    <th>Article</th>
-  </tr>
-  <tr>
-    <td>08/08/2019</td>
-    <td><a href="https://labs.bluefrostsecurity.de/blog/2019/08/08/escaping-the-chrome-sandbox-via-an-indexeddb-race-condition/">Escaping the Chrome Sandbox via an IndexedDB Race Condition</a></td>
-  </tr>
-  <tr>
-    <td>29/04/2019</td>
-    <td><a href="https://labs.bluefrostsecurity.de/blog/2019/04/29/dont-follow-the-masses-bug-hunting-in-javascript-engines/">Don't Follow The Masses: Bug Hunting in JavaScript Engines</a></td>
-  </tr>
-</table>
+    <div class="page-wrapper">
+      <header class="page-header">
+        
+        
+          <h1 id="page-title" class="page-title"></h1>
+        
+      </header>
+      <div class="page-content">
+        
+
+
+<div class="entries-list">
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2020/06/11/dumping-veh-win10.html" rel="bookmark">Dumping the VEH in Windows 10
+</a>
+      
+    </h3>
+    
+  </header>
   
-    <h1 class="post-title"><a href="/2020/06/11/dumping-veh-win10.html">Dumping the VEH in Windows 10</a></h1>
-    <p class="post-date">11/06/2020</p>
-    <p>
-      <p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
+    <div class="entry-excerpt p-summary">
+      
+        <p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
 Even if you have an official Windows API to add and remove handlers via <code class="highlighter-rouge">AddVectoredExceptionHandler</code> and
 <code class="highlighter-rouge">RemoveVectoredExceptionHandler</code>, there is no official way to list all registered handlers in an application.
 Inside the source code of ReactOS you can find <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c">a source file</a> with these API reimplemented and it can give us
 good information about how it works.</p>
 
 
-
       
-        <p class="read-more"><a href="/2020/06/11/dumping-veh-win10.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2017/04/28/optimized-shellcode.html">Writing Optimized Windows Shellcode</a></h1>
-    <p class="post-date">28/04/2017</p>
-    <p>
-      <p>You always have a lot of possibilities when you make a shellcode payload, 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2020-06-11T00:00:00+02:00">June 11, 2020
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2017/04/28/optimized-shellcode.html" rel="bookmark">Writing Optimized Windows Shellcode
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>You always have a lot of possibilities when you make a shellcode payload, 
 especially on Windows. Do you need to write all your ASM manually or can you be 
 helped by your compiler? Do I need to directly use syscall or to search the 
 functions in memory? Because it’s not always simple to make it, I have made the 
@@ -91,17 +144,33 @@ do a better job to optimize it and you can implement your own obfuscator with
 LLVM if you want.</p>
 
 
-
       
-        <p class="read-more"><a href="/2017/04/28/optimized-shellcode.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2017/03/08/attacking-aes-dsa.html">Attacking AES and DSA</a></h1>
-    <p class="post-date">08/03/2017</p>
-    <p>
-      <p>Recently I was involved in a security conference called 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2017-04-28T00:00:00+02:00">April 28, 2017
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2017/03/08/attacking-aes-dsa.html" rel="bookmark">Attacking AES and DSA
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>Recently I was involved in a security conference called 
 <a href="https://secuday.github.io/">SecuDay</a> where I have presented 
 <a href="https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf">Attacking Games for Fun and Profit</a>. 
 At the end of the conference, we have been invited to resolve some challenges 
@@ -113,63 +182,127 @@ three levels, easy and medium level are based on the bruteforce of an
 The same implementation failure of DSA was used to break the Sony PS3.</p>
 
 
-
       
-        <p class="read-more"><a href="/2017/03/08/attacking-aes-dsa.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2014/07/02/vtable-hooking.html">VTable Hooking</a></h1>
-    <p class="post-date">02/07/2014</p>
-    <p>
-      <p>Today, I will try to explain how we can make a hook on a C++ class method. This 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2017-03-08T00:00:00+01:00">March 8, 2017
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2014/07/02/vtable-hooking.html" rel="bookmark">VTable Hooking
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>Today, I will try to explain how we can make a hook on a C++ class method. This 
 technique works on Linux and Windows, but my examples are compiled on Linux.</p>
 
 
-
       
-        <p class="read-more"><a href="/2014/07/02/vtable-hooking.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2014/03/16/driver-write-what-where.html">Driver write-what-where vulnerability</a></h1>
-    <p class="post-date">16/03/2014</p>
-    <p>
-      <p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2014-07-02T00:00:00+02:00">July 2, 2014
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2014/03/16/driver-write-what-where.html" rel="bookmark">Driver write-what-where vulnerability
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
 x64. To do that, we will use the last level of 
 <a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3. We need to do some 
 changes to make a driver which work on a x64 system:</p>
 
 
-
       
-        <p class="read-more"><a href="/2014/03/16/driver-write-what-where.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2014/03/14/driver-dereferenced.html">Driver dereferenced pointer in Windows 7 x64</a></h1>
-    <p class="post-date">14/03/2014</p>
-    <p>
-      <p>In my previous article, I have talked about the exploitation of kernel buffer 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2014-03-16T00:00:00+01:00">March 16, 2014
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2014/03/14/driver-dereferenced.html" rel="bookmark">Driver dereferenced pointer in Windows 7 x64
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>In my previous article, I have talked about the exploitation of kernel buffer 
 overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64 
 on the 0vercl0k’s level 2 driver. 0vercl0k have coded this driver for a x86 
 environment, so we need to do some changes:</p>
 
 
-
       
-        <p class="read-more"><a href="/2014/03/14/driver-dereferenced.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2014/02/28/plugin-windbg.html">Make a plugin for WinDbg</a></h1>
-    <p class="post-date">28/02/2014</p>
-    <p>
-      <p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2014-03-14T00:00:00+01:00">March 14, 2014
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2014/02/28/plugin-windbg.html" rel="bookmark">Make a plugin for WinDbg
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
 application, in user-land or in kernel-land. Despite its useful commands, we 
 would like to make some plugin to do a faster and better debugging session. 
 Fortunately for us, it’s possible to write WinDbg plugins in C or C++ to add a 
@@ -179,50 +312,107 @@ can use PyKd. The plugin that you will be able to code after this article and
 with a little documentation looks like that:</p>
 
 
-
       
-        <p class="read-more"><a href="/2014/02/28/plugin-windbg.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2014/02/26/kernel-buffer-overflow.html">Kernel buffer overflow on Windows</a></h1>
-    <p class="post-date">26/02/2014</p>
-    <p>
-      <p>The buffer overflow are cool in user-land but they can be more funny in 
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2014-02-28T00:00:00+01:00">February 28, 2014
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2014/02/26/kernel-buffer-overflow.html" rel="bookmark">Kernel buffer overflow on Windows
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>The buffer overflow are cool in user-land but they can be more funny in 
 kernel-land. This time, we will use a buffer overflow to make an escalade 
 privilege to get the SYSTEM rights, so we will could make anything we want on 
 the system. To train us, we don’t need to code a driver by ourself: 0vercl0k 
 have done it for us! So we got the level 1 files and we start our XP VM.</p>
 
 
-
       
-        <p class="read-more"><a href="/2014/02/26/kernel-buffer-overflow.html">Read more...</a></p>
-      
-    </p>
-
+    </div>
   
-    <h1 class="post-title"><a href="/2014/02/06/buffer-overflow.html">How to detect and exploit a buffer overflow</a></h1>
-    <p class="post-date">06/02/2014</p>
-    <p>
-      <p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2014-02-26T00:00:00+01:00">February 26, 2014
+  </time>
+    </footer>
+  
+</article>
+
+
+<article class="entry h-entry">
+  <header class="entry-header">
+    <h3 class="entry-title p-name">
+      
+        <a href="/2014/02/06/buffer-overflow.html" rel="bookmark">How to detect and exploit a buffer overflow
+</a>
+      
+    </h3>
+    
+  </header>
+  
+    <div class="entry-excerpt p-summary">
+      
+        <p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
 In this article, I will try to show you how to exploit a buffer overflow on 
 Windows with WinDbg and a little Python code.</p>
 
 
-
       
-        <p class="read-more"><a href="/2014/02/06/buffer-overflow.html">Read more...</a></p>
-      
-    </p>
-
-  
-
-			</div>
-		</div>
-
     </div>
+  
+  
+    <footer class="entry-meta">
+      
+      <time class="entry-date dt-published" datetime="2014-02-06T00:00:00+01:00">February 6, 2014
+  </time>
+    </footer>
+  
+</article>
+</div>
 
-</body>
+
+        
+      </div>
+    </div>
+  </article>
+</main>
+
+
+    <footer id="footer" class="site-footer">
+  <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+<div class="copyright">
+    
+      <p>&copy; 2020 Dimitri Fourny. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/mmistakes/so-simple-theme" rel="nofollow">So Simple</a>.</p>
+    
+  </div>
+</footer>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="/assets/js/main.min.js"></script>
+  <script src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+
+
+  </body>
+
 </html>

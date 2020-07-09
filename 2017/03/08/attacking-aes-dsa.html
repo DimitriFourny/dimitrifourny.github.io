@@ -1,50 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  	<meta charset="utf-8">
-  	<title>Dimitri Fourny | Attacking AES and DSA</title>
-  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  	<meta name="description" content="Passionate security researcher.">
-  	<meta name="author" content="Dimitri Fourny">
-	
-	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/assets/css/style.css" rel="stylesheet">
-  	<link href="/assets/css/syntax.css" rel="stylesheet">
+<!--
+    So Simple Jekyll Theme 3.2.0
+    Copyright 2013-2019 Michael Rose - mademistakes.com | @mmistakes
+    Free for personal and commercial use under the MIT license
+    https://github.com/mmistakes/so-simple-theme/blob/master/LICENSE
+-->
+<html lang="en-US" class="no-js">
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  
 
-    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/assets/img/favicon.png">
+  
+    <title>Attacking AES and DSA</title>
+    <meta name="description" content="Recently I was involved in a security conference called SecuDay where I have presented Attacking Games for Fun and Profit. At the end of the conference, we h...">
+    <link rel="canonical" href="https://dimitrifourny.github.io//2017/03/08/attacking-aes-dsa.html">
+  
+
+  <script>
+    /* Cut the mustard */
+    if ( 'querySelector' in document && 'addEventListener' in window ) {
+      document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + 'js';
+    }
+  </script>
+
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/skins/default.css">
+  <!-- start custom head snippets -->
+
+<!-- insert favicons. use http://realfavicongenerator.net/ -->
+<link rel="shortcut icon" href="/assets/img/favicon.png">
+
+<!-- end custom head snippets -->
+
 </head>
 
-<body>
-	<div class="navbar navbar-default navbar-static-top" role="navigation">
-		<div class="container">
-			<div class="navbar-header">
-				<a class="navbar-brand" href="/">Dimitri Fourny</a>
-	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
-	            	<span class="icon-bar"></span>
-	            	<span class="icon-bar"></span>
-	            	<span class="icon-bar"></span>
-	          	</button>
-		    </div>
 
-		    <div class="navbar-collapse collapse" id="navbar-main">
-		      <ul class="nav navbar-nav navbar-right">
-            <li ><a href="/about.html">About</a></li>
-		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
-		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		      </ul>
-		    </div>
-		</div>
+  <body class="layout--post  attacking-aes-and-dsa">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#primary-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+  <div class="navigation-wrapper">
+    <a href="#menu-toggle" id="menu-toggle">Menu</a>
+    <nav id="primary-nav" class="site-nav animated drop">
+      <ul><li><a href="/">Home</a></li><li><a href="/about">About</a></li><li><a href="https://twitter.com/DimitriFourny">Twitter</a></li><li><a href="https://github.com/DimitriFourny">Github</a></li><li><a href="http://fr.linkedin.com/pub/dimitri-fourny/">Linkedin</a></li></ul>
+    </nav>
+  </div><!-- /.navigation-wrapper -->
+
+
+    <header class="masthead">
+  <div class="wrap">
+    
+    
+    
+      
+        <div class="site-title animated fadeIn"><a href="/">Dimitri Fourny</a></div>
+      
+      <p class="site-description animated fadeIn" itemprop="description">Personal website and computer security blog.</p>
+    
   </div>
+</header><!-- /.masthead -->
 
-	<div class="container">
-		
-		<div class="row">
-			<div class="col-sm-12">
-        <h1>Attacking AES and DSA </h1>
-        <p>Recently I was involved in a security conference called 
+
+    <main id="main" class="main-content" aria-label="Content">
+  <article class="h-entry">
+    
+
+    <div class="page-wrapper">
+      <header class="page-header">
+        
+        
+          <h1 id="page-title" class="page-title p-name">Attacking AES and DSA
+</h1>
+        
+      </header>
+
+      <div class="page-sidebar">
+        <div class="page-author h-card p-author"><img src="http://twivatar.glitch.me/dimitrifourny" class="author-avatar u-photo" alt="Dimitri Fourny"><div class="author-info"><div class="author-name">
+        <span class="p-name">Dimitri Fourny</span>
+      </div><ul class="author-links"><li class="author-link">
+            <a class="u-url" rel="me" href="https://twitter.com/dimitrifourny"><i class="fab fa-twitter-square fa-lg" title="Twitter"></i></a>
+          </li></ul>
+    <time class="page-date dt-published" datetime="2017-03-08T00:00:00+01:00"><a class="u-url" href="">March 8, 2017</a>
+</time>
+
+  </div>
+</div>
+
+        
+
+        
+
+      </div>
+
+      <div class="page-content">
+        <div class="e-content">
+          <p>Recently I was involved in a security conference called 
 <a href="https://secuday.github.io/">SecuDay</a> where I have presented 
 <a href="https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf">Attacking Games for Fun and Profit</a>. 
 At the end of the conference, we have been invited to resolve some challenges 
@@ -91,23 +151,23 @@ it’s not stupid”.</p>
 <span class="kn">import</span> <span class="nn">time</span><span class="p">,</span> <span class="n">progressbar</span>
 
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'words.txt'</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">words</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
 
-<span class="n">bar</span> <span class="o">=</span> <span class="n">progressbar</span><span class="o">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">max_value</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">))</span>
+<span class="n">bar</span> <span class="o">=</span> <span class="n">progressbar</span><span class="p">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">max_value</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">))</span>
 <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="nb">file</span> <span class="o">=</span> <span class="s">''</span>
 <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
-    <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">bar</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="nb">file</span> <span class="o">=</span> <span class="s">'out/'</span><span class="o">+</span><span class="n">key</span><span class="o">+</span><span class="s">'.txt'</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s">'openssl'</span><span class="p">,</span> <span class="s">'enc'</span><span class="p">,</span> <span class="s">'-d'</span><span class="p">,</span> <span class="s">'-aes-128-cbc'</span><span class="p">,</span> <span class="s">'-base64'</span><span class="p">,</span> <span class="s">'-pass'</span><span class="p">,</span> <span class="s">'pass:'</span><span class="o">+</span><span class="n">key</span><span class="p">,</span> <span class="s">'-in'</span><span class="p">,</span> <span class="s">'easy.txt'</span><span class="p">,</span> <span class="s">'-out'</span><span class="p">,</span> <span class="nb">file</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
-    <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="n">b</span><span class="s">''</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="p">.</span><span class="n">Popen</span><span class="p">([</span><span class="s">'openssl'</span><span class="p">,</span> <span class="s">'enc'</span><span class="p">,</span> <span class="s">'-d'</span><span class="p">,</span> <span class="s">'-aes-128-cbc'</span><span class="p">,</span> <span class="s">'-base64'</span><span class="p">,</span> <span class="s">'-pass'</span><span class="p">,</span> <span class="s">'pass:'</span><span class="o">+</span><span class="n">key</span><span class="p">,</span> <span class="s">'-in'</span><span class="p">,</span> <span class="s">'easy.txt'</span><span class="p">,</span> <span class="s">'-out'</span><span class="p">,</span> <span class="nb">file</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="p">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="p">.</span><span class="n">PIPE</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">communicate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="s">b''</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span> 
-            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+            <span class="n">os</span><span class="p">.</span><span class="n">remove</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
 
@@ -120,20 +180,20 @@ it’s not stupid”.</p>
     <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">128</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="n">path</span> <span class="o">=</span> <span class="s">"out/"</span>
-<span class="n">dirs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span> <span class="n">path</span> <span class="p">)</span>
+<span class="n">dirs</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">listdir</span><span class="p">(</span> <span class="n">path</span> <span class="p">)</span>
 
 <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="nb">file</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
 
    <span class="k">try</span><span class="p">:</span>
-       <span class="n">buf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+       <span class="n">buf</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
 
        <span class="k">if</span> <span class="n">is_ascii</span><span class="p">(</span><span class="n">buf</span><span class="p">):</span>
            <span class="k">print</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
    <span class="k">except</span><span class="p">:</span>
        <span class="k">pass</span>
    <span class="k">finally</span><span class="p">:</span>
-       <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+       <span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 </code></pre></div></div>
 
 <h2 id="medium-level">Medium Level</h2>
@@ -154,15 +214,15 @@ than 5 minutes:</p>
 <span class="kn">import</span> <span class="nn">threading</span>
 
 <span class="k">def</span> <span class="nf">passToKeyIv</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">salt</span><span class="p">):</span>
-    <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">'latin-1'</span><span class="p">)</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="s">'latin-1'</span><span class="p">)</span>
 
-    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
-    <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">password</span><span class="o">+</span><span class="n">salt</span><span class="p">)</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">md5</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="p">.</span><span class="n">md5</span><span class="p">()</span>
+    <span class="n">md5</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">password</span><span class="o">+</span><span class="n">salt</span><span class="p">)</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">md5</span><span class="p">.</span><span class="n">digest</span><span class="p">()</span>
 
-    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
-    <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="n">password</span><span class="o">+</span><span class="n">salt</span><span class="p">)</span>
-    <span class="n">iv</span> <span class="o">=</span> <span class="n">md5</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="p">.</span><span class="n">md5</span><span class="p">()</span>
+    <span class="n">md5</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="n">password</span><span class="o">+</span><span class="n">salt</span><span class="p">)</span>
+    <span class="n">iv</span> <span class="o">=</span> <span class="n">md5</span><span class="p">.</span><span class="n">digest</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
 
@@ -170,10 +230,10 @@ than 5 minutes:</p>
     <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span> <span class="o">&lt;</span> <span class="mi">128</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">polypassword</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">letter_position</span><span class="p">,</span> <span class="n">digit_position</span><span class="p">,</span> <span class="n">digit</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">!=</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]:</span>
-        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">letter_position</span><span class="p">]</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">].</span><span class="n">upper</span><span class="p">()</span> <span class="o">!=</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]:</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">letter_position</span><span class="p">]</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">].</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">letter_position</span><span class="p">]</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">letter_position</span><span class="p">]</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="p">].</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">letter_position</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
     <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">digit_position</span><span class="p">]</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">digit</span><span class="p">)</span> <span class="o">+</span> <span class="n">password</span><span class="p">[</span><span class="n">digit_position</span><span class="p">:]</span>
     <span class="k">return</span> <span class="n">password</span>
 
@@ -186,38 +246,38 @@ than 5 minutes:</p>
                 <span class="n">password</span> <span class="o">=</span> <span class="n">polypassword</span><span class="p">(</span><span class="n">password_base</span><span class="p">,</span> <span class="n">letter_position</span><span class="p">,</span> <span class="n">digit_position</span><span class="p">,</span> <span class="n">digit</span><span class="p">)</span>
 
                 <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span> <span class="o">=</span> <span class="n">passToKeyIv</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">salt</span><span class="p">)</span>
-                <span class="n">aes</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="n">aes</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">binary</span><span class="p">[</span><span class="mi">16</span><span class="p">:])</span>
+                <span class="n">aes</span> <span class="o">=</span> <span class="n">AES</span><span class="p">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="p">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">aes</span><span class="p">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">binary</span><span class="p">[</span><span class="mi">16</span><span class="p">:])</span>
 
                 <span class="k">if</span> <span class="n">is_ascii</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
                     <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Password = "</span><span class="o">+</span><span class="n">password</span><span class="p">)</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">os</span><span class="p">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'medium.txt'</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
-<span class="n">text</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-<span class="n">binary</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">text</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">binary</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 <span class="n">salt</span> <span class="o">=</span> <span class="n">binary</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">16</span><span class="p">]</span>
 
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'words.txt'</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">words</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
 
 <span class="n">max_bar</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span>
-<span class="n">bar</span> <span class="o">=</span> <span class="n">progressbar</span><span class="o">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">max_value</span><span class="o">=</span><span class="n">max_bar</span><span class="p">)</span>
+<span class="n">bar</span> <span class="o">=</span> <span class="n">progressbar</span><span class="p">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">max_value</span><span class="o">=</span><span class="n">max_bar</span><span class="p">)</span>
 <span class="n">progress</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">10</span>
 <span class="n">msg</span> <span class="o">=</span> <span class="s">""</span>
 
 <span class="k">for</span> <span class="n">digit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">testPassword</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">digit</span><span class="p">,</span> <span class="n">progress</span><span class="p">))</span>
-    <span class="n">t</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="bp">True</span>
-    <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">testPassword</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">digit</span><span class="p">,</span> <span class="n">progress</span><span class="p">))</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
 
 <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
-    <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">progress</span><span class="p">))</span>
+    <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">bar</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">progress</span><span class="p">))</span>
 </code></pre></div></div>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>D:\SecuDay\medium&gt;python attack2.py
@@ -314,25 +374,25 @@ information and save them:</p>
 <span class="k">def</span> <span class="nf">hex_bignumber</span><span class="p">(</span><span class="n">number</span><span class="p">):</span>
     <span class="n">result</span> <span class="o">=</span> <span class="s">""</span>
     <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">number</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">+=</span> <span class="s">"</span><span class="si">%02</span><span class="s">X"</span> <span class="o">%</span> <span class="n">n</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s">"%02X"</span> <span class="o">%</span> <span class="n">n</span>
 
     <span class="k">return</span> <span class="n">result</span>
 
 
-<span class="n">answer</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s">'http://security.fil.cool/hard/crypto-poet'</span><span class="p">)</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">answer</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+<span class="n">answer</span> <span class="o">=</span> <span class="n">requests</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s">'http://security.fil.cool/hard/crypto-poet'</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="n">answer</span><span class="p">.</span><span class="n">text</span><span class="p">)</span>
 <span class="k">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
 <span class="n">signature</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">'signature'</span><span class="p">]</span>
-<span class="n">signature</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+<span class="n">signature</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
 
 <span class="c1"># backup
 </span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'input.der'</span><span class="p">,</span> <span class="s">'wb'</span><span class="p">)</span>
-<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-<span class="n">f</span> <span class="o">=</span> <span class="n">codecs</span><span class="o">.</span><span class="nb">open</span><span class="p">(</span><span class="s">'poem.txt'</span><span class="p">,</span> <span class="s">'w'</span><span class="p">,</span> <span class="s">'utf-8'</span><span class="p">)</span>
-<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'poem'</span><span class="p">])</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">codecs</span><span class="p">.</span><span class="nb">open</span><span class="p">(</span><span class="s">'poem.txt'</span><span class="p">,</span> <span class="s">'w'</span><span class="p">,</span> <span class="s">'utf-8'</span><span class="p">)</span>
+<span class="n">f</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'poem'</span><span class="p">])</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># parse
 </span><span class="n">der</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">signature</span><span class="p">]</span> <span class="c1"># DER format
@@ -372,7 +432,7 @@ sb = k^-1 (H(mb) + x*r)
 <span class="kn">from</span> <span class="nn">gmpy2</span> <span class="kn">import</span> <span class="n">is_prime</span><span class="p">,</span> <span class="n">mpq</span><span class="p">,</span> <span class="n">powmod</span>
 
 <span class="k">def</span> <span class="nf">int_to_hexarray</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="n">n_hex</span> <span class="o">=</span> <span class="s">"</span><span class="si">%</span><span class="s">x"</span> <span class="o">%</span> <span class="n">n</span>
+    <span class="n">n_hex</span> <span class="o">=</span> <span class="s">"%x"</span> <span class="o">%</span> <span class="n">n</span>
     <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_hex</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">n_hex</span> <span class="o">=</span> <span class="s">'0'</span> <span class="o">+</span> <span class="n">n_hex</span>
 
@@ -381,14 +441,14 @@ sb = k^-1 (H(mb) + x*r)
 
 <span class="c1">#####################
 </span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'poem1.txt'</span><span class="p">,</span> <span class="s">'rb'</span><span class="p">)</span>
-<span class="n">poem1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">poem1</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 <span class="n">s1</span> <span class="o">=</span> <span class="mh">0x0588B660896F999520217C3A0290A48DDEF103342F30C3AFE69CF88F6275D573</span>
 
 <span class="c1">#####################
 </span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'poem2.txt'</span><span class="p">,</span> <span class="s">'rb'</span><span class="p">)</span>
-<span class="n">poem2</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">poem2</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 <span class="n">s2</span> <span class="o">=</span> <span class="mh">0x7B2C4707F3AD96AD93BE8A01F7A8B10F3B0AE7CC148F5F719F1DF28990BBC9B9</span>
 
 <span class="c1">#####################
@@ -400,9 +460,9 @@ sb = k^-1 (H(mb) + x*r)
 <span class="n">g</span> <span class="o">=</span> <span class="mh">0x7c9d027c3b807cc7c7681ea2cd283e8bbf9d0c80a20518584a2b3ffe077a69fc8c045907a56a6f5497b30de96e9fe58ebbae0f64ca52a3da18348b2ba242bf8ae75a73c3bfa6e9154476d306c6cfea7c056da1834c8c441cce3f939b5a1cc0f4d2ed67588c89ec0ba2adfdd1c3c0b1ccb0dba29858b172928f6fbd94c0ea31849c8fb18de7c6df962583ff9a9e36271c6e8f95269b776bc1ecba78d9d51465ff5e2c6332ceb198996c0c6c7c16a63dc115ff4f02ef5fc5ec2e7d2bc8ded843e6abefdfc454e420db1c95194047b06ccb9436267e8630401008907eebc309e320c4514d10702f93fd9dfef0d851f1548c27f0551e92259c908a2aca878fd453a7</span>
 
 <span class="c1"># Calculte hashs
-</span><span class="n">h1</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">poem1</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span class="n">h1</span> <span class="o">=</span> <span class="n">hashlib</span><span class="p">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">poem1</span><span class="p">).</span><span class="n">hexdigest</span><span class="p">()</span>
 <span class="n">h1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
-<span class="n">h2</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">poem2</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="n">h2</span> <span class="o">=</span> <span class="n">hashlib</span><span class="p">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">poem2</span><span class="p">).</span><span class="n">hexdigest</span><span class="p">()</span>
 <span class="n">h2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h2</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
 
 <span class="c1"># Search k
@@ -431,10 +491,10 @@ sb = k^-1 (H(mb) + x*r)
 
 <span class="c1"># Private key reversed, now we will sign our own file
 </span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'message.txt'</span><span class="p">,</span> <span class="s">'rb'</span><span class="p">)</span>
-<span class="n">message</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 
-<span class="n">hs</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="n">hs</span> <span class="o">=</span> <span class="n">hashlib</span><span class="p">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">message</span><span class="p">).</span><span class="n">hexdigest</span><span class="p">()</span>
 <span class="n">hs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
 
 <span class="n">msg_s</span> <span class="o">=</span> <span class="n">k_</span> <span class="o">*</span> <span class="p">(</span><span class="n">hs</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span>
@@ -450,8 +510,8 @@ sb = k^-1 (H(mb) + x*r)
 <span class="n">der</span> <span class="o">+=</span> <span class="p">[</span><span class="mh">0x02</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">s_array</span><span class="p">)]</span> <span class="o">+</span> <span class="n">s_array</span>
 <span class="n">der</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
 <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">'message.der'</span><span class="p">,</span> <span class="s">'wb'</span><span class="p">)</span>
-<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
-<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">f</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
+<span class="n">f</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c1"># openssl dgst -sha256 -verify pk.pem -signature message.der message.txt
 </span></code></pre></div></div>
@@ -475,10 +535,56 @@ msg_s = 553340518981662996807582193928965391068355237426249469355560467107191512
 
 <p>Thank you to all the organizers of the SecuDay conference.</p>
 
-			</div>
-		</div>
+        </div>
 
+        
+
+        
+
+        <nav class="page-pagination" role="navigation">
+  
+    <a class="page-previous" href="/2014/07/02/vtable-hooking.html">
+      <h4 class="page-pagination-label">Previous</h4>
+      <span class="page-pagination-title">
+        <i class="fas fa-arrow-left"></i> VTable Hooking
+
+      </span>
+    </a>
+  
+
+  
+    <a class="page-next" href="/2017/04/28/optimized-shellcode.html">
+      <h4 class="page-pagination-label">Next</h4>
+      <span class="page-pagination-title">
+        Writing Optimized Windows Shellcode
+ <i class="fas fa-arrow-right"></i>
+      </span>
+    </a>
+  
+</nav>
+
+      </div>
     </div>
+  </article>
+</main>
 
-</body>
+
+    <footer id="footer" class="site-footer">
+  <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+<div class="copyright">
+    
+      <p>&copy; 2020 Dimitri Fourny. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/mmistakes/so-simple-theme" rel="nofollow">So Simple</a>.</p>
+    
+  </div>
+</footer>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="/assets/js/main.min.js"></script>
+  <script src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+
+
+  </body>
+
 </html>

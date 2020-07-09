@@ -1,1 +1,19 @@
 markdown: kramdown
+theme: jekyll-theme-so-simple
+
+title: "Dimitri Fourny"
+description: "Personal website and computer security blog."
+url: "https://dimitrifourny.github.io/"
+twitter:
+  username: dimitrifourny
+
+# Site Author
+author:
+  name: Dimitri Fourny
+  picture: http://twivatar.glitch.me/dimitrifourny
+  email:
+  twitter: "@dimitrifourny"
+  links:
+    - title: Twitter
+      url: https://twitter.com/dimitrifourny
+      icon: fab fa-twitter-square

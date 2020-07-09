@@ -1,43 +1,17 @@
-{% include head.html %}
+---
+layout: page
+---
 
-	<div class="container">
-		
-		<div class="row">
-			<div class="col-sm-12">
+{{ content }}
 
-<h1>External articles</h1>
-
-<table class="table">
-	<tr>
-		<th>Date</th>
-    <th>Article</th>
-  </tr>
-  <tr>
-    <td>08/08/2019</td>
-    <td><a href="https://labs.bluefrostsecurity.de/blog/2019/08/08/escaping-the-chrome-sandbox-via-an-indexeddb-race-condition/">Escaping the Chrome Sandbox via an IndexedDB Race Condition</a></td>
-  </tr>
-  <tr>
-    <td>29/04/2019</td>
-    <td><a href="https://labs.bluefrostsecurity.de/blog/2019/04/29/dont-follow-the-masses-bug-hunting-in-javascript-engines/">Don't Follow The Masses: Bug Hunting in JavaScript Engines</a></td>
-  </tr>
-</table>
-  {% for post in site.posts %}
-    <h1 class="post-title"><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h1>
-    <p class="post-date">{{ post.date | date:"%d/%m/%Y" }}</p>
-    <p>
-      {{ post.excerpt }}
-
-      {% if post.excerpt != post.content %}
-        <p class="read-more"><a href="{{ site.baseurl }}{{ post.url }}">Read more...</a></p>
-      {% endif %}
-    </p>
-
-  {% endfor %}
-
-			</div>
-		</div>
-
-    </div>
-
-</body>
-</html>
+<div class="entries-{{ page.entries_layout | default: 'list' }}">
+  {%- if site.plugins contains 'jekyll-paginate' and page.paginate or site.gems contains 'jekyll-paginate' and page.paginate -%}
+    {%- comment -%}
+      Add paginator.posts loop if jekyll-paginate plugin is enabled
+      and page.paginate == true
+    {%- endcomment -%}
+    {% include posts-paginated.html %}
+  {%- else -%}
+    {% include posts-limit.html %}
+  {%- endif -%}
+</div>

