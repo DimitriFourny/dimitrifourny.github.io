@@ -16,7 +16,7 @@
   
     <title>Attacking AES and DSA</title>
     <meta name="description" content="Recently I was involved in a security conference called SecuDay where I have presented Attacking Games for Fun and Profit. At the end of the conference, we h...">
-    <link rel="canonical" href="https://dimitrifourny.github.io//2017/03/08/attacking-aes-dsa.html">
+    <link rel="canonical" href="https://dimitrifourny.github.io/2017/03/08/attacking-aes-dsa.html">
   
 
   <script>
@@ -85,7 +85,7 @@
       </header>
 
       <div class="page-sidebar">
-        <div class="page-author h-card p-author"><img src="https://twivatar.glitch.me/dimitrifourny" class="author-avatar u-photo" alt="Dimitri Fourny"><div class="author-info"><div class="author-name">
+        <div class="page-author h-card p-author"><img src="https://avatars.githubusercontent.com/u/17668518" class="author-avatar u-photo" alt="Dimitri Fourny"><div class="author-info"><div class="author-name">
         <span class="p-name">Dimitri Fourny</span>
       </div><ul class="author-links"><li class="author-link">
             <a class="u-url" rel="me" href="https://twitter.com/dimitrifourny"><i class="fab fa-twitter-square fa-lg" title="Twitter"></i></a>
@@ -165,7 +165,7 @@ it’s not stupid”.</p>
 
     <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="p">.</span><span class="n">Popen</span><span class="p">([</span><span class="s">'openssl'</span><span class="p">,</span> <span class="s">'enc'</span><span class="p">,</span> <span class="s">'-d'</span><span class="p">,</span> <span class="s">'-aes-128-cbc'</span><span class="p">,</span> <span class="s">'-base64'</span><span class="p">,</span> <span class="s">'-pass'</span><span class="p">,</span> <span class="s">'pass:'</span><span class="o">+</span><span class="n">key</span><span class="p">,</span> <span class="s">'-in'</span><span class="p">,</span> <span class="s">'easy.txt'</span><span class="p">,</span> <span class="s">'-out'</span><span class="p">,</span> <span class="nb">file</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="p">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="p">.</span><span class="n">PIPE</span><span class="p">)</span>
     <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">communicate</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="s">b''</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="sa">b</span><span class="s">''</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span> 
             <span class="n">os</span><span class="p">.</span><span class="n">remove</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
@@ -575,7 +575,7 @@ msg_s = 553340518981662996807582193928965391068355237426249469355560467107191512
 <!-- end custom footer snippets -->
 <div class="copyright">
     
-      <p>&copy; 2020 Dimitri Fourny. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/mmistakes/so-simple-theme" rel="nofollow">So Simple</a>.</p>
+      <p>&copy; 2021 Dimitri Fourny. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/mmistakes/so-simple-theme" rel="nofollow">So Simple</a>.</p>
     
   </div>
 </footer>

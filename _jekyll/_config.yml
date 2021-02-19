@@ -2,14 +2,14 @@ markdown: kramdown
 
 title: "Dimitri Fourny"
 description: "Personal website and computer security blog."
-url: "https://dimitrifourny.github.io/"
+url: "https://dimitrifourny.github.io"
 twitter:
   username: dimitrifourny
 
 # Site Author
 author:
   name: Dimitri Fourny
-  picture: https://twivatar.glitch.me/dimitrifourny
+  picture: https://avatars.githubusercontent.com/u/17668518
   email:
   twitter: "@dimitrifourny"
   links:
