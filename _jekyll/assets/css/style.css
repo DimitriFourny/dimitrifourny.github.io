@@ -1,0 +1,65 @@
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 0px 10px;
+  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 14px;
+}
+
+a {
+  color: #06c;
+  text-decoration: underline;
+  font-weight: normal;
+}
+
+#navigation {
+  margin-top: 10px;
+  text-align: center;
+}
+
+#masthead {
+  margin-top: 5px;
+}
+
+#site-title {
+  text-align: center;
+  font-weight: bold;
+}
+
+#site-description {
+  text-align: center;
+  color: #666;
+}
+
+.entry {
+  margin-top: 30px;
+}
+
+.entry-title {
+  margin: 0px;
+  padding: 0px;
+}
+
+.entry-date {
+  margin: 2px;
+  color: #666;
+}
+
+.page-content h1, h2, h3 {
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+
+.page-content img {
+  display: block;
+  margin: 30px auto;
+}
+
+.highlight {
+  overflow-y: scroll;
+}
+
+.copyright {
+  float: right;
+}

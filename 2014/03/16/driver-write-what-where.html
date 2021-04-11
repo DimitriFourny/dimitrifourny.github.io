@@ -1,106 +1,43 @@
 <!DOCTYPE html>
-<!--
-    So Simple Jekyll Theme 3.2.0
-    Copyright 2013-2019 Michael Rose - mademistakes.com | @mmistakes
-    Free for personal and commercial use under the MIT license
-    https://github.com/mmistakes/so-simple-theme/blob/master/LICENSE
--->
-<html lang="en-US" class="no-js">
+<html lang="en-US">
   <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  
 
-  
-    <title>Driver write-what-where vulnerability</title>
-    <meta name="description" content="In this article, we will exploit a write-what-where vulnerability in Windows 7 x64. To do that, we will use the last level of 0vercl0k: the level 3. We need ...">
-    <link rel="canonical" href="https://dimitrifourny.github.io/2014/03/16/driver-write-what-where.html">
-  
+  <title>Driver write-what-where vulnerability</title>
+  <meta name="description" content="In this article, we will exploit a write-what-where vulnerability in Windows 7 x64. To do that, we will use the last level of 0vercl0k: the level 3. We need ...">
+  <link rel="canonical" href="https://dimitrifourny.github.io/2014/03/16/driver-write-what-where.html">
 
-  <script>
-    /* Cut the mustard */
-    if ( 'querySelector' in document && 'addEventListener' in window ) {
-      document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + 'js';
-    }
-  </script>
-
-  <link rel="stylesheet" href="/assets/css/main.css">
-  <link rel="stylesheet" href="/assets/css/skins/default.css">
-  <!-- start custom head snippets -->
-
-<!-- insert favicons. use http://realfavicongenerator.net/ -->
-<link rel="shortcut icon" href="/assets/img/favicon.png">
-
-<!-- end custom head snippets -->
-
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/syntax-github.css">
+  <link rel="shortcut icon" href="/assets/img/favicon.png">
 </head>
 
 
-  <body class="layout--post  driver-write-what-where-vulnerability">
-    <nav class="skip-links">
-  <h2 class="screen-reader-text">Skip links</h2>
-  <ul>
-    <li><a href="#primary-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
-    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
-    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
-  </ul>
-</nav>
-
+  <bodys>
     
-  <div class="navigation-wrapper">
-    <a href="#menu-toggle" id="menu-toggle">Menu</a>
-    <nav id="primary-nav" class="site-nav animated drop">
-      <ul><li><a href="/">Home</a></li><li><a href="/about">About</a></li><li><a href="https://twitter.com/DimitriFourny">Twitter</a></li><li><a href="https://github.com/DimitriFourny">Github</a></li><li><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></li></ul>
-    </nav>
-  </div><!-- /.navigation-wrapper -->
-
-
-    <header class="masthead">
-  <div class="wrap">
-    
-    
-    
-      
-        <div class="site-title animated fadeIn"><a href="/">Dimitri Fourny</a></div>
-      
-      <p class="site-description animated fadeIn" itemprop="description">Personal website and computer security blog.</p>
-    
+  <div id="navigation">
+    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
   </div>
-</header><!-- /.masthead -->
+
+
+    <header>
+  <div id="masthead">
+    <div id="site-title">Dimitri Fourny</div>
+    <div id="site-description">Personal website and computer security blog.</p>
+  </div>
+</header>
 
 
     <main id="main" class="main-content" aria-label="Content">
   <article class="h-entry">
-    
-
     <div class="page-wrapper">
       <header class="page-header">
         
-        
-          <h1 id="page-title" class="page-title p-name">Driver write-what-where vulnerability
+        <h1 id="page-title" class="page-title p-name">Driver write-what-where vulnerability
 </h1>
-        
       </header>
-
-      <div class="page-sidebar">
-        <div class="page-author h-card p-author"><img src="https://avatars.githubusercontent.com/u/17668518" class="author-avatar u-photo" alt="Dimitri Fourny"><div class="author-info"><div class="author-name">
-        <span class="p-name">Dimitri Fourny</span>
-      </div><ul class="author-links"><li class="author-link">
-            <a class="u-url" rel="me" href="https://twitter.com/dimitrifourny"><i class="fab fa-twitter-square fa-lg" title="Twitter"></i></a>
-          </li></ul>
-    <time class="page-date dt-published" datetime="2014-03-16T00:00:00+01:00"><a class="u-url" href="">March 16, 2014</a>
-</time>
-
-  </div>
-</div>
-
-        
-
-        
-
-      </div>
 
       <div class="page-content">
         <div class="e-content">
@@ -653,33 +590,6 @@ my process.</p>
 </code></pre></div></div>
 
         </div>
-
-        
-
-        
-
-        <nav class="page-pagination" role="navigation">
-  
-    <a class="page-previous" href="/2014/03/14/driver-dereferenced.html">
-      <h4 class="page-pagination-label">Previous</h4>
-      <span class="page-pagination-title">
-        <i class="fas fa-arrow-left"></i> Driver dereferenced pointer in Windows 7 x64
-
-      </span>
-    </a>
-  
-
-  
-    <a class="page-next" href="/2014/07/02/vtable-hooking.html">
-      <h4 class="page-pagination-label">Next</h4>
-      <span class="page-pagination-title">
-        VTable Hooking
- <i class="fas fa-arrow-right"></i>
-      </span>
-    </a>
-  
-</nav>
-
       </div>
     </div>
   </article>
@@ -687,20 +597,12 @@ my process.</p>
 
 
     <footer id="footer" class="site-footer">
-  <!-- start custom footer snippets -->
-
-<!-- end custom footer snippets -->
-<div class="copyright">
+  <div class="copyright">
     
-      <p>&copy; 2021 Dimitri Fourny. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/mmistakes/so-simple-theme" rel="nofollow">So Simple</a>.</p>
+      <p>&copy; 2021 Dimitri Fourny</p>
     
   </div>
 </footer>
-
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-  <script src="/assets/js/main.min.js"></script>
-  <script src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
-
 
   </body>
 
