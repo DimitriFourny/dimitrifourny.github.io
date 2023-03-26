@@ -7,18 +7,22 @@
 
   <title>Dumping the VEH in Windows 10</title>
   <meta name="description" content="The Vectored Exception Handling (VEH) is a Windows mecanism to handle application exceptions. Even if you have an official Windows API to add and remove hand...">
-  <link rel="canonical" href="https://dimitrifourny.github.io/2020/06/11/dumping-veh-win10.html">
+  <link rel="canonical" href="http://localhost:4000/2020/06/11/dumping-veh-win10.html">
 
   <link rel="stylesheet" href="/assets/css/style.css">
   <link rel="stylesheet" href="/assets/css/syntax-github.css">
   <link rel="shortcut icon" href="/assets/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
 </head>
 
 
   <bodys>
     
   <div id="navigation">
-    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
+    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://infosec.exchange/@dimitrifourny">Mastodon</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
   </div>
 
 
@@ -77,7 +81,7 @@ how to do it on the internet, I sharing my solution with you.</p>
 <p>Another application is done by CheatEngine which injects a DLL and use the VEH to catch hardware breakpoints. In 
 consequence it can debug an application while bypassing the basics debugger checks.</p>
 
-<p><img src="/assets/img/CheatEngine.png" alt="CheatEngine" title="CheatEngine" /></p>
+<p><img src="/assets/img/CheatEngine.png" alt="CheatEngine" title="CheatEngine" width="66%" /></p>
 
 <h2 id="exception-path">Exception path</h2>
 
@@ -98,7 +102,7 @@ If you want more information about the exceptions dispatcher, 0vercl0ck has made
 
 <p>The VEH list is a circular linked list with the handlers functions pointers encoded:</p>
 
-<p><img src="/assets/img/veh.png" alt="VEH" title="VEH" /></p>
+<p><img src="/assets/img/veh.png" alt="VEH" title="VEH" width="80%" /></p>
 
 <p>The exception handlers are encoded with a process cookie but you can decode them easily. If you are dumping the VEH
 which is inside your own process, you can just use <a href="https://docs.microsoft.com/en-us/previous-versions/bb432242(v%3Dvs.85)"><code class="highlighter-rouge">DecodePointer</code></a> and you don’t have to care about the process 
@@ -108,7 +112,7 @@ pointer with <code class="highlighter-rouge">GetModuleHandle("kernel32.dll")</co
 <p>The solution that I have chosen is to imitate <code class="highlighter-rouge">DecodePointer</code> by getting the process cookie with 
 <code class="highlighter-rouge">ZwQueryProcessInformation</code> and applying the same algorithm:</p>
 
-<p><img src="/assets/img/RtlDecodePointer.png" alt="RtlDecodePointer" title="RtlDecodePointer" /></p>
+<p><img src="/assets/img/RtlDecodePointer.png" alt="RtlDecodePointer" title="RtlDecodePointer" width="66%" /></p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessCookie</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
   <span class="n">DWORD</span> <span class="n">cookie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
@@ -146,7 +150,7 @@ pointer with <code class="highlighter-rouge">GetModuleHandle("kernel32.dll")</co
 <p>Even if you can find the symbol <code class="highlighter-rouge">LdrpVectorHandlerList</code> in the ntdll pdb, there is no official API to get it easily.
 My solution is to begin by getting a pointer to <code class="highlighter-rouge">RtlpAddVectoredHandler</code>:</p>
 
-<p><img src="/assets/img/RtlAddVectoredExceptionHandler.png" alt="RtlAddVectoredExceptionHandler" title="RtlAddVectoredExceptionHandler" /></p>
+<p><img src="/assets/img/RtlAddVectoredExceptionHandler.png" alt="RtlAddVectoredExceptionHandler" title="RtlAddVectoredExceptionHandler" width="50%" /></p>
 
 <p>You can disassemble the method <code class="highlighter-rouge">RtlAddVectoredExceptionHandler</code> until you find the instruction <code class="highlighter-rouge">call</code> or you can
 just pretend that its address is always at <code class="highlighter-rouge">0x16</code> bytes after it:</p>
@@ -160,7 +164,7 @@ just pretend that its address is always at <code class="highlighter-rouge">0x16<
 <p>And from here the same byte offset method could work, but a simple signature system could prevent us to be broken after 
 a small Windows update:</p>
 
-<p><img src="/assets/img/LdrpVectorHandlerList.png" alt="LdrpVectorHandlerList" title="LdrpVectorHandlerList" /></p>
+<p><img src="/assets/img/LdrpVectorHandlerList.png" alt="LdrpVectorHandlerList" title="LdrpVectorHandlerList" width="50%" /></p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="n">BYTE</span> <span class="n">pattern_list</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="mh">0x89</span><span class="p">,</span> <span class="mh">0x46</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span>          <span class="c1">// mov [esi+0Ch], eax</span>
@@ -303,7 +307,7 @@ Please take note that I have done it on a 32 bits process but it can be done on 
     <footer id="footer" class="site-footer">
   <div class="copyright">
     
-      <p>&copy; 2021 Dimitri Fourny</p>
+      <p>&copy; 2023 Dimitri Fourny</p>
     
   </div>
 </footer>
