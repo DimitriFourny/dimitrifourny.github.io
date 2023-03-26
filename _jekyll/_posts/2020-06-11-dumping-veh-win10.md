@@ -45,7 +45,7 @@ int main() {
 Another application is done by CheatEngine which injects a DLL and use the VEH to catch hardware breakpoints. In 
 consequence it can debug an application while bypassing the basics debugger checks.
 
-![CheatEngine](/assets/img/CheatEngine.png "CheatEngine")
+![CheatEngine](/assets/img/CheatEngine.png "CheatEngine"){:width="66%"}
 
 
 Exception path
@@ -78,7 +78,7 @@ The chained list
 
 The VEH list is a circular linked list with the handlers functions pointers encoded:
 
-![VEH](/assets/img/veh.png "VEH")
+![VEH](/assets/img/veh.png "VEH"){:width="80%"}
 
 The exception handlers are encoded with a process cookie but you can decode them easily. If you are dumping the VEH
 which is inside your own process, you can just use [`DecodePointer`][10] and you don't have to care about the process 
@@ -88,7 +88,7 @@ pointer with `GetModuleHandle("kernel32.dll")` and `GetProcAddress("DecodeRemote
 The solution that I have chosen is to imitate `DecodePointer` by getting the process cookie with 
 `ZwQueryProcessInformation` and applying the same algorithm:
 
-![RtlDecodePointer](/assets/img/RtlDecodePointer.png "RtlDecodePointer")
+![RtlDecodePointer](/assets/img/RtlDecodePointer.png "RtlDecodePointer"){:width="66%"}
 
 ```cpp
 DWORD Process::GetProcessCookie() const {
@@ -132,7 +132,7 @@ Finding the VEH list offset
 Even if you can find the symbol `LdrpVectorHandlerList` in the ntdll pdb, there is no official API to get it easily.
 My solution is to begin by getting a pointer to `RtlpAddVectoredHandler`:
 
-![RtlAddVectoredExceptionHandler](/assets/img/RtlAddVectoredExceptionHandler.png "RtlAddVectoredExceptionHandler")
+![RtlAddVectoredExceptionHandler](/assets/img/RtlAddVectoredExceptionHandler.png "RtlAddVectoredExceptionHandler"){:width="50%"}
 
 You can disassemble the method `RtlAddVectoredExceptionHandler` until you find the instruction `call` or you can
 just pretend that its address is always at `0x16` bytes after it:
@@ -147,7 +147,7 @@ BYTE* add_exception_handler_sub =
 And from here the same byte offset method could work, but a simple signature system could prevent us to be broken after 
 a small Windows update:
 
-![LdrpVectorHandlerList](/assets/img/LdrpVectorHandlerList.png "LdrpVectorHandlerList")
+![LdrpVectorHandlerList](/assets/img/LdrpVectorHandlerList.png "LdrpVectorHandlerList"){:width="50%"}
 
 ```cpp
 const BYTE pattern_list[] = {
