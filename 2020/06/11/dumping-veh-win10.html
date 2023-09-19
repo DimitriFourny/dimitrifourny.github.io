@@ -1,317 +1,275 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html>
   <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Dumping the VEH in Windows 10</title>
-  <meta name="description" content="The Vectored Exception Handling (VEH) is a Windows mecanism to handle application exceptions. Even if you have an official Windows API to add and remove hand...">
-  <link rel="canonical" href="https://dimitrifourny.github.io/2020/06/11/dumping-veh-win10.html">
-
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <link rel="stylesheet" href="/assets/css/syntax-github.css">
-  <link rel="shortcut icon" href="/assets/img/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
-</head>
-
-
-  <bodys>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+    <title>
+  Dumping the VEH in Windows 10 &ndash; Dimitri Fourny
+</title>
+  
+    <meta name="description" content="Personal website and computer security blog.">
+    <link rel="canonical" href="https://dimitrifourny.github.io/">
+  
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/syntax-github.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  
+    <link rel="shortcut icon" href="/img/favicon.png">
     
-  <div id="navigation">
-    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://infosec.exchange/@dimitrifourny">Mastodon</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
-  </div>
-
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
+  </head>
+  <body>
     <header>
-  <div id="masthead">
-    <div id="site-title">Dimitri Fourny</div>
-    <div id="site-description">Personal website and computer security blog.</p>
-  </div>
-</header>
-
-
-    <main id="main" class="main-content" aria-label="Content">
-  <article class="h-entry">
-    <div class="page-wrapper">
-      <header class="page-header">
+      <div id="nav-header">
+        <div id="nav-logo">
+          <div id="site-title"><a href="/">Dimitri Fourny</a></div>
+          <div id="site-description">Personal website and computer security blog.</div>
+        </div>
         
-        <h1 id="page-title" class="page-title p-name">Dumping the VEH in Windows 10
-</h1>
-      </header>
+        <nav>
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="https://github.com/DimitriFourny"><i class="fa-brands fa-github"></i></a>
+          <a href="https://infosec.exchange/@dimitrifourny"><i class="fa-brands fa-mastodon"></i></a>
+          <a href="https://twitter.com/DimitriFourny"><i class="fa-brands fa-twitter"></i></a>
+          <a href="https://www.linkedin.com/in/dimitrifourny/"><i class="fa-brands fa-linkedin"></i></a>
+        </nav>
+      </div>
+    </header>    
 
-      <div class="page-content">
-        <div class="e-content">
-          <p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
-Even if you have an official Windows API to add and remove handlers via <code class="highlighter-rouge">AddVectoredExceptionHandler</code> and
-<code class="highlighter-rouge">RemoveVectoredExceptionHandler</code>, there is no official way to list all registered handlers in an application.
+    <div id="content">
+<section>
+  <article class="page-content">
+    <h1>Dumping the VEH in Windows 10</h1>
+    <p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
+Even if you have an official Windows API to add and remove handlers via <code>AddVectoredExceptionHandler</code> and
+<code>RemoveVectoredExceptionHandler</code>, there is no official way to list all registered handlers in an application.
 Inside the source code of ReactOS you can find <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c">a source file</a> with these API reimplemented and it can give us
 good information about how it works.</p>
-
-<p>I needed to dump the VEH list to be able to bypass a game anticheat and because there is not a lot of information about 
+<p>I needed to dump the VEH list to be able to bypass a game anticheat and because there is not a lot of information about
 how to do it on the internet, I sharing my solution with you.</p>
-
 <h2 id="veh-use-case">VEH use case</h2>
-
 <p>The VEH can be used to catch all catchable exceptions, in our example we are catching a division by zero:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">LONG</span> <span class="n">NTAPI</span> <span class="nf">MyVEHHandler</span><span class="p">(</span><span class="n">PEXCEPTION_POINTERS</span> <span class="n">ExceptionInfo</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"MyVEHHandler (0x%x)</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ExceptionRecord</span><span class="o">-&gt;</span><span class="n">ExceptionCode</span><span class="p">);</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ExceptionRecord</span><span class="o">-&gt;</span><span class="n">ExceptionCode</span> <span class="o">==</span> <span class="n">EXCEPTION_INT_DIVIDE_BY_ZERO</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"  Divide by zero at 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ExceptionRecord</span><span class="o">-&gt;</span><span class="n">ExceptionAddress</span><span class="p">);</span>
-    <span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ContextRecord</span><span class="o">-&gt;</span><span class="n">Eip</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">EXCEPTION_CONTINUE_EXECUTION</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="k">return</span> <span class="n">EXCEPTION_CONTINUE_SEARCH</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">AddVectoredExceptionHandler</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MyVEHHandler</span><span class="p">);</span>
-  <span class="kt">int</span> <span class="n">except</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
-  <span class="n">except</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>Another application is done by CheatEngine which injects a DLL and use the VEH to catch hardware breakpoints. In 
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">LONG</span> <span class="n">NTAPI</span> <span class="nf">MyVEHHandler</span><span class="p">(</span><span class="n">PEXCEPTION_POINTERS</span> <span class="n">ExceptionInfo</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;MyVEHHandler (0x%x)</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ExceptionRecord</span><span class="o">-&gt;</span><span class="n">ExceptionCode</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ExceptionRecord</span><span class="o">-&gt;</span><span class="n">ExceptionCode</span> <span class="o">==</span> <span class="n">EXCEPTION_INT_DIVIDE_BY_ZERO</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  Divide by zero at 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ExceptionRecord</span><span class="o">-&gt;</span><span class="n">ExceptionAddress</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ExceptionInfo</span><span class="o">-&gt;</span><span class="n">ContextRecord</span><span class="o">-&gt;</span><span class="n">Eip</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">EXCEPTION_CONTINUE_EXECUTION</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">EXCEPTION_CONTINUE_SEARCH</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">AddVectoredExceptionHandler</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MyVEHHandler</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">except</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">except</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Another application is done by CheatEngine which injects a DLL and use the VEH to catch hardware breakpoints. In
 consequence it can debug an application while bypassing the basics debugger checks.</p>
-
-<p><img src="/assets/img/CheatEngine.png" alt="CheatEngine" title="CheatEngine" width="66%" /></p>
-
+<p><img src="/img/CheatEngine.png" alt="CheatEngine" title="CheatEngine"></p>
 <h2 id="exception-path">Exception path</h2>
-
-<p>When a CPU exception occurs, the kernel will call the function <a href="https://github.com/reactos/reactos/blob/b20f81512688f26c91a131b81f41fc8cf9506f04/ntoskrnl/ke/i386/exp.c#L1026"><code class="highlighter-rouge">KiDispatchException</code></a> (ring0) which will follow this 
-exception to the ntdll method <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/dll/ntdll/dispatch/dispatch.c#L26"><code class="highlighter-rouge">KiUserExceptionDispatcher</code></a> (ring3). This function will call 
-<a href="https://github.com/reactos/reactos/blob/ea6d427d10840e4b63f5af7a2012881379be74c1/sdk/lib/rtl/i386/except.c#L67"><code class="highlighter-rouge">RtlDispatchException</code></a> which will try to handle it via the VEH. To do it, it will read the VEH chained list via
-<a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c#L40"><code class="highlighter-rouge">RtlCallVectoredHandlers</code></a> and calling each handlers until one return <code class="highlighter-rouge">EXCEPTION_CONTINUE_EXECUTION</code>. If a handler
-returned <code class="highlighter-rouge">EXCEPTION_CONTINUE_EXECUTION</code>, the function <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c#L284"><code class="highlighter-rouge">RtlCallVectoredContinueHandlers</code></a> is called and it will
+<p>When a CPU exception occurs, the kernel will call the function <a href="https://github.com/reactos/reactos/blob/b20f81512688f26c91a131b81f41fc8cf9506f04/ntoskrnl/ke/i386/exp.c#L1026"><code>KiDispatchException</code></a> (ring0) which will follow this
+exception to the ntdll method <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/dll/ntdll/dispatch/dispatch.c#L26"><code>KiUserExceptionDispatcher</code></a> (ring3). This function will call
+<a href="https://github.com/reactos/reactos/blob/ea6d427d10840e4b63f5af7a2012881379be74c1/sdk/lib/rtl/i386/except.c#L67"><code>RtlDispatchException</code></a> which will try to handle it via the VEH. To do it, it will read the VEH chained list via
+<a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c#L40"><code>RtlCallVectoredHandlers</code></a> and calling each handlers until one return <code>EXCEPTION_CONTINUE_EXECUTION</code>. If a handler
+returned <code>EXCEPTION_CONTINUE_EXECUTION</code>, the function <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c#L284"><code>RtlCallVectoredContinueHandlers</code></a> is called and it will
 call all the continue exception handlers.</p>
-
-<p><img src="/assets/img/exception_trace.png" alt="Exception trace" title="Exception trace" /></p>
-
-<p>The VEH handlers are important because the <a href="https://docs.microsoft.com/en-us/cpp/cpp/structured-exception-handling-c-cpp?view=vs-2019">SEH</a> handlers are called only if no VEH handler has caught the 
-exception, so it could be the best method to catch all exceptions if you don’t want to hook <code class="highlighter-rouge">KiUserExceptionDispatcher</code>.
+<p><img src="/img/exception_trace.png" alt="Exception trace" title="Exception trace"></p>
+<p>The VEH handlers are important because the <a href="https://docs.microsoft.com/en-us/cpp/cpp/structured-exception-handling-c-cpp?view=vs-2019">SEH</a> handlers are called only if no VEH handler has caught the
+exception, so it could be the best method to catch all exceptions if you don&rsquo;t want to hook <code>KiUserExceptionDispatcher</code>.
 If you want more information about the exceptions dispatcher, 0vercl0ck has made a <a href="https://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/">good paper about it</a>.</p>
-
 <h2 id="the-chained-list">The chained list</h2>
-
 <p>The VEH list is a circular linked list with the handlers functions pointers encoded:</p>
-
-<p><img src="/assets/img/veh.png" alt="VEH" title="VEH" width="80%" /></p>
-
+<p><img src="/img/veh.png" alt="VEH" title="VEH"></p>
 <p>The exception handlers are encoded with a process cookie but you can decode them easily. If you are dumping the VEH
-which is inside your own process, you can just use <a href="https://docs.microsoft.com/en-us/previous-versions/bb432242(v%3Dvs.85)"><code class="highlighter-rouge">DecodePointer</code></a> and you don’t have to care about the process 
-cookie. If it’s a remote process you can use <a href="https://docs.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)"><code class="highlighter-rouge">DecodeRemotePointer</code></a> but you will need to create your own function
-pointer with <code class="highlighter-rouge">GetModuleHandle("kernel32.dll")</code> and <code class="highlighter-rouge">GetProcAddress("DecodeRemotePointer")</code>.</p>
-
-<p>The solution that I have chosen is to imitate <code class="highlighter-rouge">DecodePointer</code> by getting the process cookie with 
-<code class="highlighter-rouge">ZwQueryProcessInformation</code> and applying the same algorithm:</p>
-
-<p><img src="/assets/img/RtlDecodePointer.png" alt="RtlDecodePointer" title="RtlDecodePointer" width="66%" /></p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessCookie</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-  <span class="n">DWORD</span> <span class="n">cookie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">DWORD</span> <span class="n">return_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-  <span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">GetModuleHandleA</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">);</span>
-  <span class="n">_NtQueryInformationProcess</span> <span class="n">NtQueryInformationProcess</span> <span class="o">=</span>
-      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">_NtQueryInformationProcess</span><span class="o">&gt;</span><span class="p">(</span>
-          <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">"NtQueryInformationProcess"</span><span class="p">));</span>
-
-  <span class="n">NTSTATUS</span> <span class="n">success</span> <span class="o">=</span> <span class="n">NtQueryInformationProcess</span><span class="p">(</span>
-      <span class="n">process_handle_</span><span class="p">,</span> <span class="n">ProcessCookie</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">cookie</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cookie</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">return_length</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">success</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="n">cookie</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="cp">#define ROR(x, y) ((unsigned)(x) &gt;&gt; (y) | (unsigned)(x) &lt;&lt; 32 - (y))
-</span><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">DecodePointer</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">pointer</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">process_cookie_</span> <span class="o">=</span> <span class="n">GetProcessCookie</span><span class="p">();</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">shift_size</span> <span class="o">=</span> <span class="mh">0x20</span> <span class="o">-</span> <span class="p">(</span><span class="n">process_cookie_</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">);</span>
-  <span class="k">return</span> <span class="n">ROR</span><span class="p">(</span><span class="n">pointer</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">)</span> <span class="o">^</span> <span class="n">process_cookie_</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<h2 id="finding-the-veh-list-offset">Finding the VEH list offset</h2>
-
-<p>Even if you can find the symbol <code class="highlighter-rouge">LdrpVectorHandlerList</code> in the ntdll pdb, there is no official API to get it easily.
-My solution is to begin by getting a pointer to <code class="highlighter-rouge">RtlpAddVectoredHandler</code>:</p>
-
-<p><img src="/assets/img/RtlAddVectoredExceptionHandler.png" alt="RtlAddVectoredExceptionHandler" title="RtlAddVectoredExceptionHandler" width="50%" /></p>
-
-<p>You can disassemble the method <code class="highlighter-rouge">RtlAddVectoredExceptionHandler</code> until you find the instruction <code class="highlighter-rouge">call</code> or you can
-just pretend that its address is always at <code class="highlighter-rouge">0x16</code> bytes after it:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span>
-    <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">"RtlAddVectoredExceptionHandler"</span><span class="p">));</span>
-<span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler_sub</span> <span class="o">=</span>
-    <span class="n">add_exception_handler</span> <span class="o">+</span> <span class="mh">0x16</span><span class="p">;</span>  <span class="c1">// RtlpAddVectoredHandler</span>
-</code></pre></div></div>
-
-<p>And from here the same byte offset method could work, but a simple signature system could prevent us to be broken after 
+which is inside your own process, you can just use <a href="https://docs.microsoft.com/en-us/previous-versions/bb432242(v%3Dvs.85)"><code>DecodePointer</code></a> and you don&rsquo;t have to care about the process
+cookie. If it&rsquo;s a remote process you can use <a href="https://docs.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)"><code>DecodeRemotePointer</code></a> but you will need to create your own function
+pointer with <code>GetModuleHandle(&quot;kernel32.dll&quot;)</code> and <code>GetProcAddress(&quot;DecodeRemotePointer&quot;)</code>.</p>
+<p>The solution that I have chosen is to imitate <code>DecodePointer</code> by getting the process cookie with
+<code>ZwQueryProcessInformation</code> and applying the same algorithm:</p>
+<p><img src="/img/RtlDecodePointer.png" alt="RtlDecodePointer" title="RtlDecodePointer"></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessCookie</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DWORD</span> <span class="n">cookie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DWORD</span> <span class="n">return_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">GetModuleHandleA</span><span class="p">(</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">_NtQueryInformationProcess</span> <span class="n">NtQueryInformationProcess</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">_NtQueryInformationProcess</span><span class="o">&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">          <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">&#34;NtQueryInformationProcess&#34;</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">NTSTATUS</span> <span class="n">success</span> <span class="o">=</span> <span class="n">NtQueryInformationProcess</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">      <span class="n">process_handle_</span><span class="p">,</span> <span class="n">ProcessCookie</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">cookie</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cookie</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">return_length</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">success</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">cookie</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define ROR(x, y) ((unsigned)(x) &gt;&gt; (y) | (unsigned)(x) &lt;&lt; 32 - (y))
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">DecodePointer</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">pointer</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">process_cookie_</span> <span class="o">=</span> <span class="n">GetProcessCookie</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">shift_size</span> <span class="o">=</span> <span class="mh">0x20</span> <span class="o">-</span> <span class="p">(</span><span class="n">process_cookie_</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">ROR</span><span class="p">(</span><span class="n">pointer</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">)</span> <span class="o">^</span> <span class="n">process_cookie_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="finding-the-veh-list-offset">Finding the VEH list offset</h2>
+<p>Even if you can find the symbol <code>LdrpVectorHandlerList</code> in the ntdll pdb, there is no official API to get it easily.
+My solution is to begin by getting a pointer to <code>RtlpAddVectoredHandler</code>:</p>
+<p><img src="/img/RtlAddVectoredExceptionHandler.png" alt="RtlAddVectoredExceptionHandler" title="RtlAddVectoredExceptionHandler"></p>
+<p>You can disassemble the method <code>RtlAddVectoredExceptionHandler</code> until you find the instruction <code>call</code> or you can
+just pretend that its address is always at <code>0x16</code> bytes after it:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">&#34;RtlAddVectoredExceptionHandler&#34;</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler_sub</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">    <span class="n">add_exception_handler</span> <span class="o">+</span> <span class="mh">0x16</span><span class="p">;</span>  <span class="c1">// RtlpAddVectoredHandler
+</span></span></span></code></pre></div><p>And from here the same byte offset method could work, but a simple signature system could prevent us to be broken after
 a small Windows update:</p>
-
-<p><img src="/assets/img/LdrpVectorHandlerList.png" alt="LdrpVectorHandlerList" title="LdrpVectorHandlerList" width="50%" /></p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="n">BYTE</span> <span class="n">pattern_list</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="mh">0x89</span><span class="p">,</span> <span class="mh">0x46</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span>          <span class="c1">// mov [esi+0Ch], eax</span>
-    <span class="mh">0x81</span><span class="p">,</span> <span class="mh">0xc3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>    <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>  <span class="c1">// add ebx, offset LdrpVectorHandlerList</span>
-<span class="p">};</span>
-<span class="k">const</span> <span class="kt">char</span> <span class="n">mask_list</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"xxxxx????"</span><span class="p">;</span>
-<span class="n">BYTE</span><span class="o">*</span> <span class="n">match_list</span> <span class="o">=</span>
-    <span class="n">SearchPattern</span><span class="p">(</span><span class="n">add_exception_handler_sub</span><span class="p">,</span> <span class="mh">0x100</span><span class="p">,</span> <span class="n">pattern_list</span><span class="p">,</span> <span class="n">mask_list</span><span class="p">);</span>
-<span class="n">BYTE</span><span class="o">*</span> <span class="n">veh_list</span> <span class="o">=</span> <span class="o">*</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">**&gt;</span><span class="p">(</span><span class="n">match_list</span> <span class="o">+</span> <span class="mi">5</span><span class="p">);</span>
-<span class="kt">size_t</span> <span class="n">veh_list_offset</span> <span class="o">=</span> <span class="n">veh_list</span> <span class="o">-</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">);</span>
-<span class="n">printf</span><span class="p">(</span><span class="s">"LdrpVectorHandlerList: 0x%p (ntdll+0x%x)</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">veh_list</span><span class="p">,</span> <span class="n">veh_list_offset</span><span class="p">);</span>
-</code></pre></div></div>
-
-<h2 id="final-code">Final code</h2>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#define ROR(x, y) ((unsigned)(x) &gt;&gt; (y) | (unsigned)(x) &lt;&lt; 32 - (y))
-</span>
-<span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessCookie</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-  <span class="n">DWORD</span> <span class="n">cookie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">DWORD</span> <span class="n">return_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-  <span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">GetModuleHandleA</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">);</span>
-  <span class="n">_NtQueryInformationProcess</span> <span class="n">NtQueryInformationProcess</span> <span class="o">=</span>
-      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">_NtQueryInformationProcess</span><span class="o">&gt;</span><span class="p">(</span>
-          <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">"NtQueryInformationProcess"</span><span class="p">));</span>
-
-  <span class="n">NTSTATUS</span> <span class="n">success</span> <span class="o">=</span> <span class="n">NtQueryInformationProcess</span><span class="p">(</span>
-      <span class="n">process_handle_</span><span class="p">,</span> <span class="n">ProcessCookie</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">cookie</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cookie</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">return_length</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">success</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="n">cookie</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">DecodePointer</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">pointer</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">process_cookie_</span> <span class="o">=</span> <span class="n">GetProcessCookie</span><span class="p">();</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">shift_size</span> <span class="o">=</span> <span class="mh">0x20</span> <span class="o">-</span> <span class="p">(</span><span class="n">process_cookie_</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">);</span>
-  <span class="k">return</span> <span class="n">ROR</span><span class="p">(</span><span class="n">pointer</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">)</span> <span class="o">^</span> <span class="n">process_cookie_</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_VECTORED_HANDLER_ENTRY</span> <span class="p">{</span>
-  <span class="n">_VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">next</span><span class="p">;</span>
-  <span class="n">_VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">previous</span><span class="p">;</span>
-  <span class="n">ULONG</span> <span class="n">refs</span><span class="p">;</span>
-  <span class="n">PVECTORED_EXCEPTION_HANDLER</span> <span class="n">handler</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">VECTORED_HANDLER_ENTRY</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_VECTORED_HANDLER_LIST</span> <span class="p">{</span>
-  <span class="kt">void</span><span class="o">*</span> <span class="n">mutex_exception</span><span class="p">;</span>
-  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">first_exception_handler</span><span class="p">;</span>
-  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">last_exception_handler</span><span class="p">;</span>
-  <span class="kt">void</span><span class="o">*</span> <span class="n">mutex_continue</span><span class="p">;</span>
-  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">first_continue_handler</span><span class="p">;</span>
-  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">last_continue_handler</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">VECTORED_HANDLER_LIST</span><span class="p">;</span>
-
-<span class="n">DWORD</span> <span class="nf">GetVEHOffset</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">LoadLibraryA</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">);</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"ntdll: 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">ntdll</span><span class="p">);</span>
-  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">"LoadLibrary"</span><span class="p">);</span>
-
-  <span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span>
-      <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">"RtlAddVectoredExceptionHandler"</span><span class="p">));</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"RtlAddVectoredExceptionHandler: 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">add_exception_handler</span><span class="p">);</span>
-  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">add_exception_handler</span><span class="p">,</span> <span class="s">"GetProcAddress"</span><span class="p">);</span>
-
-  <span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler_sub</span> <span class="o">=</span> <span class="n">add_exception_handler</span> <span class="o">+</span> <span class="mh">0x16</span><span class="p">;</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"RtlpAddVectoredExceptionHandler: 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">add_exception_handler_sub</span><span class="p">);</span>
-
-  <span class="k">const</span> <span class="n">BYTE</span> <span class="n">pattern_list</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
-      <span class="mh">0x89</span><span class="p">,</span> <span class="mh">0x46</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span>          <span class="c1">// mov [esi+0Ch], eax</span>
-      <span class="mh">0x81</span><span class="p">,</span> <span class="mh">0xc3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>    <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>  <span class="c1">// add ebx, offset LdrpVectorHandlerList</span>
-  <span class="p">};</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="n">mask_list</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"xxxxx????"</span><span class="p">;</span>
-  <span class="n">BYTE</span><span class="o">*</span> <span class="n">match_list</span> <span class="o">=</span>
-      <span class="n">SearchPattern</span><span class="p">(</span><span class="n">add_exception_handler_sub</span><span class="p">,</span> <span class="mh">0x100</span><span class="p">,</span> <span class="n">pattern_list</span><span class="p">,</span> <span class="n">mask_list</span><span class="p">);</span>
-  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">match_list</span><span class="p">,</span> <span class="s">"SearchPattern"</span><span class="p">);</span>
-  <span class="n">BYTE</span><span class="o">*</span> <span class="n">veh_list</span> <span class="o">=</span> <span class="o">*</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">**&gt;</span><span class="p">(</span><span class="n">match_list</span> <span class="o">+</span> <span class="mi">5</span><span class="p">);</span>
-  <span class="kt">size_t</span> <span class="n">veh_list_offset</span> <span class="o">=</span> <span class="n">veh_list</span> <span class="o">-</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">);</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"LdrpVectorHandlerList: 0x%p (ntdll+0x%x)</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">veh_list</span><span class="p">,</span>
-         <span class="n">veh_list_offset</span><span class="p">);</span>
-
-  <span class="k">return</span> <span class="n">veh_list_offset</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-  <span class="k">auto</span> <span class="n">process</span> <span class="o">=</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessByName</span><span class="p">(</span><span class="s">L"veh_dumper.exe"</span><span class="p">);</span>
-  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">process</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="s">"GetProcessByName"</span><span class="p">);</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"Process cookie: 0x%0x</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">process</span><span class="o">-&gt;</span><span class="n">GetProcessCookie</span><span class="p">());</span>
-
-  <span class="n">DWORD</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">process</span><span class="o">-&gt;</span><span class="n">GetModuleBase</span><span class="p">(</span><span class="s">L"ntdll.dll"</span><span class="p">);</span>
-  <span class="n">VECTORED_HANDLER_LIST</span> <span class="n">handler_list</span><span class="p">;</span>
-  <span class="n">DWORD</span> <span class="n">veh_addr</span> <span class="o">=</span> <span class="n">ntdll</span> <span class="o">+</span> <span class="n">GetVEHOffset</span><span class="p">();</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"VEH: 0x%08x</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">veh_addr</span><span class="p">);</span>
-  <span class="n">process</span><span class="o">-&gt;</span><span class="n">ReadProcMem</span><span class="p">(</span><span class="n">veh_addr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">handler_list</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">handler_list</span><span class="p">));</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"First entry: 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">handler_list</span><span class="p">.</span><span class="n">first_exception_handler</span><span class="p">);</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">"Last entry: 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">handler_list</span><span class="p">.</span><span class="n">last_exception_handler</span><span class="p">);</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">handler_list</span><span class="p">.</span><span class="n">first_exception_handler</span><span class="p">)</span> <span class="o">==</span>
-      <span class="n">veh_addr</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="p">))</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"VEH list is empty</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="n">printf</span><span class="p">(</span><span class="s">"Dumping the entries:</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-  <span class="n">VECTORED_HANDLER_ENTRY</span> <span class="n">entry</span><span class="p">;</span>
-  <span class="n">process</span><span class="o">-&gt;</span><span class="n">ReadProcMem</span><span class="p">(</span>
-      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">handler_list</span><span class="p">.</span><span class="n">first_exception_handler</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">entry</span><span class="p">,</span>
-      <span class="k">sizeof</span><span class="p">(</span><span class="n">entry</span><span class="p">));</span>
-  <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">handler</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">handler</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"  handler = 0x%p =&gt; 0x%p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">handler</span><span class="p">,</span>
-           <span class="n">process</span><span class="o">-&gt;</span><span class="n">DecodePointer</span><span class="p">(</span><span class="n">handler</span><span class="p">));</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">next</span><span class="p">)</span> <span class="o">==</span> <span class="n">veh_addr</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">break</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">process</span><span class="o">-&gt;</span><span class="n">ReadProcMem</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">next</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">entry</span><span class="p">,</span>
-                         <span class="k">sizeof</span><span class="p">(</span><span class="n">entry</span><span class="p">));</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>I plan to release a VEH debugger which works by shellcode injection, maybe it will be the subject of a next article.
+<p><img src="/img/LdrpVectorHandlerList.png" alt="LdrpVectorHandlerList" title="LdrpVectorHandlerList"></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">const</span> <span class="n">BYTE</span> <span class="n">pattern_list</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="mh">0x89</span><span class="p">,</span> <span class="mh">0x46</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span>          <span class="c1">// mov [esi+0Ch], eax
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="mh">0x81</span><span class="p">,</span> <span class="mh">0xc3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>    <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>  <span class="c1">// add ebx, offset LdrpVectorHandlerList
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">char</span> <span class="n">mask_list</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;xxxxx????&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">BYTE</span><span class="o">*</span> <span class="n">match_list</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">    <span class="n">SearchPattern</span><span class="p">(</span><span class="n">add_exception_handler_sub</span><span class="p">,</span> <span class="mh">0x100</span><span class="p">,</span> <span class="n">pattern_list</span><span class="p">,</span> <span class="n">mask_list</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">BYTE</span><span class="o">*</span> <span class="n">veh_list</span> <span class="o">=</span> <span class="o">*</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">**&gt;</span><span class="p">(</span><span class="n">match_list</span> <span class="o">+</span> <span class="mi">5</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">size_t</span> <span class="n">veh_list_offset</span> <span class="o">=</span> <span class="n">veh_list</span> <span class="o">-</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">printf</span><span class="p">(</span><span class="s">&#34;LdrpVectorHandlerList: 0x%p (ntdll+0x%x)</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">veh_list</span><span class="p">,</span> <span class="n">veh_list_offset</span><span class="p">);</span>
+</span></span></code></pre></div><h2 id="final-code">Final code</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define ROR(x, y) ((unsigned)(x) &gt;&gt; (y) | (unsigned)(x) &lt;&lt; 32 - (y))
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessCookie</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DWORD</span> <span class="n">cookie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DWORD</span> <span class="n">return_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">GetModuleHandleA</span><span class="p">(</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">_NtQueryInformationProcess</span> <span class="n">NtQueryInformationProcess</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">_NtQueryInformationProcess</span><span class="o">&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">          <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">&#34;NtQueryInformationProcess&#34;</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">NTSTATUS</span> <span class="n">success</span> <span class="o">=</span> <span class="n">NtQueryInformationProcess</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">      <span class="n">process_handle_</span><span class="p">,</span> <span class="n">ProcessCookie</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">cookie</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cookie</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">return_length</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">success</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">cookie</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="n">Process</span><span class="o">::</span><span class="n">DecodePointer</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">pointer</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">process_cookie_</span> <span class="o">=</span> <span class="n">GetProcessCookie</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">process_cookie_</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">shift_size</span> <span class="o">=</span> <span class="mh">0x20</span> <span class="o">-</span> <span class="p">(</span><span class="n">process_cookie_</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">ROR</span><span class="p">(</span><span class="n">pointer</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">)</span> <span class="o">^</span> <span class="n">process_cookie_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_VECTORED_HANDLER_ENTRY</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">_VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">next</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">_VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">previous</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ULONG</span> <span class="n">refs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">PVECTORED_EXCEPTION_HANDLER</span> <span class="n">handler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">VECTORED_HANDLER_ENTRY</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_VECTORED_HANDLER_LIST</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="n">mutex_exception</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">first_exception_handler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">last_exception_handler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="n">mutex_continue</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">first_continue_handler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">VECTORED_HANDLER_ENTRY</span><span class="o">*</span> <span class="n">last_continue_handler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">VECTORED_HANDLER_LIST</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">GetVEHOffset</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">LoadLibraryA</span><span class="p">(</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;ntdll: 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ntdll</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">&#34;LoadLibrary&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">      <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">&#34;RtlAddVectoredExceptionHandler&#34;</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;RtlAddVectoredExceptionHandler: 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">add_exception_handler</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">add_exception_handler</span><span class="p">,</span> <span class="s">&#34;GetProcAddress&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">BYTE</span><span class="o">*</span> <span class="n">add_exception_handler_sub</span> <span class="o">=</span> <span class="n">add_exception_handler</span> <span class="o">+</span> <span class="mh">0x16</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;RtlpAddVectoredExceptionHandler: 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">add_exception_handler_sub</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">const</span> <span class="n">BYTE</span> <span class="n">pattern_list</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="mh">0x89</span><span class="p">,</span> <span class="mh">0x46</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span>          <span class="c1">// mov [esi+0Ch], eax
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="mh">0x81</span><span class="p">,</span> <span class="mh">0xc3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>    <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>  <span class="c1">// add ebx, offset LdrpVectorHandlerList
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="k">const</span> <span class="kt">char</span> <span class="n">mask_list</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;xxxxx????&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">BYTE</span><span class="o">*</span> <span class="n">match_list</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="n">SearchPattern</span><span class="p">(</span><span class="n">add_exception_handler_sub</span><span class="p">,</span> <span class="mh">0x100</span><span class="p">,</span> <span class="n">pattern_list</span><span class="p">,</span> <span class="n">mask_list</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">match_list</span><span class="p">,</span> <span class="s">&#34;SearchPattern&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">BYTE</span><span class="o">*</span> <span class="n">veh_list</span> <span class="o">=</span> <span class="o">*</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">**&gt;</span><span class="p">(</span><span class="n">match_list</span> <span class="o">+</span> <span class="mi">5</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">size_t</span> <span class="n">veh_list_offset</span> <span class="o">=</span> <span class="n">veh_list</span> <span class="o">-</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;LdrpVectorHandlerList: 0x%p (ntdll+0x%x)</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">veh_list</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">         <span class="n">veh_list_offset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">veh_list_offset</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">process</span> <span class="o">=</span> <span class="n">Process</span><span class="o">::</span><span class="n">GetProcessByName</span><span class="p">(</span><span class="sa">L</span><span class="s">&#34;veh_dumper.exe&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">perror_if_invalid</span><span class="p">(</span><span class="n">process</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="s">&#34;GetProcessByName&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Process cookie: 0x%0x</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">process</span><span class="o">-&gt;</span><span class="n">GetProcessCookie</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">DWORD</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">process</span><span class="o">-&gt;</span><span class="n">GetModuleBase</span><span class="p">(</span><span class="sa">L</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">VECTORED_HANDLER_LIST</span> <span class="n">handler_list</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DWORD</span> <span class="n">veh_addr</span> <span class="o">=</span> <span class="n">ntdll</span> <span class="o">+</span> <span class="n">GetVEHOffset</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;VEH: 0x%08x</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">veh_addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">process</span><span class="o">-&gt;</span><span class="n">ReadProcMem</span><span class="p">(</span><span class="n">veh_addr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">handler_list</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">handler_list</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;First entry: 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">handler_list</span><span class="p">.</span><span class="n">first_exception_handler</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Last entry: 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">handler_list</span><span class="p">.</span><span class="n">last_exception_handler</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">handler_list</span><span class="p">.</span><span class="n">first_exception_handler</span><span class="p">)</span> <span class="o">==</span>
+</span></span><span class="line"><span class="cl">      <span class="n">veh_addr</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;VEH list is empty</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Dumping the entries:</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">VECTORED_HANDLER_ENTRY</span> <span class="n">entry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">process</span><span class="o">-&gt;</span><span class="n">ReadProcMem</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">      <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">handler_list</span><span class="p">.</span><span class="n">first_exception_handler</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">entry</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="k">sizeof</span><span class="p">(</span><span class="n">entry</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">handler</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">handler</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  handler = 0x%p =&gt; 0x%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">handler</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">           <span class="n">process</span><span class="o">-&gt;</span><span class="n">DecodePointer</span><span class="p">(</span><span class="n">handler</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">next</span><span class="p">)</span> <span class="o">==</span> <span class="n">veh_addr</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">process</span><span class="o">-&gt;</span><span class="n">ReadProcMem</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">DWORD</span><span class="o">&gt;</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">next</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">entry</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                         <span class="k">sizeof</span><span class="p">(</span><span class="n">entry</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>I plan to release a VEH debugger which works by shellcode injection, maybe it will be the subject of a next article.
 Please take note that I have done it on a 32 bits process but it can be done on a 64 bits process too.</p>
-
-        </div>
-      </div>
-    </div>
   </article>
-</main>
+</section>
 
-
-    <footer id="footer" class="site-footer">
+    </div><footer id="footer" class="site-footer">
   <div class="copyright">
-    
-      <p>&copy; 2023 Dimitri Fourny</p>
-    
+      <p>&copy; 2024 Dimitri Fourny</p>
   </div>
-</footer>
-
-  </body>
-
+</footer></body>
 </html>

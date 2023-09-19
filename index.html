@@ -1,257 +1,187 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html>
   <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Dimitri Fourny</title>
-  <meta name="description" content="Personal website and computer security blog.">
-  <link rel="canonical" href="https://dimitrifourny.github.io/">
-
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <link rel="stylesheet" href="/assets/css/syntax-github.css">
-  <link rel="shortcut icon" href="/assets/img/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
-</head>
-
-
-  <bodys>
-    
-  <div id="navigation">
-    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://infosec.exchange/@dimitrifourny">Mastodon</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
-  </div>
-
-
-    <header>
-  <div id="masthead">
-    <div id="site-title">Dimitri Fourny</div>
-    <div id="site-description">Personal website and computer security blog.</p>
-  </div>
-</header>
-
-
-    
-
-
-<div class="entries-list">
+	<meta name="generator" content="Hugo 0.106.0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
   
+    <title>Dimitri Fourny</title>
+  
+    <meta name="description" content="Personal website and computer security blog.">
+    <link rel="canonical" href="https://dimitrifourny.github.io/">
+  
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/syntax-github.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  
+    <link rel="shortcut icon" href="/img/favicon.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header>
+      <div id="nav-header">
+        <div id="nav-logo">
+          <div id="site-title"><a href="/">Dimitri Fourny</a></div>
+          <div id="site-description">Personal website and computer security blog.</div>
+        </div>
+        
+        <nav>
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="https://github.com/DimitriFourny"><i class="fa-brands fa-github"></i></a>
+          <a href="https://infosec.exchange/@dimitrifourny"><i class="fa-brands fa-mastodon"></i></a>
+          <a href="https://twitter.com/DimitriFourny"><i class="fa-brands fa-twitter"></i></a>
+          <a href="https://www.linkedin.com/in/dimitrifourny/"><i class="fa-brands fa-linkedin"></i></a>
+        </nav>
+      </div>
+    </header>    
+
+    <div id="content">
+<section>
+<div class="entries-list">
+
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2020/06/11/dumping-veh-win10.html" rel="bookmark">Dumping the VEH in Windows 10
-</a>
+      <a href="/2020/06/11/dumping-veh-win10.html" rel="bookmark">Dumping the VEH in Windows 10</a>
     </h3>
     <p class="entry-date">June 11, 2020</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
-Even if you have an official Windows API to add and remove handlers via <code class="highlighter-rouge">AddVectoredExceptionHandler</code> and
-<code class="highlighter-rouge">RemoveVectoredExceptionHandler</code>, there is no official way to list all registered handlers in an application.
+    <p><p>The <a href="https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling">Vectored Exception Handling</a> (VEH) is a Windows mecanism to handle application exceptions.
+Even if you have an official Windows API to add and remove handlers via <code>AddVectoredExceptionHandler</code> and
+<code>RemoveVectoredExceptionHandler</code>, there is no official way to list all registered handlers in an application.
 Inside the source code of ReactOS you can find <a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c">a source file</a> with these API reimplemented and it can give us
-good information about how it works.</p>
-
-
-    
+good information about how it works.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2017/04/28/optimized-shellcode.html" rel="bookmark">Writing Optimized Windows Shellcode
-</a>
+      <a href="/2017/04/28/optimized-shellcode.html" rel="bookmark">Writing Optimized Windows Shellcode</a>
     </h3>
     <p class="entry-date">April 28, 2017</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>You always have a lot of possibilities when you make a shellcode payload, 
-especially on Windows. Do you need to write all your ASM manually or can you be 
-helped by your compiler? Do I need to directly use syscall or to search the 
-functions in memory? Because it’s not always simple to make it, I have made the 
-decision to write an article about that. I have the habit to do all the work in 
-C and compile it with Visual Studio: the source code is nicer in C, the compiler 
-do a better job to optimize it and you can implement your own obfuscator with 
-LLVM if you want.</p>
-
-
-    
+    <p><p>You always have a lot of possibilities when you make a shellcode payload,
+especially on Windows. Do you need to write all your ASM manually or can you be
+helped by your compiler? Do I need to directly use syscall or to search the
+functions in memory? Because it’s not always simple to make it, I have made the
+decision to write an article about that.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2017/03/08/attacking-aes-dsa.html" rel="bookmark">Attacking AES and DSA
-</a>
+      <a href="/2017/03/08/attacking-aes-dsa.html" rel="bookmark">Attacking AES and DSA</a>
     </h3>
     <p class="entry-date">March 8, 2017</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>Recently I was involved in a security conference called 
-<a href="https://secuday.github.io/">SecuDay</a> where I have presented 
-<a href="https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf">Attacking Games for Fun and Profit</a>. 
-At the end of the conference, we have been invited to resolve some challenges 
-conceived by <a href="http://www.lifl.fr/~bouillag/">Charles Bouillaguet</a>. There was 
-three levels, easy and medium level are based on the bruteforce of an 
-<a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard">Advanced Encryption Standard</a> 
-128-bits encryption and the hard level was to crack a bad implementation of the 
-<a href="https://en.wikipedia.org/wiki/Digital_Signature_Algorithm">Digital Signature Algorithm</a>. 
-The same implementation failure of DSA was used to break the Sony PS3.</p>
-
-
-    
+    <p><p>Recently I was involved in a security conference called
+<a href="https://secuday.github.io/">SecuDay</a> where I have presented
+<a href="https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf">Attacking Games for Fun and Profit</a>.
+At the end of the conference, we have been invited to resolve some challenges
+conceived by <a href="http://www.lifl.fr/~bouillag/">Charles Bouillaguet</a>.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2014/07/02/vtable-hooking.html" rel="bookmark">VTable Hooking
-</a>
+      <a href="/2014/07/02/vtable-hooking.html" rel="bookmark">VTable Hooking</a>
     </h3>
     <p class="entry-date">July 2, 2014</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>Today, I will try to explain how we can make a hook on a C++ class method. This 
-technique works on Linux and Windows, but my examples are compiled on Linux.</p>
-
-
-    
+    <p><p>Today, I will try to explain how we can make a hook on a C++ class method. This
+technique works on Linux and Windows, but my examples are compiled on Linux.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2014/03/16/driver-write-what-where.html" rel="bookmark">Driver write-what-where vulnerability
-</a>
+      <a href="/2014/03/16/driver-write-what-where.html" rel="bookmark">Driver write-what-where vulnerability</a>
     </h3>
     <p class="entry-date">March 16, 2014</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
-x64. To do that, we will use the last level of 
-<a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3. We need to do some 
-changes to make a driver which work on a x64 system:</p>
-
-
-    
+    <p><p>In this article, we will exploit a write-what-where vulnerability in Windows 7
+x64. To do that, we will use the last level of
+<a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2014/03/14/driver-dereferenced.html" rel="bookmark">Driver dereferenced pointer in Windows 7 x64
-</a>
+      <a href="/2014/03/14/driver-dereferenced.html" rel="bookmark">Driver dereferenced pointer in Windows 7 x64</a>
     </h3>
     <p class="entry-date">March 14, 2014</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>In my previous article, I have talked about the exploitation of kernel buffer 
-overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64 
-on the 0vercl0k’s level 2 driver. 0vercl0k have coded this driver for a x86 
-environment, so we need to do some changes:</p>
-
-
-    
+    <p><p>In my previous article, I have talked about the exploitation of kernel buffer
+overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64
+on the 0vercl0k’s level 2 driver.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2014/02/28/plugin-windbg.html" rel="bookmark">Make a plugin for WinDbg
-</a>
+      <a href="/2014/02/28/plugin-windbg.html" rel="bookmark">Make a plugin for WinDbg</a>
     </h3>
     <p class="entry-date">February 28, 2014</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64 
-application, in user-land or in kernel-land. Despite its useful commands, we 
-would like to make some plugin to do a faster and better debugging session. 
-Fortunately for us, it’s possible to write WinDbg plugins in C or C++ to add a 
-lot of commands in our favorite debugger.I will use C++, but it’s possible to 
-use another language if this language support the DLL creation. With Python, you 
-can use PyKd. The plugin that you will be able to code after this article and 
-with a little documentation looks like that:</p>
-
-
-    
+    <p><p>WinDbg is a powerfull Windows debugger, it can debug x86 application and x64
+application, in user-land or in kernel-land. Despite its useful commands, we
+would like to make some plugin to do a faster and better debugging session.
+Fortunately for us, it&rsquo;s possible to write WinDbg plugins in C or C++ to add a
+lot of commands in our favorite debugger.</p></p>
   </div>
 </article>
-
 
 <article class="entry">
   <header class="entry-header">
     <h3 class="entry-title">
-      <a href="/2014/02/26/kernel-buffer-overflow.html" rel="bookmark">Kernel buffer overflow on Windows
-</a>
+      <a href="/2014/02/26/kernel-buffer-overflow.html" rel="bookmark">Kernel buffer overflow on Windows</a>
     </h3>
     <p class="entry-date">February 26, 2014</p>
   </header>
+
   <div class="entry-excerpt p-summary">
-    
-      <p>The buffer overflow are cool in user-land but they can be more funny in 
-kernel-land. This time, we will use a buffer overflow to make an escalade 
-privilege to get the SYSTEM rights, so we will could make anything we want on 
-the system. To train us, we don’t need to code a driver by ourself: 0vercl0k 
-have done it for us! So we got the level 1 files and we start our XP VM.</p>
-
-
-    
+    <p><p>The buffer overflow are cool in user-land but they can be more funny in
+kernel-land. This time, we will use a buffer overflow to make an escalade
+privilege to get the SYSTEM rights, so we will could make anything we want on
+the system. To train us, we don&rsquo;t need to code a driver by ourself: 0vercl0k
+have done it for us! So we got the level 1 files and we start our XP VM.</p></p>
   </div>
 </article>
 
-
-<article class="entry">
-  <header class="entry-header">
-    <h3 class="entry-title">
-      <a href="/2014/02/06/buffer-overflow.html" rel="bookmark">How to detect and exploit a buffer overflow
-</a>
-    </h3>
-    <p class="entry-date">February 6, 2014</p>
-  </header>
-  <div class="entry-excerpt p-summary">
-    
-      <p>The buffer overflow is the most classical vulnerability, on Linux and on Windows.
-In this article, I will try to show you how to exploit a buffer overflow on 
-Windows with WinDbg and a little Python code.</p>
-
-
-    
-  </div>
-</article>
 
 </div>
+</section>
 
-
-    <footer id="footer" class="site-footer">
+    </div><footer id="footer" class="site-footer">
   <div class="copyright">
-    
-      <p>&copy; 2023 Dimitri Fourny</p>
-    
+      <p>&copy; 2024 Dimitri Fourny</p>
   </div>
-</footer>
-
-  </body>
-
+</footer></body>
 </html>

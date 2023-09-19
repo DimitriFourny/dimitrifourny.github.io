@@ -1,0 +1,162 @@
+body {
+  margin: auto;
+  font-family: "Roboto", Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  background-color: #ffffff;
+  color: #3c3e3e;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+p {
+  text-align: justify;
+}
+
+a {
+  color: #3c3e3e;
+  text-decoration: underline;
+  font-weight: normal;
+}
+
+a:hover {
+  color: #000;
+}
+
+code {
+  font-family: "Source Code Pro", monospace;
+  background-color: #f6f8fa;
+}
+
+pre code {
+  font-size: 0.9em;
+  color: #383838;
+}
+
+#nav-header {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-around;
+  padding: 10px 10px;
+  
+  border-bottom: solid 1px #e7e7e7;
+}
+
+#nav-logo {
+  margin: auto;
+}
+
+#nav-header nav {
+  margin: auto;
+  padding: 20px 10px;
+}
+
+#nav-header nav a {
+  margin: 5px;
+  padding: 5px;
+  text-decoration: none;
+}
+
+#site-title {
+  text-align: center;
+}
+#site-title a {
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+#site-description {
+  text-align: center;
+}
+
+#content {
+  flex: 1;
+}
+
+section {
+  max-width: 800px;
+  margin: 0px auto;
+  padding: 0px 10px;
+}
+
+section p {
+  line-height: 140%;
+}
+
+.entry {
+  margin-top: 30px;
+}
+
+.entry-title {
+  margin: 0px;
+  padding: 0px;
+}
+
+.entry-date {
+  margin: 2px;
+  font-size: 0.8rem;
+}
+
+
+.page-content h1 { font-size: 2em; }
+.page-content h2 { font-size: 1.5em; }
+.page-content h3 { font-size: 1.3em; }
+
+.page-content h1, h2, h3 {
+  margin-top: 50px;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.page-content h1, h2, h3 a {
+  font-weight: bold;
+  text-decoration: none;
+
+  background: linear-gradient(140deg, #c595f9 12.09%, #F778BA 42.58%, #FF7B72 84.96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-content h1, h2, h3 a:hover {
+  color: transparent;
+} 
+
+.page-content img {
+  display: block;
+  max-width: 90%;
+  margin: 50px auto;
+}
+
+.highlight, .chroma, pre {
+  overflow-x: auto;
+  background-color: #f6f8fa;
+}
+
+footer {
+  max-width: 800px;
+  margin: auto;
+}
+
+.copyright {
+  float: right;
+}
+
+.http-error {
+  text-align: center;
+}
+
+.http-error h1 {
+  font-size: 10rem;
+
+  background: linear-gradient(140deg, #c595f9 12.09%, #F778BA 42.58%, #FF7B72 84.96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.avatar {
+  border-radius: 50% !important;
+}

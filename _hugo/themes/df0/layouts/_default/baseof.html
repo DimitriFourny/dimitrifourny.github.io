@@ -5,13 +5,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
   
-    <title>About me</title>
+    <title>{{ block "title" . }}{{ .Title }}{{ end }}</title>
   
     <meta name="description" content="Personal website and computer security blog.">
     <link rel="canonical" href="https://dimitrifourny.github.io/">
   
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/syntax-github.css">
+    <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+    <link rel="stylesheet" href="{{ "css/syntax-github.css" | relURL }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
   
     <link rel="shortcut icon" href="/img/favicon.png">
@@ -41,22 +41,9 @@
     </header>    
 
     <div id="content">
-<section>
-  <article class="page-content">
-    <h1>About me</h1>
-    
-<img src="https://avatars.githubusercontent.com/u/17668518?v=4" alt="avatar" class="avatar">
-<p>I’m Dimitri Fourny, a french security researcher who works in the field of
-vulnerability research and exploitation. On this website, I try to keep all my
-blog posts and my projects even if there is a gap between the first ones and the
-last ones. I hope that it will satisfy your curiosity.</p>
+    {{- block "main" . }}{{- end }}
+    </div>
 
-  </article>
-</section>
-
-    </div><footer id="footer" class="site-footer">
-  <div class="copyright">
-      <p>&copy; 2024 Dimitri Fourny</p>
-  </div>
-</footer></body>
+    {{- partial "footer.html" . -}}
+  </body>
 </html>

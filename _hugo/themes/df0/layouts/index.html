@@ -1,0 +1,23 @@
+
+{{ define "main" }}
+<section>
+<div class="entries-list">
+
+{{ range where .Site.RegularPages "Section" "posts" }}
+<article class="entry">
+  <header class="entry-header">
+    <h3 class="entry-title">
+      <a href="{{ .RelPermalink }}" rel="bookmark">{{ .Title }}</a>
+    </h3>
+    <p class="entry-date">{{ .Date.Format "January 2, 2006" }}</p>
+  </header>
+
+  <div class="entry-excerpt p-summary">
+    <p>{{ .Summary }}</p>
+  </div>
+</article>
+{{ end }}
+
+</div>
+</section>
+{{ end }}

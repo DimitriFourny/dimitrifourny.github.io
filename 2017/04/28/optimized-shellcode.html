@@ -1,77 +1,72 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html>
   <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Writing Optimized Windows Shellcode</title>
-  <meta name="description" content="You always have a lot of possibilities when you make a shellcode payload, especially on Windows. Do you need to write all your ASM manually or can you be hel...">
-  <link rel="canonical" href="https://dimitrifourny.github.io/2017/04/28/optimized-shellcode.html">
-
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <link rel="stylesheet" href="/assets/css/syntax-github.css">
-  <link rel="shortcut icon" href="/assets/img/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
-</head>
-
-
-  <bodys>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+    <title>
+  Writing Optimized Windows Shellcode &ndash; Dimitri Fourny
+</title>
+  
+    <meta name="description" content="Personal website and computer security blog.">
+    <link rel="canonical" href="https://dimitrifourny.github.io/">
+  
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/syntax-github.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  
+    <link rel="shortcut icon" href="/img/favicon.png">
     
-  <div id="navigation">
-    <nav id="primary-nav"><a href="/">Home</a><span> | </span><a href="/about">About</a><span> | </span><a href="https://github.com/DimitriFourny">Github</a><span> | </span><a href="https://twitter.com/DimitriFourny">Twitter</a><span> | </span><a href="https://infosec.exchange/@dimitrifourny">Mastodon</a><span> | </span><a href="https://www.linkedin.com/in/dimitrifourny/">Linkedin</a></nav>
-  </div>
-
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
+  </head>
+  <body>
     <header>
-  <div id="masthead">
-    <div id="site-title">Dimitri Fourny</div>
-    <div id="site-description">Personal website and computer security blog.</p>
-  </div>
-</header>
-
-
-    <main id="main" class="main-content" aria-label="Content">
-  <article class="h-entry">
-    <div class="page-wrapper">
-      <header class="page-header">
+      <div id="nav-header">
+        <div id="nav-logo">
+          <div id="site-title"><a href="/">Dimitri Fourny</a></div>
+          <div id="site-description">Personal website and computer security blog.</div>
+        </div>
         
-        <h1 id="page-title" class="page-title p-name">Writing Optimized Windows Shellcode
-</h1>
-      </header>
+        <nav>
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="https://github.com/DimitriFourny"><i class="fa-brands fa-github"></i></a>
+          <a href="https://infosec.exchange/@dimitrifourny"><i class="fa-brands fa-mastodon"></i></a>
+          <a href="https://twitter.com/DimitriFourny"><i class="fa-brands fa-twitter"></i></a>
+          <a href="https://www.linkedin.com/in/dimitrifourny/"><i class="fa-brands fa-linkedin"></i></a>
+        </nav>
+      </div>
+    </header>    
 
-      <div class="page-content">
-        <div class="e-content">
-          <p>You always have a lot of possibilities when you make a shellcode payload, 
-especially on Windows. Do you need to write all your ASM manually or can you be 
-helped by your compiler? Do I need to directly use syscall or to search the 
-functions in memory? Because it’s not always simple to make it, I have made the 
-decision to write an article about that. I have the habit to do all the work in 
-C and compile it with Visual Studio: the source code is nicer in C, the compiler 
-do a better job to optimize it and you can implement your own obfuscator with 
-LLVM if you want.</p>
-
-<p>For this example, I will work on a x86 shellcode. Of course this can be totally 
+    <div id="content">
+<section>
+  <article class="page-content">
+    <h1>Writing Optimized Windows Shellcode</h1>
+    <p>You always have a lot of possibilities when you make a shellcode payload,
+especially on Windows. Do you need to write all your ASM manually or can you be
+helped by your compiler? Do I need to directly use syscall or to search the
+functions in memory? Because it’s not always simple to make it, I have made the
+decision to write an article about that.</p>
+<p>I have the habit to do all the work in C and compile it with Visual Studio: the
+source code is nicer in C, the compiler do a better job to optimize it and you
+can implement your own obfuscator with LLVM if you want.</p>
+<p>For this example, I will work on a x86 shellcode. Of course this can be totally
 applied to a x86_64 shellcode or for another processor.</p>
-
 <h1 id="find-the-basics-dll">Find the basics DLL</h1>
 <h2 id="introduction">Introduction</h2>
-
-<p>When a shellcode payload is loaded in Windows, the first step is to locate the 
-functions that we will use. We start by searching the Dynamic Link Library 
-(<em>DLL</em>) where the function is stored. To do that, we will need to use different 
+<p>When a shellcode payload is loaded in Windows, the first step is to locate the
+functions that we will use. We start by searching the Dynamic Link Library
+(<em>DLL</em>) where the function is stored. To do that, we will need to use different
 structures that I will describe in the following sections.</p>
-
 <h2 id="thread-environment-block">Thread Environment Block</h2>
-
-<p>The <em>TEB</em> is a structure used by Windows to describe a thread. Each thread can 
-access to his own <em>TEB</em> by using the register <code class="highlighter-rouge">FS</code> on x86 platform and <code class="highlighter-rouge">GS</code> on 
+<p>The <em>TEB</em> is a structure used by Windows to describe a thread. Each thread can
+access to his own <em>TEB</em> by using the register <code>FS</code> on x86 platform and <code>GS</code> on
 x86_64 platform. The <em>TEB</em> has the following structure:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt ntdll!_TEB
+<pre tabindex="0"><code>0:000&gt; dt ntdll!_TEB
     +0x000 NtTib            : _NT_TIB
     +0x01c EnvironmentPointer : Ptr32 Void
     +0x020 ClientId         : _CLIENT_ID
@@ -80,39 +75,29 @@ x86_64 platform. The <em>TEB</em> has the following structure:</p>
     +0x030 ProcessEnvironmentBlock : Ptr32 _PEB
     ...
     +0xff0 EffectiveContainerId : _GUID
-</code></pre></div></div>
-
-<p>In consequence, if you want access to the PEB, you just need to do:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">PEB</span><span class="o">*</span> <span class="nf">getPeb</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kr">__asm</span> <span class="p">{</span>
-        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="n">fs</span><span class="o">:</span><span class="p">[</span><span class="mh">0x30</span><span class="p">];</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<h2 id="process-environment-block">Process Environment Block</h2>
-
-<p>If the <em>TEB</em> gives information about a thread, the <em>PEB</em> will give us 
-information about the process itself. And the information that we need is the 
-location of the basics DLL. In fact, when a process is loaded in memory by 
+</code></pre><p>In consequence, if you want access to the PEB, you just need to do:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">PEB</span><span class="o">*</span> <span class="nf">getPeb</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kr">__asm</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="nl">fs</span><span class="p">:[</span><span class="mh">0x30</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="process-environment-block">Process Environment Block</h2>
+<p>If the <em>TEB</em> gives information about a thread, the <em>PEB</em> will give us
+information about the process itself. And the information that we need is the
+location of the basics DLL. In fact, when a process is loaded in memory by
 Windows, at least two DLL are mapped:</p>
-
 <ul>
-  <li><code class="highlighter-rouge">ntdll.dll</code>, which contain the functions which do the syscall. They begin all 
-  with the prefix <code class="highlighter-rouge">Nt*</code> and are just calling the <code class="highlighter-rouge">Zw*</code> equivalent in the kernel</li>
-  <li><code class="highlighter-rouge">kernel32.dll</code>, which use the NTDLL functions in a higher level. For example, 
-  <code class="highlighter-rouge">kernel32!CreateFileA</code> will call <code class="highlighter-rouge">ntdll!NtCreateFileW</code> which will call 
-  <code class="highlighter-rouge">ntoskrnl!ZwCreateFileW</code>.</li>
+<li><code>ntdll.dll</code>, which contain the functions which do the syscall. They begin all
+with the prefix <code>Nt*</code> and are just calling the <code>Zw*</code> equivalent in the kernel</li>
+<li><code>kernel32.dll</code>, which use the NTDLL functions in a higher level. For example,
+<code>kernel32!CreateFileA</code> will call <code>ntdll!NtCreateFileW</code> which will call
+<code>ntoskrnl!ZwCreateFileW</code>.</li>
 </ul>
-
-<p>On some Windows version, others DLL can be already be present in memory but to 
-be perfectly portable we will just assume that these two DLL are the only DLL 
+<p>On some Windows version, others DLL can be already be present in memory but to
+be perfectly portable we will just assume that these two DLL are the only DLL
 already loaded.</p>
-
 <p>Let’s take a look at the <em>TEB</em> structure:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt nt!_PEB 
+<pre tabindex="0"><code>0:000&gt; dt nt!_PEB 
     +0x000 InheritedAddressSpace : UChar
     +0x001 ReadImageFileExecOptions : UChar
     +0x002 BeingDebugged    : UChar
@@ -130,13 +115,10 @@ already loaded.</p>
     +0x00c Ldr              : Ptr32 _PEB_LDR_DATA
     ...
     +0x25c WaitOnAddressHashTable : [128] Ptr32 Void
-</code></pre></div></div>
-
-<p>You can see that we have <code class="highlighter-rouge">PEB.BeingDebugged</code>, which is used by 
-<code class="highlighter-rouge">IsDebuggerPresent()</code>. But the interesting part for us is that we have <code class="highlighter-rouge">PEB.Ldr</code> 
+</code></pre><p>You can see that we have <code>PEB.BeingDebugged</code>, which is used by
+<code>IsDebuggerPresent()</code>. But the interesting part for us is that we have <code>PEB.Ldr</code>
 which corresponds to the following structure:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt nt!_PEB_LDR_DATA
+<pre tabindex="0"><code>0:000&gt; dt nt!_PEB_LDR_DATA
     +0x000 Length           : Uint4B
     +0x004 Initialized      : UChar
     +0x008 SsHandle         : Ptr32 Void
@@ -146,19 +128,16 @@ which corresponds to the following structure:</p>
     +0x024 EntryInProgress  : Ptr32 Void
     +0x028 ShutdownInProgress : UChar
     +0x02c ShutdownThreadId : Ptr32 Void
-</code></pre></div></div>
-
-<p>Like we can see by its name, <code class="highlighter-rouge">PEB.Ldr-&gt;In*OrderModuleList</code> are chained list 
-(<code class="highlighter-rouge">LIST_ENTRY</code>) which contains all the DLL already loaded in memory. The three 
-lists point on the same objects but in a different order. I prefer to use 
-<code class="highlighter-rouge">InLoadOrderModuleList</code> because you can use <code class="highlighter-rouge">InLoadOrderModuleList.Flink</code> 
-directly like a pointer to <code class="highlighter-rouge">_LDR_DATA_TABLE_ENTRY</code>. For example, if you want to 
-use <code class="highlighter-rouge">InMemoryOrderModuleList</code>, the <code class="highlighter-rouge">LDR_DATA_TABLE_ENTRY</code> will be at the 
-position <code class="highlighter-rouge">_InMemoryOrderModuleList.Flink-0x10</code> because 
-<code class="highlighter-rouge">InMemoryOrderModuleList.Flink</code> point to the next <code class="highlighter-rouge">InMemoryOrderModuleList</code>. 
+</code></pre><p>Like we can see by its name, <code>PEB.Ldr-&gt;In*OrderModuleList</code> are chained list
+(<code>LIST_ENTRY</code>) which contains all the DLL already loaded in memory. The three
+lists point on the same objects but in a different order. I prefer to use
+<code>InLoadOrderModuleList</code> because you can use <code>InLoadOrderModuleList.Flink</code>
+directly like a pointer to <code>_LDR_DATA_TABLE_ENTRY</code>. For example, if you want to
+use <code>InMemoryOrderModuleList</code>, the <code>LDR_DATA_TABLE_ENTRY</code> will be at the
+position <code>_InMemoryOrderModuleList.Flink-0x10</code> because
+<code>InMemoryOrderModuleList.Flink</code> point to the next <code>InMemoryOrderModuleList</code>.
 Each chained list element can be seen like the following structure:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt nt!_LDR_DATA_TABLE_ENTRY
+<pre tabindex="0"><code>0:000&gt; dt nt!_LDR_DATA_TABLE_ENTRY
     +0x000 InLoadOrderLinks : _LIST_ENTRY
     +0x008 InMemoryOrderLinks : _LIST_ENTRY
     +0x010 InInitializationOrderLinks : _LIST_ENTRY
@@ -169,138 +148,119 @@ Each chained list element can be seen like the following structure:</p>
     +0x02c BaseDllName      : _UNICODE_STRING
     ...
     +0x0a0 DependentLoadFlags : Uint4B
-</code></pre></div></div>
-
-<p><code class="highlighter-rouge">BaseDllName</code> will contain the name of the DLL (e.g.: <code class="highlighter-rouge">ntdll.dll</code>) and <code class="highlighter-rouge">DllBase</code> 
-will contain the addresses where the DLL is located in memory. Traditionnaly, 
-the first element in <code class="highlighter-rouge">InLoadOrderModuleList</code> is the executable itself, and after 
-we can found <em>NTDLL</em> and <em>KERNEL32</em>. But we are not always sure that they are in 
-this order in all Windows version so it’s always better to base our research on 
+</code></pre><p><code>BaseDllName</code> will contain the name of the DLL (e.g.: <code>ntdll.dll</code>) and <code>DllBase</code>
+will contain the addresses where the DLL is located in memory. Traditionnaly,
+the first element in <code>InLoadOrderModuleList</code> is the executable itself, and after
+we can found <em>NTDLL</em> and <em>KERNEL32</em>. But we are not always sure that they are in
+this order in all Windows version so it’s always better to base our research on
 the DLL name (which can be in uppercase or in lowercase).</p>
-
 <h2 id="djb-hash">DJB Hash</h2>
-
-<p>Like I have said before, we will not trust the DLL orders and we will do our 
-research based on the DLL name. But in a shellcode, it’s not always a good idea 
-to use ASCII strings or worst, an UNICODE string: it will just make our 
-shellcode bigger! So I recommend you to use a hash system to compare the DLL 
+<p>Like I have said before, we will not trust the DLL orders and we will do our
+research based on the DLL name. But in a shellcode, it’s not always a good idea
+to use ASCII strings or worst, an UNICODE string: it will just make our
+shellcode bigger! So I recommend you to use a hash system to compare the DLL
 name. I will use a DJB hash because it’s a simple and sufficient hash:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="kt">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hash</span> <span class="o">=</span> <span class="mi">5381</span><span class="p">;</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">hash</span> <span class="o">=</span> <span class="p">((</span><span class="n">hash</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">hash</span><span class="p">)</span> <span class="o">+</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>Due to the fact that the dll name can be in uppercase or lowercase, it’s a good 
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="n">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hash</span> <span class="o">=</span> <span class="mi">5381</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hash</span> <span class="o">=</span> <span class="p">((</span><span class="n">hash</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">hash</span><span class="p">)</span> <span class="o">+</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Due to the fact that the dll name can be in uppercase or lowercase, it’s a good
 idea to support it in your hash algorithm to have something like this:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>djbHashW(L"ntdll.dll") == djbHashW(L"NTDLL.DLL")
-</code></pre></div></div>
-
-<h2 id="code">Code</h2>
-
+<pre tabindex="0"><code>djbHashW(L&#34;ntdll.dll&#34;) == djbHashW(L&#34;NTDLL.DLL&#34;)
+</code></pre><h2 id="code">Code</h2>
 <p>Now that we have spoken about how to do it, it’s time to code our idea:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LSA_UNICODE_STRING</span> <span class="p">{</span>
-    <span class="n">USHORT</span> <span class="n">Length</span><span class="p">;</span>
-    <span class="n">USHORT</span> <span class="n">MaximumLength</span><span class="p">;</span>
-    <span class="n">PWSTR</span>  <span class="n">Buffer</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">LSA_UNICODE_STRING</span><span class="p">,</span> <span class="o">*</span><span class="n">PLSA_UNICODE_STRING</span><span class="p">,</span> <span class="n">UNICODE_STRING</span><span class="p">,</span> <span class="o">*</span><span class="n">PUNICODE_STRING</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LDR_DATA_TABLE_ENTRY</span> <span class="p">{</span>
-    <span class="n">LIST_ENTRY</span>              <span class="n">InLoadOrderModuleList</span><span class="p">;</span>
-    <span class="n">LIST_ENTRY</span>              <span class="n">InMemoryOrderModuleList</span><span class="p">;</span>
-    <span class="n">LIST_ENTRY</span>              <span class="n">InInitializationOrderModuleList</span><span class="p">;</span>
-    <span class="n">PVOID</span>                   <span class="n">BaseAddress</span><span class="p">;</span>
-    <span class="n">PVOID</span>                   <span class="n">EntryPoint</span><span class="p">;</span>
-    <span class="n">ULONG</span>                   <span class="n">SizeOfImage</span><span class="p">;</span>
-    <span class="n">UNICODE_STRING</span>          <span class="n">FullDllName</span><span class="p">;</span>
-    <span class="n">UNICODE_STRING</span>          <span class="n">BaseDllName</span><span class="p">;</span>
-    <span class="n">ULONG</span>                   <span class="n">Flags</span><span class="p">;</span>
-    <span class="n">SHORT</span>                   <span class="n">LoadCount</span><span class="p">;</span>
-    <span class="n">SHORT</span>                   <span class="n">TlsIndex</span><span class="p">;</span>
-    <span class="n">LIST_ENTRY</span>              <span class="n">HashTableEntry</span><span class="p">;</span>
-    <span class="n">ULONG</span>                   <span class="n">TimeDateStamp</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">LDR_DATA_TABLE_ENTRY</span><span class="p">,</span> <span class="o">*</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PEB_LDR_DATA</span> <span class="p">{</span>
-    <span class="n">ULONG</span>      <span class="n">Length</span><span class="p">;</span>
-    <span class="n">ULONG</span>      <span class="n">Initialized</span><span class="p">;</span>
-    <span class="n">ULONG</span>      <span class="n">SsHandle</span><span class="p">;</span>
-    <span class="n">LIST_ENTRY</span> <span class="n">InLoadOrderModuleList</span><span class="p">;</span>
-    <span class="n">LIST_ENTRY</span> <span class="n">InMemoryOrderModuleList</span><span class="p">;</span>
-    <span class="n">LIST_ENTRY</span> <span class="n">InInitializationOrderModuleList</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">PEB_LDR_DATA</span><span class="p">,</span> <span class="o">*</span><span class="n">PPEB_LDR_DATA</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_RTL_USER_PROCESS_PARAMETERS</span> <span class="p">{</span>
-    <span class="n">BYTE</span>           <span class="n">Reserved1</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
-    <span class="n">PVOID</span>          <span class="n">Reserved2</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
-    <span class="n">UNICODE_STRING</span> <span class="n">ImagePathName</span><span class="p">;</span>
-    <span class="n">UNICODE_STRING</span> <span class="n">CommandLine</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">RTL_USER_PROCESS_PARAMETERS</span><span class="p">,</span> <span class="o">*</span><span class="n">PRTL_USER_PROCESS_PARAMETERS</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PEB</span> <span class="p">{</span>
-    <span class="n">BYTE</span>                          <span class="n">Reserved1</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-    <span class="n">BYTE</span>                          <span class="n">BeingDebugged</span><span class="p">;</span>
-    <span class="n">BYTE</span>                          <span class="n">Reserved2</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-    <span class="n">PVOID</span>                         <span class="n">Reserved3</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-    <span class="n">PPEB_LDR_DATA</span>                 <span class="n">Ldr</span><span class="p">;</span>
-    <span class="n">PRTL_USER_PROCESS_PARAMETERS</span>  <span class="n">ProcessParameters</span><span class="p">;</span>
-    <span class="n">BYTE</span>                          <span class="n">Reserved4</span><span class="p">[</span><span class="mi">104</span><span class="p">];</span>
-    <span class="n">PVOID</span>                         <span class="n">Reserved5</span><span class="p">[</span><span class="mi">52</span><span class="p">];</span>
-    <span class="n">PVOID</span>                         <span class="n">PostProcessInitRoutine</span><span class="p">;</span>
-    <span class="n">BYTE</span>                          <span class="n">Reserved6</span><span class="p">[</span><span class="mi">128</span><span class="p">];</span>
-    <span class="n">PVOID</span>                         <span class="n">Reserved7</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-    <span class="n">ULONG</span>                         <span class="n">SessionId</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">PEB</span><span class="p">,</span> <span class="o">*</span><span class="n">PPEB</span><span class="p">;</span>
-
-<span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">PEB</span><span class="o">*</span> <span class="n">peb</span> <span class="o">=</span> <span class="n">getPeb</span><span class="p">();</span>
-  <span class="n">PPEB_LDR_DATA</span> <span class="n">Ldr</span> <span class="o">=</span> <span class="n">peb</span><span class="o">-&gt;</span><span class="n">Ldr</span><span class="p">;</span>
-  <span class="n">PLDR_DATA_TABLE_ENTRY</span> <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">Ldr</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
-
-  <span class="kt">wchar_t</span><span class="o">*</span> <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
-  <span class="kt">wchar_t</span><span class="o">*</span> <span class="n">pFirstDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
-
-  <span class="k">do</span> <span class="p">{</span>
-     <span class="k">if</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">djbHashW</span><span class="p">(</span><span class="n">pBaseDllName</span><span class="p">)</span> <span class="o">==</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
-           <span class="k">return</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">;</span>
-        <span class="p">}</span>
-     <span class="p">}</span>
-
-     <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
-     <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
-  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="n">pFirstDllName</span><span class="p">);</span>
-
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>And if you want to use other DLLs, you will just need to load them with 
-<code class="highlighter-rouge">LoadLibrary()</code>. Don’t worry, we will do that in our shellcode with <code class="highlighter-rouge">user32.dll</code>.</p>
-
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LSA_UNICODE_STRING</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">USHORT</span> <span class="n">Length</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">USHORT</span> <span class="n">MaximumLength</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PWSTR</span>  <span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">LSA_UNICODE_STRING</span><span class="p">,</span> <span class="o">*</span><span class="n">PLSA_UNICODE_STRING</span><span class="p">,</span> <span class="n">UNICODE_STRING</span><span class="p">,</span> <span class="o">*</span><span class="n">PUNICODE_STRING</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_LDR_DATA_TABLE_ENTRY</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span>              <span class="n">InLoadOrderModuleList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span>              <span class="n">InMemoryOrderModuleList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span>              <span class="n">InInitializationOrderModuleList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>                   <span class="n">BaseAddress</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>                   <span class="n">EntryPoint</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>                   <span class="n">SizeOfImage</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UNICODE_STRING</span>          <span class="n">FullDllName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UNICODE_STRING</span>          <span class="n">BaseDllName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>                   <span class="n">Flags</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">SHORT</span>                   <span class="n">LoadCount</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">SHORT</span>                   <span class="n">TlsIndex</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span>              <span class="n">HashTableEntry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>                   <span class="n">TimeDateStamp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">LDR_DATA_TABLE_ENTRY</span><span class="p">,</span> <span class="o">*</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PEB_LDR_DATA</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>      <span class="n">Length</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>      <span class="n">Initialized</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>      <span class="n">SsHandle</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span> <span class="n">InLoadOrderModuleList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span> <span class="n">InMemoryOrderModuleList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LIST_ENTRY</span> <span class="n">InInitializationOrderModuleList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">PEB_LDR_DATA</span><span class="p">,</span> <span class="o">*</span><span class="n">PPEB_LDR_DATA</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_RTL_USER_PROCESS_PARAMETERS</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span>           <span class="n">Reserved1</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>          <span class="n">Reserved2</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UNICODE_STRING</span> <span class="n">ImagePathName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UNICODE_STRING</span> <span class="n">CommandLine</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">RTL_USER_PROCESS_PARAMETERS</span><span class="p">,</span> <span class="o">*</span><span class="n">PRTL_USER_PROCESS_PARAMETERS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_PEB</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span>                          <span class="n">Reserved1</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span>                          <span class="n">BeingDebugged</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span>                          <span class="n">Reserved2</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>                         <span class="n">Reserved3</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PPEB_LDR_DATA</span>                 <span class="n">Ldr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PRTL_USER_PROCESS_PARAMETERS</span>  <span class="n">ProcessParameters</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span>                          <span class="n">Reserved4</span><span class="p">[</span><span class="mi">104</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>                         <span class="n">Reserved5</span><span class="p">[</span><span class="mi">52</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>                         <span class="n">PostProcessInitRoutine</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BYTE</span>                          <span class="n">Reserved6</span><span class="p">[</span><span class="mi">128</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PVOID</span>                         <span class="n">Reserved7</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ULONG</span>                         <span class="n">SessionId</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">PEB</span><span class="p">,</span> <span class="o">*</span><span class="n">PPEB</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">PEB</span><span class="o">*</span> <span class="n">peb</span> <span class="o">=</span> <span class="n">getPeb</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">PPEB_LDR_DATA</span> <span class="n">Ldr</span> <span class="o">=</span> <span class="n">peb</span><span class="o">-&gt;</span><span class="n">Ldr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">PLDR_DATA_TABLE_ENTRY</span> <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">Ldr</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">wchar_t</span><span class="o">*</span> <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">wchar_t</span><span class="o">*</span> <span class="n">pFirstDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">     <span class="k">if</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">djbHashW</span><span class="p">(</span><span class="n">pBaseDllName</span><span class="p">)</span> <span class="o">==</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">           <span class="k">return</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">     <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">     <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">     <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="n">pFirstDllName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>And if you want to use other DLLs, you will just need to load them with
+<code>LoadLibrary()</code>. Don’t worry, we will do that in our shellcode with <code>user32.dll</code>.</p>
 <h1 id="function-address">Function address</h1>
 <h2 id="introduction-1">Introduction</h2>
-
-<p>Now that we have the DLL, we will need to search where are our functions in the 
-DLL memory. Fortunately for us, it’s not really difficult with a good PE headers 
-comprehension. Always keep in mind that when we talk about the PE headers, the 
+<p>Now that we have the DLL, we will need to search where are our functions in the
+DLL memory. Fortunately for us, it’s not really difficult with a good PE headers
+comprehension. Always keep in mind that when we talk about the PE headers, the
 majority of the addresses are relative to the executable address.</p>
-
 <h2 id="portable-executable-headers">Portable Executable headers</h2>
-
-<p>At the beginning of executable we have the DOS header, but it’s mainly here for 
+<p>At the beginning of executable we have the DOS header, but it’s mainly here for
 historic part:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt nt!_IMAGE_DOS_HEADER
+<pre tabindex="0"><code>0:000&gt; dt nt!_IMAGE_DOS_HEADER
     +0x000 e_magic          : Uint2B
     +0x002 e_cblp           : Uint2B
     +0x004 e_cp             : Uint2B
@@ -320,12 +280,9 @@ historic part:</p>
     +0x026 e_oeminfo        : Uint2B
     +0x028 e_res2           : [10] Uint2B
     +0x03c e_lfanew         : Int4B
-</code></pre></div></div>
-
-<p>The element <code class="highlighter-rouge">e_lfanew</code> will indicate the position of the NT headers. You will 
-need to do <code class="highlighter-rouge">pFile + e_lfanew</code> because it’s a relative address.</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt -r1 nt!_IMAGE_NT_HEADERS
+</code></pre><p>The element <code>e_lfanew</code> will indicate the position of the NT headers. You will
+need to do <code>pFile + e_lfanew</code> because it’s a relative address.</p>
+<pre tabindex="0"><code>0:000&gt; dt -r1 nt!_IMAGE_NT_HEADERS
     +0x000 Signature        : Uint4B
     +0x004 FileHeader       : _IMAGE_FILE_HEADER
         +0x000 Machine          : Uint2B
@@ -367,269 +324,239 @@ need to do <code class="highlighter-rouge">pFile + e_lfanew</code> because it’
         +0x058 LoaderFlags      : Uint4B
         +0x05c NumberOfRvaAndSizes : Uint4B
         +0x060 DataDirectory    : [16] _IMAGE_DATA_DIRECTORY
-</code></pre></div></div>
-
-<p>The data directory contain the addresses of some interesting members, and for us 
+</code></pre><p>The data directory contain the addresses of some interesting members, and for us
 it contains above all the addresses of the exported functions.</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0:000&gt; dt nt!_IMAGE_DATA_DIRECTORY
+<pre tabindex="0"><code>0:000&gt; dt nt!_IMAGE_DATA_DIRECTORY
     +0x000 VirtualAddress   : Uint4B
     +0x004 Size             : Uint4B
-</code></pre></div></div>
-
-<p>So we can use <code class="highlighter-rouge">DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress</code> to 
+</code></pre><p>So we can use <code>DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress</code> to
 directly have the address of the export directory:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_EXPORT_DIRECTORY</span> <span class="p">{</span>
-    <span class="n">DWORD</span>   <span class="n">Characteristics</span><span class="p">;</span>
-    <span class="n">DWORD</span>   <span class="n">TimeDateStamp</span><span class="p">;</span>
-    <span class="n">WORD</span>    <span class="n">MajorVersion</span><span class="p">;</span>
-    <span class="n">WORD</span>    <span class="n">MinorVersion</span><span class="p">;</span>
-    <span class="n">DWORD</span>   <span class="n">Name</span><span class="p">;</span>
-    <span class="n">DWORD</span>   <span class="n">Base</span><span class="p">;</span>
-    <span class="n">DWORD</span>   <span class="n">NumberOfFunctions</span><span class="p">;</span>
-    <span class="n">DWORD</span>   <span class="n">NumberOfNames</span><span class="p">;</span>
-    <span class="n">DWORD</span>   <span class="n">AddressOfFunctions</span><span class="p">;</span>     
-    <span class="n">DWORD</span>   <span class="n">AddressOfNames</span><span class="p">;</span>         
-    <span class="n">DWORD</span>   <span class="n">AddressOfNameOrdinals</span><span class="p">;</span>  
-<span class="p">}</span> <span class="n">IMAGE_EXPORT_DIRECTORY</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">;</span>
-</code></pre></div></div>
-
-<p>A function can be exported by name or by ordinal. In consequence, three arrays 
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_EXPORT_DIRECTORY</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">Characteristics</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">TimeDateStamp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span>    <span class="n">MajorVersion</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span>    <span class="n">MinorVersion</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">Name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">Base</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">NumberOfFunctions</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">NumberOfNames</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">AddressOfFunctions</span><span class="p">;</span>     
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">AddressOfNames</span><span class="p">;</span>         
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span>   <span class="n">AddressOfNameOrdinals</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">IMAGE_EXPORT_DIRECTORY</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">;</span>
+</span></span></code></pre></div><p>A function can be exported by name or by ordinal. In consequence, three arrays
 are kept updated:</p>
-
 <ul>
-  <li><code class="highlighter-rouge">AddressOfFunctions</code>, which keep the function’s addresses ordered by ordinal</li>
-  <li><code class="highlighter-rouge">AddressOfNames</code>, which keep the function names</li>
-  <li><code class="highlighter-rouge">AddressOfNameOrdinals</code>, which keep the ordinals. This array is in the same 
-  order than the <code class="highlighter-rouge">AddressOfNames</code> array.</li>
+<li><code>AddressOfFunctions</code>, which keep the function’s addresses ordered by ordinal</li>
+<li><code>AddressOfNames</code>, which keep the function names</li>
+<li><code>AddressOfNameOrdinals</code>, which keep the ordinals. This array is in the same
+order than the <code>AddressOfNames</code> array.</li>
 </ul>
-
-<p>In consequence, if we want the function address based on its name, we will 
-browse all the names in <code class="highlighter-rouge">AddressOfFunctions</code> and use the array index in the 
-<code class="highlighter-rouge">AddressOfNameOrdinals[index]</code>. This will give us an ordinal that we can use in 
-<code class="highlighter-rouge">AddressOfFunctions[ordinal]</code>. We can resume that with a pseudo code:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-<span class="k">while</span> <span class="p">(</span><span class="n">AddressOfNames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">searchedName</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">i</span><span class="o">++</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="k">return</span> <span class="n">AddressOfFunctions</span><span class="p">[</span> <span class="n">AddressOfNamesOrdinals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">];</span>
-</code></pre></div></div>
-
-<h2 id="code-1">Code</h2>
-
-<p>Like when we search the DLL, we will use the DJB hash (but with ASCII strings 
+<p>In consequence, if we want the function address based on its name, we will
+browse all the names in <code>AddressOfFunctions</code> and use the array index in the
+<code>AddressOfNameOrdinals[index]</code>. This will give us an ordinal that we can use in
+<code>AddressOfFunctions[ordinal]</code>. We can resume that with a pseudo code:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="p">(</span><span class="n">AddressOfNames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">searchedName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">i</span><span class="o">++</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="n">AddressOfFunctions</span><span class="p">[</span> <span class="n">AddressOfNamesOrdinals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">];</span>
+</span></span></code></pre></div><h2 id="code-1">Code</h2>
+<p>Like when we search the DLL, we will use the DJB hash (but with ASCII strings
 this time):</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">PIMAGE_DOS_HEADER</span> <span class="n">dosHeader</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_DOS_HEADER</span><span class="p">)</span><span class="n">dwModule</span><span class="p">;</span>
-    <span class="n">PIMAGE_NT_HEADERS</span> <span class="n">ntHeaders</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_NT_HEADERS</span><span class="p">)((</span><span class="n">DWORD</span><span class="p">)</span><span class="n">dosHeader</span> <span class="o">+</span> <span class="n">dosHeader</span><span class="o">-&gt;</span><span class="n">e_lfanew</span><span class="p">);</span>
-    <span class="n">PIMAGE_DATA_DIRECTORY</span> <span class="n">dataDirectory</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ntHeaders</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_EXPORT</span><span class="p">];</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">PIMAGE_EXPORT_DIRECTORY</span> <span class="n">exportDirectory</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span><span class="p">);</span>
-    <span class="n">PDWORD</span> <span class="n">ardwNames</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNames</span><span class="p">);</span>
-    <span class="n">PWORD</span> <span class="n">arwNameOrdinals</span> <span class="o">=</span> <span class="p">(</span><span class="n">PWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNameOrdinals</span><span class="p">);</span>
-    <span class="n">PDWORD</span> <span class="n">ardwAddressFunctions</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">);</span>
-    <span class="kt">char</span><span class="o">*</span> <span class="n">szName</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">WORD</span> <span class="n">wOrdinal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-    <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">NumberOfNames</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">szName</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwNames</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-
-        <span class="k">if</span> <span class="p">(</span><span class="n">djbHash</span><span class="p">(</span><span class="n">szName</span><span class="p">)</span> <span class="o">==</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">wOrdinal</span> <span class="o">=</span> <span class="n">arwNameOrdinals</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">PVOID</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwAddressFunctions</span><span class="p">[</span><span class="n">wOrdinal</span><span class="p">]);</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<h1 id="compilation">Compilation</h1>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_DOS_HEADER</span> <span class="n">dosHeader</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_DOS_HEADER</span><span class="p">)</span><span class="n">dwModule</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_NT_HEADERS</span> <span class="n">ntHeaders</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_NT_HEADERS</span><span class="p">)((</span><span class="n">DWORD</span><span class="p">)</span><span class="n">dosHeader</span> <span class="o">+</span> <span class="n">dosHeader</span><span class="o">-&gt;</span><span class="n">e_lfanew</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_DATA_DIRECTORY</span> <span class="n">dataDirectory</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ntHeaders</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_EXPORT</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_EXPORT_DIRECTORY</span> <span class="n">exportDirectory</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDWORD</span> <span class="n">ardwNames</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNames</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PWORD</span> <span class="n">arwNameOrdinals</span> <span class="o">=</span> <span class="p">(</span><span class="n">PWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNameOrdinals</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDWORD</span> <span class="n">ardwAddressFunctions</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span><span class="o">*</span> <span class="n">szName</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span> <span class="n">wOrdinal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">NumberOfNames</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">szName</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwNames</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">djbHash</span><span class="p">(</span><span class="n">szName</span><span class="p">)</span> <span class="o">==</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">wOrdinal</span> <span class="o">=</span> <span class="n">arwNameOrdinals</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">(</span><span class="n">PVOID</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwAddressFunctions</span><span class="p">[</span><span class="n">wOrdinal</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="compilation">Compilation</h1>
 <h2 id="final-code">Final code</h2>
-
 <p>We have talked about the important structures and the algorithm that we will use. Let’s see how to generate our shellcode.</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#pragma comment(linker, "/ENTRY:main")
-</span>
-<span class="cp">#include "makestr.h"
-#include "peb.h"
-</span>
-<span class="k">typedef</span> <span class="nf">HMODULE</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_LoadLibraryA</span><span class="p">)(</span><span class="n">LPCSTR</span> <span class="n">lpFileName</span><span class="p">);</span>
-<span class="k">typedef</span> <span class="nf">int</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_MessageBoxA</span><span class="p">)(</span><span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpText</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="n">UINT</span> <span class="n">uType</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">();</span>
-<span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">);</span>
-<span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">);</span>
-<span class="n">DWORD</span> <span class="nf">djbHash</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
-<span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="kt">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">hashKernel32</span> <span class="o">=</span> <span class="mh">0x6DDB9555</span><span class="p">;</span> <span class="c1">// djbHashW(L"KERNEL32.DLL");</span>
-    <span class="n">DWORD</span> <span class="n">hKernel32</span> <span class="o">=</span> <span class="n">getDllByName</span><span class="p">(</span><span class="n">hashKernel32</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">hKernel32</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">DWORD</span> <span class="n">hashLoadLibraryA</span> <span class="o">=</span> <span class="mh">0x5FBFF0FB</span><span class="p">;</span> <span class="c1">// djbHash("LoadLibraryA");</span>
-    <span class="n">_LoadLibraryA</span> <span class="n">xLoadLibraryA</span> <span class="o">=</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">hKernel32</span><span class="p">,</span> <span class="n">hashLoadLibraryA</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">xLoadLibraryA</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="kt">char</span> <span class="n">szUser32</span><span class="p">[]</span> <span class="o">=</span> <span class="n">MAKESTR</span><span class="p">(</span><span class="s">"user32.dll"</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
-    <span class="n">DWORD</span> <span class="n">hUser32</span> <span class="o">=</span> <span class="n">xLoadLibraryA</span><span class="p">(</span><span class="n">szUser32</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">hUser32</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">DWORD</span> <span class="n">hashMessageBoxA</span> <span class="o">=</span> <span class="mh">0x384F14B4</span><span class="p">;</span> <span class="c1">// djbHash("MessageBoxA");</span>
-    <span class="n">_MessageBoxA</span> <span class="n">xMessageBoxA</span> <span class="o">=</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">hUser32</span><span class="p">,</span> <span class="n">hashMessageBoxA</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">xMessageBoxA</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="kt">char</span> <span class="n">szMessage</span><span class="p">[]</span> <span class="o">=</span> <span class="n">MAKESTR</span><span class="p">(</span><span class="s">"Hello World"</span><span class="p">,</span> <span class="mi">11</span><span class="p">);</span>
-    <span class="kt">char</span> <span class="n">szTitle</span><span class="p">[]</span> <span class="o">=</span> <span class="n">MAKESTR</span><span class="p">(</span><span class="s">":)"</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
-    <span class="n">xMessageBoxA</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">szMessage</span><span class="p">,</span> <span class="n">szTitle</span><span class="p">,</span> <span class="n">MB_OK</span><span class="o">|</span><span class="n">MB_ICONINFORMATION</span><span class="p">);</span>
-
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kr">inline</span> <span class="n">PEB</span><span class="o">*</span> <span class="nf">getPeb</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kr">__asm</span> <span class="p">{</span>
-        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="n">fs</span><span class="o">:</span><span class="p">[</span><span class="mh">0x30</span><span class="p">];</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="n">DWORD</span> <span class="nf">djbHash</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hash</span> <span class="o">=</span> <span class="mi">5381</span><span class="p">;</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">hash</span> <span class="o">=</span> <span class="p">((</span><span class="n">hash</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">hash</span><span class="p">)</span> <span class="o">+</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="kt">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hash</span> <span class="o">=</span> <span class="mi">5381</span><span class="p">;</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">hash</span> <span class="o">=</span> <span class="p">((</span><span class="n">hash</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">hash</span><span class="p">)</span> <span class="o">+</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">PEB</span><span class="o">*</span> <span class="n">peb</span> <span class="o">=</span> <span class="n">getPeb</span><span class="p">();</span>
-    <span class="n">PPEB_LDR_DATA</span> <span class="n">Ldr</span> <span class="o">=</span> <span class="n">peb</span><span class="o">-&gt;</span><span class="n">Ldr</span><span class="p">;</span>
-    <span class="n">PLDR_DATA_TABLE_ENTRY</span> <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">Ldr</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
-
-    <span class="kt">wchar_t</span><span class="o">*</span> <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
-    <span class="kt">wchar_t</span><span class="o">*</span> <span class="n">pFirstDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
-
-    <span class="k">do</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">djbHashW</span><span class="p">(</span><span class="n">pBaseDllName</span><span class="p">)</span> <span class="o">==</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
-                <span class="k">return</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">;</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-
-        <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
-        <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
-    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="n">pFirstDllName</span><span class="p">);</span>
-
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">PIMAGE_DOS_HEADER</span> <span class="n">dosHeader</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_DOS_HEADER</span><span class="p">)</span><span class="n">dwModule</span><span class="p">;</span>
-    <span class="n">PIMAGE_NT_HEADERS</span> <span class="n">ntHeaders</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_NT_HEADERS</span><span class="p">)((</span><span class="n">DWORD</span><span class="p">)</span><span class="n">dosHeader</span> <span class="o">+</span> <span class="n">dosHeader</span><span class="o">-&gt;</span><span class="n">e_lfanew</span><span class="p">);</span>
-    <span class="n">PIMAGE_DATA_DIRECTORY</span> <span class="n">dataDirectory</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ntHeaders</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_EXPORT</span><span class="p">];</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="p">}</span>
-
-
-    <span class="n">PIMAGE_EXPORT_DIRECTORY</span> <span class="n">exportDirectory</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span><span class="p">);</span>
-    <span class="n">PDWORD</span> <span class="n">ardwNames</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNames</span><span class="p">);</span>
-    <span class="n">PWORD</span> <span class="n">arwNameOrdinals</span> <span class="o">=</span> <span class="p">(</span><span class="n">PWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNameOrdinals</span><span class="p">);</span>
-    <span class="n">PDWORD</span> <span class="n">ardwAddressFunctions</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">);</span>
-    <span class="kt">char</span><span class="o">*</span> <span class="n">szName</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">WORD</span> <span class="n">wOrdinal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-    <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">NumberOfNames</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">szName</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwNames</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-
-        <span class="k">if</span> <span class="p">(</span><span class="n">djbHash</span><span class="p">(</span><span class="n">szName</span><span class="p">)</span> <span class="o">==</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">wOrdinal</span> <span class="o">=</span> <span class="n">arwNameOrdinals</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">PVOID</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwAddressFunctions</span><span class="p">[</span><span class="n">wOrdinal</span><span class="p">]);</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>The order of the functions declarations is very important: it will define the 
-compilation order. In consequence, if we want to call the shellcode directly, 
-it’s a good idea to declare in first our main function because it will be our 
-entry point. I don’t know if it’s a specificity of Visual Studio or if all 
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#pragma comment(linker, &#34;/ENTRY:main&#34;)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;makestr.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;peb.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">HMODULE</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_LoadLibraryA</span><span class="p">)(</span><span class="n">LPCSTR</span> <span class="n">lpFileName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">int</span> <span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">_MessageBoxA</span><span class="p">)(</span><span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpText</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="n">UINT</span> <span class="n">uType</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">djbHash</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="n">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">hashKernel32</span> <span class="o">=</span> <span class="mh">0x6DDB9555</span><span class="p">;</span> <span class="c1">// djbHashW(L&#34;KERNEL32.DLL&#34;);
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DWORD</span> <span class="n">hKernel32</span> <span class="o">=</span> <span class="n">getDllByName</span><span class="p">(</span><span class="n">hashKernel32</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">hKernel32</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">hashLoadLibraryA</span> <span class="o">=</span> <span class="mh">0x5FBFF0FB</span><span class="p">;</span> <span class="c1">// djbHash(&#34;LoadLibraryA&#34;);
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">_LoadLibraryA</span> <span class="n">xLoadLibraryA</span> <span class="o">=</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">hKernel32</span><span class="p">,</span> <span class="n">hashLoadLibraryA</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">xLoadLibraryA</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span> <span class="n">szUser32</span><span class="p">[]</span> <span class="o">=</span> <span class="n">MAKESTR</span><span class="p">(</span><span class="s">&#34;user32.dll&#34;</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">hUser32</span> <span class="o">=</span> <span class="n">xLoadLibraryA</span><span class="p">(</span><span class="n">szUser32</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">hUser32</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">DWORD</span> <span class="n">hashMessageBoxA</span> <span class="o">=</span> <span class="mh">0x384F14B4</span><span class="p">;</span> <span class="c1">// djbHash(&#34;MessageBoxA&#34;);
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">_MessageBoxA</span> <span class="n">xMessageBoxA</span> <span class="o">=</span> <span class="n">getFunctionAddr</span><span class="p">(</span><span class="n">hUser32</span><span class="p">,</span> <span class="n">hashMessageBoxA</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">xMessageBoxA</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span> <span class="n">szMessage</span><span class="p">[]</span> <span class="o">=</span> <span class="n">MAKESTR</span><span class="p">(</span><span class="s">&#34;Hello World&#34;</span><span class="p">,</span> <span class="mi">11</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span> <span class="n">szTitle</span><span class="p">[]</span> <span class="o">=</span> <span class="n">MAKESTR</span><span class="p">(</span><span class="s">&#34;:)&#34;</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">xMessageBoxA</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">szMessage</span><span class="p">,</span> <span class="n">szTitle</span><span class="p">,</span> <span class="n">MB_OK</span><span class="o">|</span><span class="n">MB_ICONINFORMATION</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">inline</span> <span class="n">PEB</span><span class="o">*</span> <span class="nf">getPeb</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kr">__asm</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="nl">fs</span><span class="p">:[</span><span class="mh">0x30</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">djbHash</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hash</span> <span class="o">=</span> <span class="mi">5381</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hash</span> <span class="o">=</span> <span class="p">((</span><span class="n">hash</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">hash</span><span class="p">)</span> <span class="o">+</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">djbHashW</span><span class="p">(</span><span class="n">wchar_t</span><span class="o">*</span> <span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hash</span> <span class="o">=</span> <span class="mi">5381</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hash</span> <span class="o">=</span> <span class="p">((</span><span class="n">hash</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">+</span> <span class="n">hash</span><span class="p">)</span> <span class="o">+</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">hash</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">DWORD</span> <span class="nf">getDllByName</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PEB</span><span class="o">*</span> <span class="n">peb</span> <span class="o">=</span> <span class="n">getPeb</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PPEB_LDR_DATA</span> <span class="n">Ldr</span> <span class="o">=</span> <span class="n">peb</span><span class="o">-&gt;</span><span class="n">Ldr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PLDR_DATA_TABLE_ENTRY</span> <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">Ldr</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">wchar_t</span><span class="o">*</span> <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">wchar_t</span><span class="o">*</span> <span class="n">pFirstDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">djbHashW</span><span class="p">(</span><span class="n">pBaseDllName</span><span class="p">)</span> <span class="o">==</span> <span class="n">dllHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseAddress</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">moduleList</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">InLoadOrderModuleList</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pBaseDllName</span> <span class="o">=</span> <span class="n">moduleList</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">.</span><span class="n">Buffer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">pBaseDllName</span> <span class="o">!=</span> <span class="n">pFirstDllName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">PVOID</span> <span class="nf">getFunctionAddr</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">dwModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_DOS_HEADER</span> <span class="n">dosHeader</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_DOS_HEADER</span><span class="p">)</span><span class="n">dwModule</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_NT_HEADERS</span> <span class="n">ntHeaders</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_NT_HEADERS</span><span class="p">)((</span><span class="n">DWORD</span><span class="p">)</span><span class="n">dosHeader</span> <span class="o">+</span> <span class="n">dosHeader</span><span class="o">-&gt;</span><span class="n">e_lfanew</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_DATA_DIRECTORY</span> <span class="n">dataDirectory</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ntHeaders</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_EXPORT</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">PIMAGE_EXPORT_DIRECTORY</span> <span class="n">exportDirectory</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">dataDirectory</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDWORD</span> <span class="n">ardwNames</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNames</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PWORD</span> <span class="n">arwNameOrdinals</span> <span class="o">=</span> <span class="p">(</span><span class="n">PWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfNameOrdinals</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PDWORD</span> <span class="n">ardwAddressFunctions</span> <span class="o">=</span> <span class="p">(</span><span class="n">PDWORD</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span><span class="o">*</span> <span class="n">szName</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">WORD</span> <span class="n">wOrdinal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exportDirectory</span><span class="o">-&gt;</span><span class="n">NumberOfNames</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">szName</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwNames</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">djbHash</span><span class="p">(</span><span class="n">szName</span><span class="p">)</span> <span class="o">==</span> <span class="n">functionHash</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">wOrdinal</span> <span class="o">=</span> <span class="n">arwNameOrdinals</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">(</span><span class="n">PVOID</span><span class="p">)(</span><span class="n">dwModule</span> <span class="o">+</span> <span class="n">ardwAddressFunctions</span><span class="p">[</span><span class="n">wOrdinal</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The order of the functions declarations is very important: it will define the
+compilation order. In consequence, if we want to call the shellcode directly,
+it’s a good idea to declare in first our main function because it will be our
+entry point. I don’t know if it’s a specificity of Visual Studio or if all
 compilers do the same thing.</p>
-
-<p>The ASCII string use the define <code class="highlighter-rouge">MAKESTR</code> to declare the string like an array. 
+<p>The ASCII string use the define <code>MAKESTR</code> to declare the string like an array.
 It will force the string to be allocated like this:</p>
-
-<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">mov</span>  <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="p">],</span>   <span class="mh">72657375h</span>   <span class="c1">; user</span>
-<span class="nf">mov</span>  <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="mh">642E3233h</span>   <span class="c1">; 32.d</span>
-<span class="nf">mov</span>  <span class="kt">word</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span>  <span class="mh">6C6Ch</span>       <span class="c1">; ll</span>
-<span class="nf">mov</span>  <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mh">0Ah</span><span class="p">],</span> <span class="mi">0</span>                   <span class="c1">; '\x00'</span>
-</code></pre></div></div>
-
-<p>And the code is generated by a Python script because it’s really redundant:</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#pragma once
-</span>
-<span class="cp">#define MAKESTR(s, length) MAKESTR_##length(s)
-</span>
-<span class="cm">/*
-for i in range(1,51):
-    s = "#define MAKESTR_%d(s) {" % i
-    for j in range(i):
-        s += "s[%d]," % j
-    s += "0}"
-
-    print(s)
-*/</span>
-
-<span class="cp">#define MAKESTR_1(s) {s[0],0}
-#define MAKESTR_2(s) {s[0],s[1],0}
-#define MAKESTR_3(s) {s[0],s[1],s[2],0}
-#define MAKESTR_4(s) {s[0],s[1],s[2],s[3],0}
-#define MAKESTR_5(s) {s[0],s[1],s[2],s[3],s[4],0}
-#define MAKESTR_6(s) {s[0],s[1],s[2],s[3],s[4],s[5],0}
-#define MAKESTR_7(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],0}
-#define MAKESTR_8(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],0}
-#define MAKESTR_9(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],0}
-#define MAKESTR_10(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],0}
-#define MAKESTR_11(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],0}
-</span></code></pre></div></div>
-
-<h2 id="compilation-configuration">Compilation configuration</h2>
-
-<p>I use Visual Studio 2017, but I think it’s the same options in the others 
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-nasm" data-lang="nasm"><span class="line"><span class="cl"><span class="nf">mov</span>  <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="p">],</span>   <span class="mh">72657375h</span>   <span class="c1">; user</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span>  <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mi">4</span><span class="p">],</span> <span class="mh">642E3233h</span>   <span class="c1">; 32.d</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span>  <span class="kt">word</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mi">8</span><span class="p">],</span>  <span class="mh">6C6Ch</span>       <span class="c1">; ll</span>
+</span></span><span class="line"><span class="cl"><span class="nf">mov</span>  <span class="p">[</span><span class="nb">ebp</span><span class="o">+</span><span class="nv">szUser32</span><span class="o">+</span><span class="mh">0Ah</span><span class="p">],</span> <span class="mi">0</span>                   <span class="c1">; &#39;\x00&#39;</span>
+</span></span></code></pre></div><p>And the code is generated by a Python script because it’s really redundant:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#pragma once
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR(s, length) MAKESTR_##length(s)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cm">/*
+</span></span></span><span class="line"><span class="cl"><span class="cm">for i in range(1,51):
+</span></span></span><span class="line"><span class="cl"><span class="cm">    s = &#34;#define MAKESTR_%d(s) {&#34; % i
+</span></span></span><span class="line"><span class="cl"><span class="cm">    for j in range(i):
+</span></span></span><span class="line"><span class="cl"><span class="cm">        s += &#34;s[%d],&#34; % j
+</span></span></span><span class="line"><span class="cl"><span class="cm">    s += &#34;0}&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cm">
+</span></span></span><span class="line"><span class="cl"><span class="cm">    print(s)
+</span></span></span><span class="line"><span class="cl"><span class="cm">*/</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_1(s) {s[0],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_2(s) {s[0],s[1],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_3(s) {s[0],s[1],s[2],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_4(s) {s[0],s[1],s[2],s[3],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_5(s) {s[0],s[1],s[2],s[3],s[4],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_6(s) {s[0],s[1],s[2],s[3],s[4],s[5],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_7(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_8(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_9(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_10(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],0}
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MAKESTR_11(s) {s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],0}
+</span></span></span></code></pre></div><h2 id="compilation-configuration">Compilation configuration</h2>
+<p>I use Visual Studio 2017, but I think it’s the same options in the others
 versions:</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C / C++
+<pre tabindex="0"><code>C / C++
     Optimisation
         Reduce the size /O1
         Smaller code /Os
@@ -638,73 +565,58 @@ versions:</p>
 Linker
     Entries
         Ignore all the defaults libraries /NODEFAULTLIB
-</code></pre></div></div>
-
-<p>I get a <em>~3kB</em> file. To extract the shellcode from the file, a simple 
+</code></pre><p>I get a <em>~3kB</em> file. To extract the shellcode from the file, a simple
 disassembler will do the job.</p>
-
 <h2 id="shellcode">Shellcode</h2>
-
-<p>The shellcode has a size of 339 bytes but the biggest part is the functions 
-loading and the DLL research. In consequence, even if you have a bigger program, 
-the shellcode will not be a lot bigger. Our shellcode is very simple because it 
-only show a message box, but you can transform this in a downloader with few 
+<p>The shellcode has a size of 339 bytes but the biggest part is the functions
+loading and the DLL research. In consequence, even if you have a bigger program,
+the shellcode will not be a lot bigger. Our shellcode is very simple because it
+only show a message box, but you can transform this in a downloader with few
 efforts for example.</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
-</span>
-<span class="k">typedef</span> <span class="nf">void</span><span class="p">(</span><span class="kr">__stdcall</span><span class="o">*</span> <span class="n">_function</span><span class="p">)();</span>
-
-<span class="kt">char</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span> 
-    <span class="s">"</span><span class="se">\x55\x8B\xEC\x83\xEC\x1C\x53\x56\x57\x64\xA1\x30\x00\x00\x00\x8B</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x40\x0C\x8B\x50\x0C\x8B\x4A\x30\x8B\xD9\x85\xC9\x74\x29\x0F\xB7</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x01\x33\xFF\xBE\x05\x15\x00\x00\x66\x85\xC0\x74\x1A\x6B\xF6\x21</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x0F\xB7\xC0\x03\xF0\x47\x0F\xB7\x04\x79\x66\x85\xC0\x75\xEE\x81</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\xFE\x55\x95\xDB\x6D\x74\x17\x8B\x12\x8B\x4A\x30\x3B\xCB\x75\xCA</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x33\xC9\x5F\x5E\x5B\x85\xC9\x75\x0A\x33\xC0\x40\xEB\x74\x8B\x4A</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x18\xEB\xEF\xBA\xFB\xF0\xBF\x5F\xE8\x69\x00\x00\x00\x85\xC0\x74</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\xE8\x8D\x4D\xF0\xC7\x45\xF0\x75\x73\x65\x72\x51\xC7\x45\xF4\x33</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x32\x2E\x64\x66\xC7\x45\xF8\x6C\x6C\xC6\x45\xFA\x00\xFF\xD0\x85</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\xC0\x74\xC6\xBA\xB4\x14\x4F\x38\x8B\xC8\xE8\x37\x00\x00\x00\x85</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\xC0\x74\xB6\x6A\x40\x8D\x4D\xFC\xC7\x45\xE4\x48\x65\x6C\x6C\x51</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x8D\x4D\xE4\xC7\x45\xE8\x6F\x20\x57\x6F\x51\x6A\x00\xC7\x45\xEC</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x72\x6C\x64\x00\x66\xC7\x45\xFC\x3A\x29\xC6\x45\xFE\x00\xFF\xD0</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x33\xC0\x8B\xE5\x5D\xC3\x55\x8B\xEC\x83\xEC\x10\x8B\x41\x3C\x89</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x55\xFC\x8B\x44\x08\x78\x85\xC0\x74\x56\x8B\x54\x08\x1C\x53\x8B</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x5C\x08\x24\x03\xD1\x56\x8B\x74\x08\x20\x03\xD9\x8B\x44\x08\x18</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x03\xF1\x89\x55\xF0\x33\xD2\x89\x75\xF4\x89\x45\xF8\x57\x85\xC0</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x74\x29\x8B\x34\x96\xBF\x05\x15\x00\x00\x03\xF1\xEB\x09\x6B\xFF</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x21\x0F\xBE\xC0\x03\xF8\x46\x8A\x06\x84\xC0\x75\xF1\x3B\x7D\xFC</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x74\x12\x8B\x75\xF4\x42\x3B\x55\xF8\x72\xD7\x33\xC0\x5F\x5E\x5B</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\x8B\xE5\x5D\xC3\x0F\xB7\x04\x53\x8B\x55\xF0\x8B\x04\x82\x03\xC1</span><span class="s">"</span>
-    <span class="s">"</span><span class="se">\xEB\xEB</span><span class="s">"</span><span class="p">;</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kt">char</span><span class="o">*</span> <span class="n">payload</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">VirtualAlloc</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="n">MEM_COMMIT</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
-
-    <span class="n">_function</span> <span class="n">function</span> <span class="o">=</span> <span class="p">(</span><span class="n">_function</span><span class="p">)</span><span class="n">payload</span><span class="p">;</span>
-    <span class="n">function</span><span class="p">();</span>
-
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-        </div>
-      </div>
-    </div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;Windows.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">void</span><span class="p">(</span><span class="kr">__stdcall</span><span class="o">*</span> <span class="n">_function</span><span class="p">)();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">char</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span> 
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x55\x8B\xEC\x83\xEC\x1C\x53\x56\x57\x64\xA1\x30\x00\x00\x00\x8B</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x40\x0C\x8B\x50\x0C\x8B\x4A\x30\x8B\xD9\x85\xC9\x74\x29\x0F\xB7</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x01\x33\xFF\xBE\x05\x15\x00\x00\x66\x85\xC0\x74\x1A\x6B\xF6\x21</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x0F\xB7\xC0\x03\xF0\x47\x0F\xB7\x04\x79\x66\x85\xC0\x75\xEE\x81</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\xFE\x55\x95\xDB\x6D\x74\x17\x8B\x12\x8B\x4A\x30\x3B\xCB\x75\xCA</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x33\xC9\x5F\x5E\x5B\x85\xC9\x75\x0A\x33\xC0\x40\xEB\x74\x8B\x4A</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x18\xEB\xEF\xBA\xFB\xF0\xBF\x5F\xE8\x69\x00\x00\x00\x85\xC0\x74</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\xE8\x8D\x4D\xF0\xC7\x45\xF0\x75\x73\x65\x72\x51\xC7\x45\xF4\x33</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x32\x2E\x64\x66\xC7\x45\xF8\x6C\x6C\xC6\x45\xFA\x00\xFF\xD0\x85</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\xC0\x74\xC6\xBA\xB4\x14\x4F\x38\x8B\xC8\xE8\x37\x00\x00\x00\x85</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\xC0\x74\xB6\x6A\x40\x8D\x4D\xFC\xC7\x45\xE4\x48\x65\x6C\x6C\x51</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x8D\x4D\xE4\xC7\x45\xE8\x6F\x20\x57\x6F\x51\x6A\x00\xC7\x45\xEC</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x72\x6C\x64\x00\x66\xC7\x45\xFC\x3A\x29\xC6\x45\xFE\x00\xFF\xD0</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x33\xC0\x8B\xE5\x5D\xC3\x55\x8B\xEC\x83\xEC\x10\x8B\x41\x3C\x89</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x55\xFC\x8B\x44\x08\x78\x85\xC0\x74\x56\x8B\x54\x08\x1C\x53\x8B</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x5C\x08\x24\x03\xD1\x56\x8B\x74\x08\x20\x03\xD9\x8B\x44\x08\x18</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x03\xF1\x89\x55\xF0\x33\xD2\x89\x75\xF4\x89\x45\xF8\x57\x85\xC0</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x74\x29\x8B\x34\x96\xBF\x05\x15\x00\x00\x03\xF1\xEB\x09\x6B\xFF</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x21\x0F\xBE\xC0\x03\xF8\x46\x8A\x06\x84\xC0\x75\xF1\x3B\x7D\xFC</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x74\x12\x8B\x75\xF4\x42\x3B\x55\xF8\x72\xD7\x33\xC0\x5F\x5E\x5B</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\x8B\xE5\x5D\xC3\x0F\xB7\x04\x53\x8B\x55\xF0\x8B\x04\x82\x03\xC1</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&#34;</span><span class="se">\xEB\xEB</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">char</span><span class="o">*</span> <span class="n">payload</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">VirtualAlloc</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">),</span> <span class="n">MEM_COMMIT</span><span class="p">,</span> <span class="n">PAGE_EXECUTE_READWRITE</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">memcpy</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">_function</span> <span class="n">function</span> <span class="o">=</span> <span class="p">(</span><span class="n">_function</span><span class="p">)</span><span class="n">payload</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">function</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div>
   </article>
-</main>
+</section>
 
-
-    <footer id="footer" class="site-footer">
+    </div><footer id="footer" class="site-footer">
   <div class="copyright">
-    
-      <p>&copy; 2023 Dimitri Fourny</p>
-    
+      <p>&copy; 2024 Dimitri Fourny</p>
   </div>
-</footer>
-
-  </body>
-
+</footer></body>
 </html>

@@ -1,0 +1,9 @@
+baseURL = 'https://dimitrifourny.github.io/'
+languageCode = 'en-us'
+title = 'Dimitri Fourny'
+theme = 'df0'
+
+[markup]
+  [markup.highlight]
+    noClasses = false
+    lineNos = false

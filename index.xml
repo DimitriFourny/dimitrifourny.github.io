@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Dimitri Fourny</title>
+    <link>https://dimitrifourny.github.io/</link>
+    <description>Recent content on Dimitri Fourny</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 11 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://dimitrifourny.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Dumping the VEH in Windows 10</title>
+      <link>https://dimitrifourny.github.io/2020/06/11/dumping-veh-win10.html</link>
+      <pubDate>Thu, 11 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2020/06/11/dumping-veh-win10.html</guid>
+      <description>&lt;p&gt;The &lt;a href=&#34;https://docs.microsoft.com/fr-fr/windows/win32/debug/vectored-exception-handling&#34;&gt;Vectored Exception Handling&lt;/a&gt; (VEH) is a Windows mecanism to handle application exceptions.
+Even if you have an official Windows API to add and remove handlers via &lt;code&gt;AddVectoredExceptionHandler&lt;/code&gt; and
+&lt;code&gt;RemoveVectoredExceptionHandler&lt;/code&gt;, there is no official way to list all registered handlers in an application.
+Inside the source code of ReactOS you can find &lt;a href=&#34;https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c&#34;&gt;a source file&lt;/a&gt; with these API reimplemented and it can give us
+good information about how it works.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Writing Optimized Windows Shellcode</title>
+      <link>https://dimitrifourny.github.io/2017/04/28/optimized-shellcode.html</link>
+      <pubDate>Fri, 28 Apr 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2017/04/28/optimized-shellcode.html</guid>
+      <description>&lt;p&gt;You always have a lot of possibilities when you make a shellcode payload,
+especially on Windows. Do you need to write all your ASM manually or can you be
+helped by your compiler? Do I need to directly use syscall or to search the
+functions in memory? Because it’s not always simple to make it, I have made the
+decision to write an article about that.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Attacking AES and DSA</title>
+      <link>https://dimitrifourny.github.io/2017/03/08/attacking-aes-dsa.html</link>
+      <pubDate>Wed, 08 Mar 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2017/03/08/attacking-aes-dsa.html</guid>
+      <description>&lt;p&gt;Recently I was involved in a security conference called
+&lt;a href=&#34;https://secuday.github.io/&#34;&gt;SecuDay&lt;/a&gt; where I have presented
+&lt;a href=&#34;https://github.com/DimitriFourny/csgo-hack/blob/master/slides.pdf&#34;&gt;Attacking Games for Fun and Profit&lt;/a&gt;.
+At the end of the conference, we have been invited to resolve some challenges
+conceived by &lt;a href=&#34;http://www.lifl.fr/~bouillag/&#34;&gt;Charles Bouillaguet&lt;/a&gt;.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>VTable Hooking</title>
+      <link>https://dimitrifourny.github.io/2014/07/02/vtable-hooking.html</link>
+      <pubDate>Wed, 02 Jul 2014 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2014/07/02/vtable-hooking.html</guid>
+      <description>&lt;p&gt;Today, I will try to explain how we can make a hook on a C++ class method. This
+technique works on Linux and Windows, but my examples are compiled on Linux.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Driver write-what-where vulnerability</title>
+      <link>https://dimitrifourny.github.io/2014/03/16/driver-write-what-where.html</link>
+      <pubDate>Sun, 16 Mar 2014 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2014/03/16/driver-write-what-where.html</guid>
+      <description>&lt;p&gt;In this article, we will exploit a write-what-where vulnerability in Windows 7
+x64. To do that, we will use the last level of
+&lt;a href=&#34;https://twitter.com/0vercl0k&#34;&gt;0vercl0k&lt;/a&gt;: the level 3.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Driver dereferenced pointer in Windows 7 x64</title>
+      <link>https://dimitrifourny.github.io/2014/03/14/driver-dereferenced.html</link>
+      <pubDate>Fri, 14 Mar 2014 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2014/03/14/driver-dereferenced.html</guid>
+      <description>&lt;p&gt;In my previous article, I have talked about the exploitation of kernel buffer
+overflow. This time, I will not play with Windows XP x86 but with Windows 7 x64
+on the 0vercl0k’s level 2 driver.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Make a plugin for WinDbg</title>
+      <link>https://dimitrifourny.github.io/2014/02/28/plugin-windbg.html</link>
+      <pubDate>Fri, 28 Feb 2014 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2014/02/28/plugin-windbg.html</guid>
+      <description>&lt;p&gt;WinDbg is a powerfull Windows debugger, it can debug x86 application and x64
+application, in user-land or in kernel-land. Despite its useful commands, we
+would like to make some plugin to do a faster and better debugging session.
+Fortunately for us, it&amp;rsquo;s possible to write WinDbg plugins in C or C++ to add a
+lot of commands in our favorite debugger.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Kernel buffer overflow on Windows</title>
+      <link>https://dimitrifourny.github.io/2014/02/26/kernel-buffer-overflow.html</link>
+      <pubDate>Wed, 26 Feb 2014 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2014/02/26/kernel-buffer-overflow.html</guid>
+      <description>&lt;p&gt;The buffer overflow are cool in user-land but they can be more funny in
+kernel-land. This time, we will use a buffer overflow to make an escalade
+privilege to get the SYSTEM rights, so we will could make anything we want on
+the system. To train us, we don&amp;rsquo;t need to code a driver by ourself: 0vercl0k
+have done it for us! So we got the level 1 files and we start our XP VM.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>About me</title>
+      <link>https://dimitrifourny.github.io/about.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/about.html</guid>
+      <description>I’m Dimitri Fourny, a french security researcher who works in the field of vulnerability research and exploitation. On this website, I try to keep all my blog posts and my projects even if there is a gap between the first ones and the last ones. I hope that it will satisfy your curiosity.</description>
+    </item>
+    
+  </channel>
+</rss>
