@@ -1,9 +1,9 @@
+/* General rules */
+
 body {
   margin: auto;
   font-family: "Roboto", Arial, Helvetica, sans-serif;
   font-size: 1rem;
-  /* background-color: #ffffff; */
-  /* background: linear-gradient(180deg, #165A5A 400px, #ffffff 400px); */
   color: #3c3e3e;
 
   display: flex;
@@ -25,6 +25,9 @@ a {
 a:hover {
   color: #A1597D;
 }
+
+
+/* Header */
 
 #nav-header {
   display: flex;
@@ -69,6 +72,9 @@ a:hover {
   text-align: center;
 }
 
+
+/* Main content */
+
 #content {
   flex: 1;
 }
@@ -98,17 +104,20 @@ section p {
   font-size: 0.8rem;
 }
 
-
 .page-content h1 { font-size: 2em; }
 .page-content h2 { font-size: 1.5em; }
 .page-content h3 { font-size: 1.3em; }
 
 .page-content h1, h2, h3 {
   margin: 0px;
-  padding-top: 50px;
+  padding-top: 30px;
   padding-bottom: 10px;
   font-weight: bold;
   color: #165A5A;
+}
+
+.page-content h1 + h2, .page-content h2 + h3 {
+  padding-top: 0px;
 }
 
 .page-content h1 a, h2 a, h3 a {
@@ -147,16 +156,11 @@ pre code {
 
 .highlight {
   padding: 10px;
+  margin: 20px 0px;
 }
 
-footer {
-  max-width: 800px;
-  margin: auto;
-}
 
-.copyright {
-  float: right;
-}
+/* Specific pages */
 
 .http-error {
   text-align: center;
@@ -173,4 +177,16 @@ footer {
 
 .avatar {
   border-radius: 50% !important;
+}
+
+
+/* Footer */
+
+footer {
+  max-width: 800px;
+  margin: auto;
+}
+
+.copyright {
+  float: right;
 }
