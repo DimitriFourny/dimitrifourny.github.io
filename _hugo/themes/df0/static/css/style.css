@@ -2,7 +2,8 @@ body {
   margin: auto;
   font-family: "Roboto", Arial, Helvetica, sans-serif;
   font-size: 1rem;
-  background-color: #ffffff;
+  /* background-color: #ffffff; */
+  /* background: linear-gradient(180deg, #165A5A 400px, #ffffff 400px); */
   color: #3c3e3e;
 
   display: flex;
@@ -15,23 +16,14 @@ p {
 }
 
 a {
-  color: #3c3e3e;
+  color: #165A5A;
   text-decoration: underline;
+  text-decoration-color: #A1597D;
   font-weight: normal;
 }
 
 a:hover {
-  color: #000;
-}
-
-code {
-  font-family: "Source Code Pro", monospace;
-  background-color: #f6f8fa;
-}
-
-pre code {
-  font-size: 0.9em;
-  color: #383838;
+  color: #A1597D;
 }
 
 #nav-header {
@@ -40,6 +32,7 @@ pre code {
   justify-content: space-around;
   padding: 10px 10px;
   
+  background-color: #ffffff;
   border-bottom: solid 1px #e7e7e7;
 }
 
@@ -56,6 +49,11 @@ pre code {
   margin: 5px;
   padding: 5px;
   text-decoration: none;
+  color: #3c3e3e;
+}
+
+#nav-header nav a:hover {
+  color: #A1597D;
 }
 
 #site-title {
@@ -79,6 +77,7 @@ section {
   max-width: 800px;
   margin: 0px auto;
   padding: 0px 10px;
+  background-color: #ffffff;
 }
 
 section p {
@@ -86,7 +85,7 @@ section p {
 }
 
 .entry {
-  margin-top: 30px;
+  padding-top: 30px;
 }
 
 .entry-title {
@@ -105,23 +104,21 @@ section p {
 .page-content h3 { font-size: 1.3em; }
 
 .page-content h1, h2, h3 {
-  margin-top: 50px;
-  margin-bottom: 10px;
+  margin: 0px;
+  padding-top: 50px;
+  padding-bottom: 10px;
   font-weight: bold;
+  color: #165A5A;
 }
 
-.page-content h1, h2, h3 a {
+.page-content h1 a, h2 a, h3 a {
   font-weight: bold;
   text-decoration: none;
-
-  background: linear-gradient(140deg, #c595f9 12.09%, #F778BA 42.58%, #FF7B72 84.96%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #165A5A;
 }
 
-.page-content h1, h2, h3 a:hover {
-  color: transparent;
+.page-content h1 a:hover, h2 a:hover, h3 a:hover {
+  color: #A1597D;
 } 
 
 .page-content img {
@@ -130,9 +127,26 @@ section p {
   margin: 50px auto;
 }
 
+code {
+  font-family: "Source Code Pro", monospace;
+}
+
+pre {
+  margin: 0px;
+}
+
+pre code {
+  font-size: 0.9em;
+  color: #383838;
+}
+
 .highlight, .chroma, pre {
   overflow-x: auto;
-  background-color: #f6f8fa;
+  background-color: #f4f8f8;
+}
+
+.highlight {
+  padding: 10px;
 }
 
 footer {
@@ -151,7 +165,7 @@ footer {
 .http-error h1 {
   font-size: 10rem;
 
-  background: linear-gradient(140deg, #c595f9 12.09%, #F778BA 42.58%, #FF7B72 84.96%);
+  background: linear-gradient(120deg, #165a5a 33%, #a1597d 66%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
