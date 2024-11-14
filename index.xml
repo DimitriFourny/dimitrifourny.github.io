@@ -6,7 +6,20 @@
     <description>Recent content on Dimitri Fourny</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 11 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://dimitrifourny.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Nov 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://dimitrifourny.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Firefox Animation CVE-2024-9680</title>
+      <link>https://dimitrifourny.github.io/2024/11/14/firefox-animation-cve-2024-9680.html</link>
+      <pubDate>Thu, 14 Nov 2024 00:00:00 +0000</pubDate>
+      
+      <guid>https://dimitrifourny.github.io/2024/11/14/firefox-animation-cve-2024-9680.html</guid>
+      <description>&lt;p&gt;In this post, we delve into the analysis of a recent vulnerability CVE-2024-9680
+patched in Firefox 131.0.2. This bug, categorized as a use-after-free issue in
+animation timelines, was reportedly exploited in the wild. While publicly
+available information on the vulnerability is limited, our investigation
+provides a deep dive into how this issue could be triggered and exploited.&lt;/p&gt;</description>
+    </item>
+    
     <item>
       <title>Dumping the VEH in Windows 10</title>
       <link>https://dimitrifourny.github.io/2020/06/11/dumping-veh-win10.html</link>
