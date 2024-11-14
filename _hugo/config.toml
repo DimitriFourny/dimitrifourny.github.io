@@ -7,3 +7,6 @@ theme = 'df0'
   [markup.highlight]
     noClasses = false
     lineNos = false
+
+  [markup.goldmark.renderer]
+    unsafe= true
