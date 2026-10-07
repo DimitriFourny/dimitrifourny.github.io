@@ -474,7 +474,7 @@ If you want more information about the exceptions dispatcher, 0vercl0ck has made
 &lt;h2 id="the-chained-list"&gt;The chained list&lt;/h2&gt;
 &lt;p&gt;The VEH list is a circular linked list with the handlers functions pointers encoded:&lt;/p&gt;
 &lt;figure class="df-figure"&gt;
-&lt;a href="https://dimitrifourny.github.io/img/veh.svg" aria-label="Open VEH list diagram at full size"&gt;&lt;img alt="VECTORED_HANDLER_LIST points to linked handler entries. Each encoded handler is decoded using XOR, SHIFT, and the process cookie." src="https://dimitrifourny.github.io/img/veh.svg" width="1040" height="1032" loading="lazy" decoding="async"&gt;&lt;/a&gt;
+&lt;a href="https://dimitrifourny.github.io/img/veh.svg" aria-label="Open VEH list diagram at full size"&gt;&lt;img alt="VECTORED_HANDLER_LIST points to linked handler entries. Each encoded handler is decoded using XOR, SHIFT, and the process cookie." src="https://dimitrifourny.github.io/img/veh.svg" width="1040" height="1058" loading="lazy" decoding="async"&gt;&lt;/a&gt;
 &lt;figcaption&gt;The VEH linked list and encoded handler pointers. &lt;a href="https://dimitrifourny.github.io/img/veh.svg"&gt;View full size ↗&lt;/a&gt;&lt;/figcaption&gt;
 &lt;/figure&gt;
 &lt;p&gt;The exception handlers are encoded with a process cookie but you can decode them easily. If you are dumping the VEH
