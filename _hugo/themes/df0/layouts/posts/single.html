@@ -1,12 +1,14 @@
-{{ define "title" }}
-  {{ .Title }} &ndash; {{ .Site.Title }}
-{{ end }} 
-
 {{ define "main" }}
-<section>
-  <article class="page-content">
+<article class="df-article">
+  <header class="df-page-heading">
+    <a class="df-back-link" href="{{ "posts/" | relURL }}">← All writing</a>
     <h1>{{ .Title }}</h1>
-    {{ .Content }}
-  </article>
-</section>
+    <div class="df-article-meta"><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 2, 2006" }}</time><span>{{ .ReadingTime }} min read</span></div>
+  </header>
+  {{ if gt (len .Fragments.Identifiers) 2 }}
+  <details class="df-toc"><summary>On this page</summary>{{ .TableOfContents }}</details>
+  {{ end }}
+  <div class="df-prose">{{ .Content }}</div>
+  <footer class="df-article-footer"><a class="df-back-link" href="{{ "posts/" | relURL }}">← Back to the archive</a></footer>
+</article>
 {{ end }}

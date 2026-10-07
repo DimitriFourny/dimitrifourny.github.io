@@ -1,7 +1,22 @@
 baseURL = 'https://dimitrifourny.github.io/'
-languageCode = 'en-us'
+locale = 'en-US'
 title = 'Dimitri Fourny'
 theme = 'df0'
+enableRobotsTXT = true
+disableKinds = ['taxonomy', 'term']
+
+[params]
+  description = 'Dimitri Fourny — security researcher building tooling, infrastructure, and automation to scale security research with applied AI.'
+  kicker = 'Security researcher · Engineering & applied AI'
+  headline = 'Building the systems that scale security research.'
+  bio = 'I build tooling, infrastructure, and automation to scale security research. I use frontier AI models to amplify this work and lead technical projects across software, systems, and security.'
+  github = 'https://github.com/DimitriFourny'
+  linkedin = 'https://www.linkedin.com/in/dimitrifourny/'
+  mastodon = 'https://infosec.exchange/@dimitrifourny'
+
+[permalinks]
+  [permalinks.page]
+    posts = '/:year/:month/:day/:slug.html'
 
 [markup]
   [markup.highlight]
@@ -10,3 +25,7 @@ theme = 'df0'
 
   [markup.goldmark.renderer]
     unsafe= true
+
+# Preserve the attribution notices for the embedded SVG icons.
+[minify.tdewolff.html]
+  keepComments = true

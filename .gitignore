@@ -3,3 +3,8 @@
 .jekyll-metadata
 Gemfile.lock
 _site/
+
+# Hugo build output and caches stay off the source branch.
+_hugo/public/
+_hugo/resources/
+_hugo/.hugo_build.lock

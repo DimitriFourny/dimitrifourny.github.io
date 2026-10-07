@@ -1,0 +1,18 @@
+{{ define "main" }}
+<section class="df-archive" aria-labelledby="df-archive-title">
+  <div class="df-page-heading">
+    <p class="df-kicker">Research &amp; writing</p>
+    <h1 id="df-archive-title">{{ .Title }}<span class="df-period">.</span></h1>
+    <div class="df-page-intro">{{ .Content }}</div>
+    <a class="df-back-link" href="{{ "index.xml" | relURL }}">Subscribe via RSS ↗</a>
+  </div>
+  {{ range .Pages.ByDate.Reverse.GroupByDate "2006" }}
+  <section class="df-archive-year" aria-labelledby="year-{{ .Key }}">
+    <div class="df-section-heading"><h2 id="year-{{ .Key }}">{{ .Key }}</h2></div>
+    {{ range .Pages }}
+    <a class="df-writing-row" href="{{ .RelPermalink }}"><span>{{ .Title }}</span><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02" }}</time></a>
+    {{ end }}
+  </section>
+  {{ end }}
+</section>
+{{ end }}

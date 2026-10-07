@@ -1,5 +1,8 @@
 {{ define "main" }}
-<section class="http-error">
-  <h1>404</h1>
+<section class="df-page-heading df-error">
+  <p class="df-kicker">Page not found</p>
+  <h1>404<span class="df-period">.</span></h1>
+  <p class="df-page-intro">This page could not be found. You can explore my work or browse the writing archive.</p>
+  <div class="df-error-links"><a class="df-contact" href="{{ .Site.Home.RelPermalink }}">Back to home ↗</a><a class="df-back-link" href="{{ "posts/" | relURL }}">Browse the archive ↗</a></div>
 </section>
 {{ end }}

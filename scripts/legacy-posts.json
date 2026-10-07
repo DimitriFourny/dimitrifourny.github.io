@@ -1,0 +1,103 @@
+{
+  "/2014/02/26/kernel-buffer-overflow.html": {
+    "ids": [
+      "tools",
+      "debug-a-vm",
+      "exploitation",
+      "shellcode",
+      "final-exploit"
+    ],
+    "images": []
+  },
+  "/2014/02/28/plugin-windbg.html": {
+    "ids": [
+      "bases",
+      "functions",
+      "code"
+    ],
+    "images": []
+  },
+  "/2014/03/14/driver-dereferenced.html": {
+    "ids": [
+      "exploitation",
+      "shellcode",
+      "final-exploit"
+    ],
+    "images": []
+  },
+  "/2014/03/16/driver-write-what-where.html": {
+    "ids": [
+      "haldispatchtable-is-our-friend",
+      "final-exploit"
+    ],
+    "images": []
+  },
+  "/2014/07/02/vtable-hooking.html": {
+    "ids": [
+      "vtable-what-is-it",
+      "gdb-is-our-friend",
+      "dumping-the-vtable",
+      "hooking-the-vtable"
+    ],
+    "images": []
+  },
+  "/2017/03/08/attacking-aes-dsa.html": {
+    "ids": [
+      "advanced-encryption-standard",
+      "easy-level",
+      "medium-level",
+      "digital-signature-algorithm",
+      "hard-level"
+    ],
+    "images": []
+  },
+  "/2017/04/28/optimized-shellcode.html": {
+    "ids": [
+      "find-the-basics-dll",
+      "introduction",
+      "thread-environment-block",
+      "process-environment-block",
+      "djb-hash",
+      "code",
+      "function-address",
+      "introduction-1",
+      "portable-executable-headers",
+      "code-1",
+      "compilation",
+      "final-code",
+      "compilation-configuration",
+      "shellcode"
+    ],
+    "images": []
+  },
+  "/2020/06/11/dumping-veh-win10.html": {
+    "ids": [
+      "veh-use-case",
+      "exception-path",
+      "the-chained-list",
+      "finding-the-veh-list-offset",
+      "final-code"
+    ],
+    "images": [
+      "/img/CheatEngine.png",
+      "/img/exception_trace.png",
+      "/img/veh.png",
+      "/img/RtlDecodePointer.png",
+      "/img/RtlAddVectoredExceptionHandler.png",
+      "/img/LdrpVectorHandlerList.png"
+    ]
+  },
+  "/2024/11/14/firefox-animation-cve-2024-9680.html": {
+    "ids": [
+      "introduction",
+      "vulnerability",
+      "references-tracking",
+      "back-to-javascript",
+      "documenttimeline-uaf",
+      "animation-uaf",
+      "next-steps",
+      "conclusion"
+    ],
+    "images": []
+  }
+}

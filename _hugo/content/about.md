@@ -5,7 +5,13 @@ url: /about.html
 
 {{< avatar src=https://avatars.githubusercontent.com/u/17668518?v=4 >}}
 
-I’m Dimitri Fourny, a french security researcher who works in the field of
-vulnerability research and exploitation. On this website, I try to keep all my
-blog posts and my projects even if there is a gap between the first ones and the
-last ones. I hope that it will satisfy your curiosity.
+I’m Dimitri Fourny, a French security researcher. I build tooling, infrastructure,
+and automation to scale security research. I use frontier AI models to amplify
+this work and lead technical projects across software, systems, and security.
+
+My background is in vulnerability research and exploitation. My older articles
+are still available in the [writing archive](/posts/).
+
+You can get in touch on [LinkedIn](https://www.linkedin.com/in/dimitrifourny/),
+follow me on [Mastodon](https://infosec.exchange/@dimitrifourny), or explore my
+projects on [GitHub](https://github.com/DimitriFourny).

@@ -1,5 +1,9 @@
-<footer id="footer" class="site-footer">
-  <div class="copyright">
-      <p>&copy; 2024 Dimitri Fourny</p>
+<footer class="df-footer">
+  <span>{{ .Site.Title }}</span>
+  <div>
+    <a href="{{ .Site.Params.github }}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    <a href="{{ .Site.Params.linkedin }}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+    <a href="{{ .Site.Params.mastodon }}" target="_blank" rel="me noopener noreferrer">Mastodon ↗</a>
+    <a href="{{ "index.xml" | relURL }}">RSS</a>
   </div>
 </footer>

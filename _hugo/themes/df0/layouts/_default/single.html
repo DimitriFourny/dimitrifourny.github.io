@@ -1,8 +1,6 @@
 {{ define "main" }}
-<section>
-  <article class="page-content">
-    <h1>{{ .Title }}</h1>
-    {{ .Content }}
-  </article>
-</section>
+<article class="df-article">
+  <header class="df-page-heading"><p class="df-kicker">{{ .Site.Title }}</p><h1>{{ .Title }}<span class="df-period">.</span></h1></header>
+  <div class="df-prose">{{ .Content }}</div>
+</article>
 {{ end }}

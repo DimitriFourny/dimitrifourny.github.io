@@ -1,0 +1,10 @@
+<header class="df-header">
+  <a class="df-wordmark" href="{{ if .IsHome }}#df-intro{{ else }}{{ .Site.Home.RelPermalink }}{{ end }}" aria-label="Dimitri Fourny, home">DF<span>.</span></a>
+  <nav aria-label="Main navigation">
+    {{ if .IsHome }}
+    <a href="#df-work">Work</a><a href="#df-writing">Writing</a><a href="#df-about">About</a>
+    {{ else }}
+    <a href="{{ .Site.Home.RelPermalink }}">Home</a><a href="{{ "posts/" | relURL }}"{{ if eq .Section "posts" }} aria-current="{{ if .IsPage }}location{{ else }}page{{ end }}"{{ end }}>Writing</a><a href="{{ "about.html" | relURL }}"{{ if eq .RelPermalink ("about.html" | relURL) }} aria-current="page"{{ end }}>About</a>
+    {{ end }}
+  </nav>
+</header>

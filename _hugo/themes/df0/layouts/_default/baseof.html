@@ -1,49 +1,18 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="{{ .Site.Language.Locale }}">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-    <title>{{ block "title" . }}{{ .Title }}{{ end }}</title>
-  
-    <meta name="description" content="Personal website and computer security blog.">
-    <link rel="canonical" href="https://dimitrifourny.github.io/">
-  
-    <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
-    <link rel="stylesheet" href="{{ "css/syntax-github.css" | relURL }}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-  
-    <link rel="shortcut icon" href="/img/favicon.png">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Source+Code+Pro&display=swap" rel="stylesheet">
+    {{ partial "head.html" . }}
   </head>
   <body>
-    <header>
-      <div id="nav-header">
-        <div id="nav-logo">
-          <div id="site-title"><a href="/">Dimitri Fourny</a></div>
-          <div id="site-description">Personal website and computer security blog.</div>
-        </div>
-        
-        <nav>
-          <a href="/">Home</a>
-          <a href="/about.html">About</a>
-          <a href="https://github.com/DimitriFourny"><i class="fa-brands fa-github"></i></a>
-          <a href="https://infosec.exchange/@dimitrifourny"><i class="fa-brands fa-mastodon"></i></a>
-          <a href="https://twitter.com/DimitriFourny"><i class="fa-brands fa-twitter"></i></a>
-          <a href="https://www.linkedin.com/in/dimitrifourny/"><i class="fa-brands fa-linkedin"></i></a>
-        </nav>
-      </div>
-    </header>    
-
-    <div id="content">
-    {{- block "main" . }}{{- end }}
+    <div {{ if .IsHome }}id="df-homepage"{{ end }} class="df-site{{ if not .IsHome }} df-interior{{ end }}">
+      <a class="df-skip-link" href="#main-content">Skip to content</a>
+      {{ partial "header.html" . }}
+      <main id="main-content">
+        {{ block "main" . }}{{ end }}
+      </main>
+      {{ partial "footer.html" . }}
     </div>
-
-    {{- partial "footer.html" . -}}
+    {{ if .IsHome }}<script src="{{ "js/home.js" | relURL }}" defer></script>{{ end }}
+    {{ partial "icon-license.html" . }}
   </body>
 </html>
