@@ -153,6 +153,12 @@ body {margin:0;}
 .df-site .df-prose a:hover {color:var(--df-accent);}
 .df-prose strong {font-weight:600;}
 .df-prose img {display:block;max-width:100%;height:auto;margin:30px auto;border-radius:6px;background:#fff;}
+.df-prose .df-figure {margin:32px 0;border:1px solid var(--df-line);border-radius:12px;overflow:hidden;background:var(--df-terminal-paper);}
+.df-prose .df-figure img {margin:0 auto;border-radius:0;background:var(--df-terminal-paper);}
+.df-prose .df-figure figcaption {padding:12px 16px;border-top:1px solid var(--df-line);color:var(--df-muted);font-size:12px;line-height:1.6;}
+.df-prose .df-figure figcaption a {white-space:nowrap;}
+/* Theme the original screenshot pixels without changing code, addresses, or UI labels. */
+.df-prose .df-screenshot img {filter:invert(.94) sepia(.3) saturate(1.25) hue-rotate(85deg);}
 .df-prose .avatar {width:100px;border-radius:50%;margin:0 0 28px;}
 .df-prose code {font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;}
 .df-prose :not(pre) > code {color:var(--df-accent);}

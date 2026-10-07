@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1344" height="964" viewBox="0 0 1344 964" role="img" aria-labelledby="title description">
+<title id="title">DocumentTimeline use-after-free</title>
+<desc id="description">JavaScript clears both animation timeline references. The animations still have reference count 2, but AnimationTimeline reaches reference count 0. RemoveAnimation is reached through the freed timeline&#x27;s VTable.</desc>
+<defs>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#eff9f2;font-size:23px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}</style>
+<marker id="ref" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#68efb2"/></marker>
+<marker id="raw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#79c0ff"/></marker>
+<marker id="danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#ff9b8d"/></marker>
+</defs>
+<rect width="1344" height="964" fill="#0a1810"/>
+<ellipse cx="472" cy="88" rx="92" ry="64" fill="#163c2a" stroke="#68efb2" stroke-width="2"/>
+<text x="472" y="88" text-anchor="middle" dominant-baseline="middle" style="font-size:24px;fill:#eff9f2;font-weight:500">JavaScript</text>
+<text x="598" y="66" text-anchor="start" dominant-baseline="middle" class="mono" style="font-size:23px;fill:#eff9f2;font-weight:400">animation1.timeline = null;</text>
+<text x="598" y="104" text-anchor="start" dominant-baseline="middle" class="mono" style="font-size:23px;fill:#eff9f2;font-weight:400">animation2.timeline = null;</text>
+<path d="M 472 152 V 176 Q 472 196 452 196 H 362 Q 342 196 342 216 V 238" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 472 152 V 176 Q 472 196 492 196 H 982 Q 1002 196 1002 216 V 238" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 602 392 H 680 Q 702 392 702 370 V 294 Q 702 272 724 272 H 742" fill="none" stroke="#79c0ff" stroke-width="2" stroke-linejoin="round" marker-end="url(#raw)"/>
+<path d="M 412 822 H 62 Q 42 822 42 802 V 294 Q 42 272 64 272 H 82" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 412 882 H 42 Q 22 882 22 862 V 294 Q 22 272 44 272 H 82" fill="none" stroke="#79c0ff" stroke-width="2" stroke-linejoin="round" marker-end="url(#raw)"/>
+<path d="M 932 882 H 1300 Q 1322 882 1322 860 V 294 Q 1322 272 1300 272 H 1262" fill="none" stroke="#79c0ff" stroke-width="2" stroke-linejoin="round" marker-end="url(#raw)"/>
+<path d="M 932 762 H 974" fill="none" stroke="#ff9b8d" stroke-width="2" stroke-linejoin="round" marker-end="url(#danger)"/>
+<rect x="82" y="242" width="520" height="240" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="342.0" y="272.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:600">Animation 1</text>
+<path d="M 82 302 H 602" stroke="#518564" stroke-opacity=".6"/>
+<text x="342.0" y="332.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">refcnt = 2</text>
+<path d="M 82 362 H 602" stroke="#518564" stroke-opacity=".6"/>
+<text x="342.0" y="392.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">Animation* mNext</text>
+<path d="M 82 422 H 602" stroke="#518564" stroke-opacity=".6"/>
+<text x="342.0" y="452.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">RefPtr&lt;AnimationTimeline&gt; mTimeline</text>
+<rect x="742" y="242" width="520" height="240" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="1002.0" y="272.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:600">Animation 2</text>
+<path d="M 742 302 H 1262" stroke="#518564" stroke-opacity=".6"/>
+<text x="1002.0" y="332.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">refcnt = 2</text>
+<path d="M 742 362 H 1262" stroke="#518564" stroke-opacity=".6"/>
+<text x="1002.0" y="392.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">Animation* mNext</text>
+<path d="M 742 422 H 1262" stroke="#518564" stroke-opacity=".6"/>
+<text x="1002.0" y="452.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">RefPtr&lt;AnimationTimeline&gt; mTimeline</text>
+<rect x="412" y="612" width="520" height="300" rx="12" fill="#18281c" stroke="#88ae7a" stroke-width="2"/>
+<text x="672.0" y="642.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:600">AnimationTimeline</text>
+<path d="M 412 672 H 932" stroke="#88ae7a" stroke-opacity=".6"/>
+<rect x="413" y="673" width="518" height="58" fill="#3b2020"/>
+<text x="672.0" y="702.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#ff9b8d;font-weight:600">refcnt = 0</text>
+<path d="M 412 732 H 932" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="672.0" y="762.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">VTable</text>
+<path d="M 412 792 H 932" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="672.0" y="822.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">Array&lt;RefPtr&lt;Animation&gt;&gt; mAnimations</text>
+<path d="M 412 852 H 932" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="672.0" y="882.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">LinkedList&lt;Animation&gt; mAnimationOrder</text>
+<rect x="978" y="732" width="300" height="60" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="1128.0" y="762.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:600">RemoveAnimation</text>
+<path d="M 64 940 H 102" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round"/>
+<text x="118" y="940" text-anchor="start" dominant-baseline="middle" style="font-size:18px;fill:#b3c8bb;font-weight:400">Retained reference</text>
+<path d="M 395 940 H 433" fill="none" stroke="#79c0ff" stroke-width="2" stroke-linejoin="round"/>
+<text x="449" y="940" text-anchor="start" dominant-baseline="middle" style="font-size:18px;fill:#b3c8bb;font-weight:400">Raw pointer / linked list</text>
+<text x="965" y="940" text-anchor="middle" dominant-baseline="middle" style="font-size:18px;fill:#ff9b8d;font-weight:400">refcnt = 0: freed object</text>
+</svg>

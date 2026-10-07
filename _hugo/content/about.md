@@ -13,5 +13,5 @@ My background is in vulnerability research and exploitation. My older articles
 are still available in the [writing archive](/posts/).
 
 You can get in touch on [LinkedIn](https://www.linkedin.com/in/dimitrifourny/),
-follow me on [Mastodon](https://infosec.exchange/@dimitrifourny), or explore my
+follow me on [X](https://x.com/DimitriFourny), or explore my
 projects on [GitHub](https://github.com/DimitriFourny).

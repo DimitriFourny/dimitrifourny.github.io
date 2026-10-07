@@ -30,6 +30,12 @@ Articles keep their existing `url` front matter, including the `.html` suffix.
 Do not change these URLs when editing an old article. The historical URL and
 heading-anchor baseline is in `scripts/legacy-posts.json`.
 
+The Firefox and VEH schematics are standalone SVGs in `_hugo/static/img/`.
+Edit their labels, connections, and palette in `scripts/generate_diagrams.py`,
+then regenerate them with `python3 scripts/generate_diagrams.py`.
+Software screenshots retain their original pixels; the article CSS applies
+their dark treatment, and each caption links to the original image.
+
 ## First deployment and migration
 
 GitHub Pages publishes the generated files from `gh-pages`. Builds and pushes

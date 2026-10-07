@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="562" viewBox="0 0 1120 562" role="img" aria-labelledby="title description">
+<title id="title">Windows exception dispatch path</title>
+<desc id="description">KiDispatchException in ring0 passes the exception to KiUserExceptionDispatcher in ring3, then RtlDispatchException. The vectored exception path calls RtlCallVectoredHandlers and RtlpCallVectoredHandlers with RtlpVectoredExceptionList. The continue path calls RtlCallVectoredContinueHandlers and RtlpCallVectoredHandlers with RtlpVectoredContinueList.</desc>
+<defs>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#eff9f2;font-size:23px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}</style>
+<marker id="ref" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#68efb2"/></marker>
+<marker id="raw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#79c0ff"/></marker>
+<marker id="danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#ff9b8d"/></marker>
+</defs>
+<rect width="1120" height="562" fill="#0a1810"/>
+<path d="M 370 62 H 330 Q 308 62 308 84 V 150 Q 308 170 330 170 H 368" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 370 170 H 330 Q 308 170 308 192 V 246 Q 308 266 330 266 H 368" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 496 296 V 320 Q 496 342 474 342 H 310 Q 288 342 288 362 V 366" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 624 296 V 320 Q 624 342 646 342 H 810 Q 832 342 832 362 V 366" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 288 428 V 470" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 832 428 V 470" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<rect x="370" y="32" width="380" height="60" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="560.0" y="62.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">KiDispatchException</text>
+<path d="M 278 114 H 940" stroke="#294334" stroke-width="2"/>
+<text x="958" y="99" text-anchor="start" dominant-baseline="middle" class="mono" style="font-size:18px;fill:#b3c8bb;font-weight:400">ring0</text>
+<text x="958" y="136" text-anchor="start" dominant-baseline="middle" class="mono" style="font-size:18px;fill:#68efb2;font-weight:400">ring3</text>
+<rect x="370" y="140" width="380" height="60" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="560.0" y="170.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">KiUserExceptionDispatcher</text>
+<rect x="370" y="236" width="380" height="60" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="560.0" y="266.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400">RtlDispatchException</text>
+<rect x="48" y="370" width="480" height="60" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="288.0" y="400.0" text-anchor="middle" dominant-baseline="middle" style="font-size:22px;fill:#eff9f2;font-weight:400">RtlCallVectoredHandlers</text>
+<rect x="592" y="370" width="480" height="60" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="832.0" y="400.0" text-anchor="middle" dominant-baseline="middle" style="font-size:22px;fill:#eff9f2;font-weight:400">RtlCallVectoredContinueHandlers</text>
+<rect x="48" y="474" width="480" height="70" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="288.0" y="509.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400"></text>
+<text x="288" y="494" text-anchor="middle" dominant-baseline="middle" class="mono" style="font-size:20px;fill:#eff9f2;font-weight:400">RtlpCallVectoredHandlers(</text>
+<text x="288" y="522" text-anchor="middle" dominant-baseline="middle" class="mono" style="font-size:20px;fill:#eff9f2;font-weight:400">&amp;RtlpVectored<tspan font-weight="600">Exception</tspan>List)</text>
+<rect x="592" y="474" width="480" height="70" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="832.0" y="509.0" text-anchor="middle" dominant-baseline="middle" style="font-size:23px;fill:#eff9f2;font-weight:400"></text>
+<text x="832" y="494" text-anchor="middle" dominant-baseline="middle" class="mono" style="font-size:20px;fill:#eff9f2;font-weight:400">RtlpCallVectoredHandlers(</text>
+<text x="832" y="522" text-anchor="middle" dominant-baseline="middle" class="mono" style="font-size:20px;fill:#eff9f2;font-weight:400">&amp;RtlpVectored<tspan font-weight="600">Continue</tspan>List)</text>
+</svg>
