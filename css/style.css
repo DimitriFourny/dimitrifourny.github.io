@@ -155,7 +155,7 @@ body {margin:0;}
 .df-prose img {display:block;max-width:100%;height:auto;margin:30px auto;border-radius:6px;background:#fff;}
 .df-prose .avatar {width:100px;border-radius:50%;margin:0 0 28px;}
 .df-prose code {font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;}
-.df-prose :not(pre) > code {padding:3px 6px;border:1px solid var(--df-line);border-radius:4px;background:var(--df-panel);color:var(--df-secondary);}
+.df-prose :not(pre) > code {color:var(--df-accent);}
 .df-prose pre {max-width:100%;overflow-x:auto;margin:24px 0;padding:20px;border:1px solid var(--df-line);border-radius:10px;background:var(--df-terminal-paper);line-height:1.65;overflow-wrap:normal;tab-size:4;}
 .df-prose .highlight {min-width:0;}
 .df-prose .highlight pre {background:var(--df-terminal-paper);}
