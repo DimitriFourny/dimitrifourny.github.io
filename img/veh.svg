@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="1032" viewBox="0 0 1040 1032" role="img" aria-labelledby="title description">
+<title id="title">Vectored exception handler linked list and pointer decoding</title>
+<desc id="description">VECTORED_HANDLER_LIST contains mutexes and first/last pointers for the exception and continue lists. Each VECTORED_HANDLER_ENTRY contains next, previous, refs, and an encoded handler pointer. RtlDecodePointer / RtlEncodePointer use XOR and SHIFT with the process_cookie obtained by NtQueryInformationProcess to recover the handler.</desc>
+<defs>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#eff9f2;font-size:23px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}</style>
+<marker id="ref" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#68efb2"/></marker>
+<marker id="raw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#79c0ff"/></marker>
+<marker id="danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#ff9b8d"/></marker>
+</defs>
+<rect width="1040" height="1032" fill="#0a1810"/>
+<path d="M 192 158 H 36 Q 14 158 14 180 V 528 Q 14 550 36 550 H 44" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 848 206 H 1004 Q 1026 206 1026 228 V 528 Q 1026 550 1004 550 H 996" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 566 550 H 476" fill="none" stroke="#79c0ff" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 6" marker-end="url(#raw)"/>
+<path d="M 476 706 H 492 Q 514 706 514 728 V 784 Q 514 806 536 806 H 706" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 530 832 H 706" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<path d="M 880 810 H 950 Q 974 810 974 834 V 944 Q 974 966 952 966 H 846" fill="none" stroke="#68efb2" stroke-width="2" stroke-linejoin="round" marker-end="url(#ref)"/>
+<rect x="192" y="36" width="656" height="336" rx="12" fill="#18281c" stroke="#88ae7a" stroke-width="2"/>
+<text x="520.0" y="60.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:600">VECTORED_HANDLER_LIST</text>
+<path d="M 192 84 H 848" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="520.0" y="108.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:400">void* mutex_exception</text>
+<path d="M 192 132 H 848" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="520.0" y="156.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* first_exception_handler</text>
+<path d="M 192 180 H 848" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="520.0" y="204.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* last_exception_handler</text>
+<path d="M 192 228 H 848" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="520.0" y="252.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:400">void* mutex_continue</text>
+<path d="M 192 276 H 848" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="520.0" y="300.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* first_continue_handler</text>
+<path d="M 192 324 H 848" stroke="#88ae7a" stroke-opacity=".6"/>
+<text x="520.0" y="348.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* last_continue_handler</text>
+<rect x="44" y="474" width="432" height="260" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="260.0" y="500.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:600">VECTORED_HANDLER_ENTRY</text>
+<path d="M 44 526 H 476" stroke="#518564" stroke-opacity=".6"/>
+<text x="260.0" y="552.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* next</text>
+<path d="M 44 578 H 476" stroke="#518564" stroke-opacity=".6"/>
+<text x="260.0" y="604.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* previous</text>
+<path d="M 44 630 H 476" stroke="#518564" stroke-opacity=".6"/>
+<text x="260.0" y="656.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">ULONG refs</text>
+<path d="M 44 682 H 476" stroke="#518564" stroke-opacity=".6"/>
+<text x="260.0" y="708.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">PVECTORED_EXCEPTION_HANDLER handler</text>
+<rect x="566" y="474" width="432" height="260" rx="12" fill="#10281d" stroke="#518564" stroke-width="2"/>
+<text x="782.0" y="500.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:600">VECTORED_HANDLER_ENTRY</text>
+<path d="M 566 526 H 998" stroke="#518564" stroke-opacity=".6"/>
+<text x="782.0" y="552.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* next</text>
+<path d="M 566 578 H 998" stroke="#518564" stroke-opacity=".6"/>
+<text x="782.0" y="604.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">VECTORED_HANDLER_ENTRY* previous</text>
+<path d="M 566 630 H 998" stroke="#518564" stroke-opacity=".6"/>
+<text x="782.0" y="656.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">ULONG refs</text>
+<path d="M 566 682 H 998" stroke="#518564" stroke-opacity=".6"/>
+<text x="782.0" y="708.0" text-anchor="middle" dominant-baseline="middle" style="font-size:19px;fill:#eff9f2;font-weight:400">PVECTORED_EXCEPTION_HANDLER handler</text>
+<rect x="40" y="808" width="490" height="48" rx="12" fill="#18281c" stroke="#88ae7a" stroke-width="2"/>
+<text x="285.0" y="832.0" text-anchor="middle" dominant-baseline="middle" style="font-size:20px;fill:#eff9f2;font-weight:600">NtQueryInformationProcess() ⇒ process_cookie</text>
+<path d="M 708 748 L 878 810 L 708 872 Z" fill="#112b24" stroke="#79c0ff" stroke-width="2"/>
+<text x="779" y="810" text-anchor="middle" dominant-baseline="middle" style="font-size:18px;fill:#eff9f2;font-weight:400">XOR + SHIFT</text>
+<text x="792" y="899" text-anchor="middle" dominant-baseline="middle" style="font-size:18px;fill:#b3c8bb;font-weight:400">RtlDecodePointer</text>
+<text x="792" y="923" text-anchor="middle" dominant-baseline="middle" style="font-size:18px;fill:#b3c8bb;font-weight:400">RtlEncodePointer</text>
+<rect x="174" y="954" width="672" height="62" rx="12" fill="#102219" stroke="#294334" stroke-width="2"/>
+<text x="192" y="974" text-anchor="start" dominant-baseline="middle" class="mono" style="font-size:17px;fill:#eff9f2;font-weight:400">LONG NTAPI VEHHandler(PEXCEPTION_POINTERS ExceptionInfo) {</text>
+<text x="192" y="997" text-anchor="start" dominant-baseline="middle" class="mono" style="font-size:17px;fill:#68efb2;font-weight:400">  return EXCEPTION_CONTINUE_SEARCH; }</text>
+</svg>

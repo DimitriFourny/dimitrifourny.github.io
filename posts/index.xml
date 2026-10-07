@@ -80,7 +80,10 @@ animations in &lt;code&gt;mAnimations&lt;/code&gt;:&lt;/p&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Additionally, &lt;code&gt;mAnimationOrder&lt;/code&gt; maintains a linked list of all animations, where
 each animation has a raw pointer (next/prev) to the preceding and following
 animations. To summarize the situation:&lt;/p&gt;
-&lt;img alt="Without use-after-free" srcset="https://dimitrifourny.github.io/img/no_uaf.png 2x"&gt;
+&lt;figure class="df-figure"&gt;
+&lt;a href="https://dimitrifourny.github.io/img/no_uaf.svg" aria-label="Open animation reference diagram at full size"&gt;&lt;img alt="JavaScript retains both animations; each animation and the timeline have a reference count of 2." src="https://dimitrifourny.github.io/img/no_uaf.svg" width="1344" height="924" loading="lazy" decoding="async"&gt;&lt;/a&gt;
+&lt;figcaption&gt;Animation references and raw linked-list pointers. &lt;a href="https://dimitrifourny.github.io/img/no_uaf.svg"&gt;View full size ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;p&gt;The reference to an animation is removed when &lt;code&gt;RemoveAnimation&lt;/code&gt; is called:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;AnimationTimeline&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;RemoveAnimation&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Animation&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;aAnimation&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;static_cast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;LinkedListElement&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Animation&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;*&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;aAnimation&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;isInList&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -179,7 +182,10 @@ will be executed.&lt;/p&gt;
 &lt;h2 id="documenttimeline-uaf"&gt;DocumentTimeline UAF&lt;/h2&gt;
 &lt;p&gt;The simplest use-after-free vulnerability to trigger involves removing all
 timeline references in JavaScript during the &lt;code&gt;Tick()&lt;/code&gt;:&lt;/p&gt;
-&lt;img alt="DocumentTimeline use-after-free" srcset="https://dimitrifourny.github.io/img/uaf_timeline.png 2x"&gt;
+&lt;figure class="df-figure"&gt;
+&lt;a href="https://dimitrifourny.github.io/img/uaf_timeline.svg" aria-label="Open DocumentTimeline use-after-free diagram at full size"&gt;&lt;img alt="Clearing both timeline references frees AnimationTimeline; RemoveAnimation is called through its freed VTable." src="https://dimitrifourny.github.io/img/uaf_timeline.svg" width="1344" height="964" loading="lazy" decoding="async"&gt;&lt;/a&gt;
+&lt;figcaption&gt;DocumentTimeline use-after-free: the timeline reaches a reference count of zero. &lt;a href="https://dimitrifourny.github.io/img/uaf_timeline.svg"&gt;View full size ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;p&gt;At the end of the loop, &lt;code&gt;this.RemoveAnimation&lt;/code&gt; will be called:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AnimationTimeline&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Tick&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;TickState&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;aState&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//...
@@ -225,7 +231,10 @@ timeline references in JavaScript during the &lt;code&gt;Tick()&lt;/code&gt;:&lt
 exploitation at this point, so let&amp;rsquo;s explore the second use-after-free.&lt;/p&gt;
 &lt;h2 id="animation-uaf"&gt;Animation UAF&lt;/h2&gt;
 &lt;p&gt;This time, we will exploit the array of raw pointers in &lt;code&gt;animationsToRemove&lt;/code&gt;:&lt;/p&gt;
-&lt;img alt="Animation use-after-free" srcset="https://dimitrifourny.github.io/img/uaf_animation.png 2x"&gt;
+&lt;figure class="df-figure"&gt;
+&lt;a href="https://dimitrifourny.github.io/img/uaf_animation.svg" aria-label="Open Animation use-after-free diagram at full size"&gt;&lt;img alt="Animation 1 is freed, but animationsToRemove still holds its raw pointer. Animation 2 and the timeline remain alive." src="https://dimitrifourny.github.io/img/uaf_animation.svg" width="1344" height="1040" loading="lazy" decoding="async"&gt;&lt;/a&gt;
+&lt;figcaption&gt;Animation use-after-free: a raw pointer remains in animationsToRemove. &lt;a href="https://dimitrifourny.github.io/img/uaf_animation.svg"&gt;View full size ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AnimationTimeline&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Tick&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;TickState&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;aState&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//...
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;nsTArray&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Animation&lt;/span&gt;&lt;span class="o"&gt;*&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;animationsToRemove&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
@@ -444,7 +453,10 @@ how to do it on the internet, I sharing my solution with you.&lt;/p&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Another application is done by CheatEngine which injects a DLL and use the VEH to catch hardware breakpoints. In
 consequence it can debug an application while bypassing the basics debugger checks.&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://dimitrifourny.github.io/img/CheatEngine.png" alt="CheatEngine" title="CheatEngine"&gt;&lt;/p&gt;
+&lt;figure class="df-figure df-screenshot"&gt;
+&lt;img alt="Cheat Engine debugger options with Use VEH Debugger selected." src="https://dimitrifourny.github.io/img/CheatEngine.png" width="620" height="550" loading="lazy" decoding="async"&gt;
+&lt;figcaption&gt;Cheat Engine's VEH debugger setting. &lt;a href="https://dimitrifourny.github.io/img/CheatEngine.png"&gt;View original screenshot ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;h2 id="exception-path"&gt;Exception path&lt;/h2&gt;
 &lt;p&gt;When a CPU exception occurs, the kernel will call the function &lt;a href="https://github.com/reactos/reactos/blob/b20f81512688f26c91a131b81f41fc8cf9506f04/ntoskrnl/ke/i386/exp.c#L1026"&gt;&lt;code&gt;KiDispatchException&lt;/code&gt;&lt;/a&gt; (ring0) which will follow this
 exception to the ntdll method &lt;a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/dll/ntdll/dispatch/dispatch.c#L26"&gt;&lt;code&gt;KiUserExceptionDispatcher&lt;/code&gt;&lt;/a&gt; (ring3). This function will call
@@ -452,20 +464,29 @@ exception to the ntdll method &lt;a href="https://github.com/reactos/reactos/blo
 &lt;a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c#L40"&gt;&lt;code&gt;RtlCallVectoredHandlers&lt;/code&gt;&lt;/a&gt; and calling each handlers until one return &lt;code&gt;EXCEPTION_CONTINUE_EXECUTION&lt;/code&gt;. If a handler
 returned &lt;code&gt;EXCEPTION_CONTINUE_EXECUTION&lt;/code&gt;, the function &lt;a href="https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/sdk/lib/rtl/vectoreh.c#L284"&gt;&lt;code&gt;RtlCallVectoredContinueHandlers&lt;/code&gt;&lt;/a&gt; is called and it will
 call all the continue exception handlers.&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://dimitrifourny.github.io/img/exception_trace.png" alt="Exception trace" title="Exception trace"&gt;&lt;/p&gt;
+&lt;figure class="df-figure"&gt;
+&lt;a href="https://dimitrifourny.github.io/img/exception_trace.svg" aria-label="Open exception dispatch diagram at full size"&gt;&lt;img alt="The exception path from KiDispatchException in ring0 through KiUserExceptionDispatcher and RtlDispatchException in ring3 to vectored exception and continue handlers." src="https://dimitrifourny.github.io/img/exception_trace.svg" width="1120" height="562" loading="lazy" decoding="async"&gt;&lt;/a&gt;
+&lt;figcaption&gt;Windows exception dispatch and the two vectored-handler paths. &lt;a href="https://dimitrifourny.github.io/img/exception_trace.svg"&gt;View full size ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;p&gt;The VEH handlers are important because the &lt;a href="https://docs.microsoft.com/en-us/cpp/cpp/structured-exception-handling-c-cpp?view=vs-2019"&gt;SEH&lt;/a&gt; handlers are called only if no VEH handler has caught the
 exception, so it could be the best method to catch all exceptions if you don&amp;rsquo;t want to hook &lt;code&gt;KiUserExceptionDispatcher&lt;/code&gt;.
 If you want more information about the exceptions dispatcher, 0vercl0ck has made a &lt;a href="https://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/"&gt;good paper about it&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="the-chained-list"&gt;The chained list&lt;/h2&gt;
 &lt;p&gt;The VEH list is a circular linked list with the handlers functions pointers encoded:&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://dimitrifourny.github.io/img/veh.png" alt="VEH" title="VEH"&gt;&lt;/p&gt;
+&lt;figure class="df-figure"&gt;
+&lt;a href="https://dimitrifourny.github.io/img/veh.svg" aria-label="Open VEH list diagram at full size"&gt;&lt;img alt="VECTORED_HANDLER_LIST points to linked handler entries. Each encoded handler is decoded using XOR, SHIFT, and the process cookie." src="https://dimitrifourny.github.io/img/veh.svg" width="1040" height="1032" loading="lazy" decoding="async"&gt;&lt;/a&gt;
+&lt;figcaption&gt;The VEH linked list and encoded handler pointers. &lt;a href="https://dimitrifourny.github.io/img/veh.svg"&gt;View full size ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;p&gt;The exception handlers are encoded with a process cookie but you can decode them easily. If you are dumping the VEH
 which is inside your own process, you can just use &lt;a href="https://docs.microsoft.com/en-us/previous-versions/bb432242(v%3Dvs.85)"&gt;&lt;code&gt;DecodePointer&lt;/code&gt;&lt;/a&gt; and you don&amp;rsquo;t have to care about the process
 cookie. If it&amp;rsquo;s a remote process you can use &lt;a href="https://docs.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)"&gt;&lt;code&gt;DecodeRemotePointer&lt;/code&gt;&lt;/a&gt; but you will need to create your own function
 pointer with &lt;code&gt;GetModuleHandle(&amp;quot;kernel32.dll&amp;quot;)&lt;/code&gt; and &lt;code&gt;GetProcAddress(&amp;quot;DecodeRemotePointer&amp;quot;)&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;The solution that I have chosen is to imitate &lt;code&gt;DecodePointer&lt;/code&gt; by getting the process cookie with
 &lt;code&gt;ZwQueryProcessInformation&lt;/code&gt; and applying the same algorithm:&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://dimitrifourny.github.io/img/RtlDecodePointer.png" alt="RtlDecodePointer" title="RtlDecodePointer"&gt;&lt;/p&gt;
+&lt;figure class="df-figure df-screenshot"&gt;
+&lt;img alt="RtlDecodePointer disassembly showing process-cookie retrieval and pointer decoding with rotation and XOR." src="https://dimitrifourny.github.io/img/RtlDecodePointer.png" width="645" height="1252" loading="lazy" decoding="async"&gt;
+&lt;figcaption&gt;RtlDecodePointer disassembly. &lt;a href="https://dimitrifourny.github.io/img/RtlDecodePointer.png"&gt;View original screenshot ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;DWORD&lt;/span&gt; &lt;span class="n"&gt;Process&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;GetProcessCookie&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;DWORD&lt;/span&gt; &lt;span class="n"&gt;cookie&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;DWORD&lt;/span&gt; &lt;span class="n"&gt;return_length&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
@@ -498,7 +519,10 @@ pointer with &lt;code&gt;GetModuleHandle(&amp;quot;kernel32.dll&amp;quot;)&lt;/c
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="finding-the-veh-list-offset"&gt;Finding the VEH list offset&lt;/h2&gt;
 &lt;p&gt;Even if you can find the symbol &lt;code&gt;LdrpVectorHandlerList&lt;/code&gt; in the ntdll pdb, there is no official API to get it easily.
 My solution is to begin by getting a pointer to &lt;code&gt;RtlpAddVectoredHandler&lt;/code&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://dimitrifourny.github.io/img/RtlAddVectoredExceptionHandler.png" alt="RtlAddVectoredExceptionHandler" title="RtlAddVectoredExceptionHandler"&gt;&lt;/p&gt;
+&lt;figure class="df-figure df-screenshot"&gt;
+&lt;img alt="RtlAddVectoredExceptionHandler disassembly showing the call to RtlpAddVectoredHandler." src="https://dimitrifourny.github.io/img/RtlAddVectoredExceptionHandler.png" width="485" height="477" loading="lazy" decoding="async"&gt;
+&lt;figcaption&gt;RtlAddVectoredExceptionHandler calls RtlpAddVectoredHandler. &lt;a href="https://dimitrifourny.github.io/img/RtlAddVectoredExceptionHandler.png"&gt;View original screenshot ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;p&gt;You can disassemble the method &lt;code&gt;RtlAddVectoredExceptionHandler&lt;/code&gt; until you find the instruction &lt;code&gt;call&lt;/code&gt; or you can
 just pretend that its address is always at &lt;code&gt;0x16&lt;/code&gt; bytes after it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;BYTE&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;add_exception_handler&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;reinterpret_cast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;BYTE&lt;/span&gt;&lt;span class="o"&gt;*&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
@@ -507,7 +531,10 @@ just pretend that its address is always at &lt;code&gt;0x16&lt;/code&gt; bytes a
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;add_exception_handler&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mh"&gt;0x16&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// RtlpAddVectoredHandler
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;And from here the same byte offset method could work, but a simple signature system could prevent us to be broken after
 a small Windows update:&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://dimitrifourny.github.io/img/LdrpVectorHandlerList.png" alt="LdrpVectorHandlerList" title="LdrpVectorHandlerList"&gt;&lt;/p&gt;
+&lt;figure class="df-figure df-screenshot"&gt;
+&lt;img alt="Disassembly with the LdrpVectorHandlerList address highlighted in the add ebx instruction." src="https://dimitrifourny.github.io/img/LdrpVectorHandlerList.png" width="541" height="377" loading="lazy" decoding="async"&gt;
+&lt;figcaption&gt;The instruction referencing LdrpVectorHandlerList. &lt;a href="https://dimitrifourny.github.io/img/LdrpVectorHandlerList.png"&gt;View original screenshot ↗&lt;/a&gt;&lt;/figcaption&gt;
+&lt;/figure&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;BYTE&lt;/span&gt; &lt;span class="n"&gt;pattern_list&lt;/span&gt;&lt;span class="p"&gt;[]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="mh"&gt;0x89&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x46&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x0c&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;// mov [esi+0Ch], eax
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="mh"&gt;0x81&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0xc3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="c1"&gt;// add ebx, offset LdrpVectorHandlerList

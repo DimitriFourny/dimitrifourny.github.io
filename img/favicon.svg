@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Dimitri Fourny</title>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="#07110c" stroke="#294334" stroke-width="2"/>
+  <g fill="#eff9f2">
+    <path d="M8 17h12c11 0 17 6 17 15s-6 15-17 15H8v-2h4V19H8zm10 2v26h2c8 0 11-5 11-13s-3-13-11-13z"/>
+    <path d="M33 17h22v8h-2l-2-6H42v12h7l1-4h2v11h-2l-1-5h-7v12h5v2H33v-2h3V19h-3z"/>
+  </g>
+  <circle cx="55" cy="46" r="3" fill="#68efb2"/>
+</svg>
