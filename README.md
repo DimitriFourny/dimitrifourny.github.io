@@ -1,8 +1,8 @@
 # Dimitri Fourny — personal website
 
-Hugo sources live in `_hugo/` on `main`. The generated website is published
+Hugo sources live in `_hugo/` on `master`. The generated website is published
 from the root of `gh-pages`. HTML, copied assets, and Hugo caches do not belong
-on `main`.
+on `master`.
 
 ## Local development
 
@@ -65,7 +65,7 @@ The output includes `.nojekyll` so GitHub serves Hugo's output directly.
 
 For this migration, a `gh-pages` branch with the validated build has also been
 prepared locally. Publish it first, then change the Pages source before pushing
-the cleanup on `main`:
+the cleanup on `master`:
 
 ```sh
 git push origin gh-pages
@@ -73,17 +73,17 @@ git push origin gh-pages
 
 In **Settings → Pages**, select **Deploy from a branch**, then **gh-pages** and
 **/(root)**. Save and wait for the Pages deployment to finish. This keeps the
-site available while generated files are removed from `main`.
+site available while generated files are removed from `master`.
 
-After switching the Pages source, push the source changes to `main`:
+After switching the Pages source, push the source changes to `master`:
 
 ```sh
-git push -u origin main
+git push origin master
 ```
 
 ## Publishing updates
 
-Commit source changes on `main`, then build and check the site with the
+Commit source changes on `master`, then build and check the site with the
 production commands above. Copy the generated files into a temporary checkout
 of `gh-pages`, preserving its Git metadata:
 
@@ -97,11 +97,11 @@ git -C "$pages_checkout" add --all
 git -C "$pages_checkout" commit -m "Publish website"
 git -C "$pages_checkout" push origin gh-pages
 git worktree remove "$pages_checkout"
-git push origin main
+git push origin master
 ```
 
 Run these commands in order and stop if any command fails. GitHub publishes
-the updated branch after the push. Changes pushed only to `main` do not
+the updated branch after the push. Changes pushed only to `master` do not
 update the published site. `gh-pages` should contain generated files only.
 
 See [GitHub's publishing-source documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
