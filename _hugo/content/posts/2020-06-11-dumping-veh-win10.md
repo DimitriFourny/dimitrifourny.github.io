@@ -2,6 +2,9 @@
 date: 2020-06-11
 title: "Dumping the VEH in Windows 10"
 url: /2020/06/11/dumping-veh-win10.html
+featured: true
+topic: "Windows internals"
+description: "Finding and decoding registered exception handlers when the Windows API won’t list them for you."
 ---
 
 The [Vectored Exception Handling][1] (VEH) is a Windows mecanism to handle application exceptions.

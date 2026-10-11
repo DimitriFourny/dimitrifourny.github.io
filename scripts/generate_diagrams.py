@@ -6,13 +6,14 @@ from pathlib import Path
 
 
 IMAGES = Path(__file__).resolve().parents[1] / "_hugo/static/img"
-PAPER = "#0a1810"
-INK = "#eff9f2"
-MUTED = "#b3c8bb"
-LINE = "#294334"
-ACCENT = "#68efb2"
-RAW = "#79c0ff"
-DANGER = "#ff9b8d"
+PAPER = "#111210"
+INK = "#eeeae2"
+MUTED = "#a5a59c"
+LINE = "#45473f"
+PANEL = "#191b17"
+ACCENT = "#e7a578"
+RAW = "#b7b6a4"
+DANGER = "#d59184"
 
 
 class Diagram:
@@ -22,7 +23,8 @@ class Diagram:
             f'<title id="title">{escape(title)}</title>',
             f'<desc id="description">{escape(description)}</desc>',
             '<defs>',
-            '<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;'
+            f'<style>svg{{background:{PAPER}}}'
+            'text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;'
             f'fill:{INK};font-size:23px}}'
             '.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}'
             '</style>',
@@ -52,7 +54,7 @@ class Diagram:
 
     def path(self, data, kind="ref", *, dashed=False, arrow=True):
         color = {"ref": ACCENT, "raw": RAW, "danger": DANGER}[kind]
-        dash = ' stroke-dasharray="8 6"' if dashed else ''
+        dash = ' stroke-dasharray="8 6"' if dashed or kind == "raw" else ''
         marker = f' marker-end="url(#{kind})"' if arrow else ''
         self.items.append(
             f'<path d="{data}" fill="none" stroke="{color}" stroke-width="2"'
@@ -60,32 +62,33 @@ class Diagram:
         )
 
     def box(self, x, y, width, rows, *, row_height=60, timeline=False, danger_row=None, size=23,
-            title_weight=600):
+            title_weight=500):
         height = row_height * len(rows)
-        fill, stroke = ("#18281c", "#88ae7a") if timeline else ("#10281d", "#518564")
+        fill, stroke = ("#211e19", "#947154") if timeline else (PANEL, LINE)
         self.items.append(
-            f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="12" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="2"/>'
+            f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="4" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="1.5"/>'
         )
         for index, label in enumerate(rows):
             if index:
                 self.items.append(
                     f'<path d="M {x} {y + index * row_height} H {x + width}" '
-                    f'stroke="{stroke}" stroke-opacity=".6"/>'
+                    f'stroke="{stroke}" stroke-opacity=".6" stroke-width="1"/>'
                 )
             if index == danger_row:
                 self.items.append(
                     f'<rect x="{x + 1}" y="{y + index * row_height + 1}" '
-                    f'width="{width - 2}" height="{row_height - 2}" fill="#3b2020"/>'
+                    f'width="{width - 2}" height="{row_height - 2}" fill="#332320"/>'
                 )
             self.text(x + width / 2, y + (index + .5) * row_height, label,
-                      size=size, weight=600 if index == danger_row else title_weight if index == 0 else 400,
-                      color=DANGER if index == danger_row else INK)
+                      size=size if index == 0 else size * .92,
+                      weight=600 if index == danger_row else title_weight if index == 0 else 400,
+                      color=DANGER if index == danger_row else INK, mono=index > 0)
 
     def js(self, x, y):
         self.items.append(
             f'<ellipse cx="{x}" cy="{y}" rx="92" ry="64" '
-            f'fill="#163c2a" stroke="{ACCENT}" stroke-width="2"/>'
+            f'fill="{PANEL}" stroke="{ACCENT}" stroke-width="1.5"/>'
         )
         self.text(x, y, "JavaScript", size=24, weight=500)
 
@@ -250,12 +253,12 @@ def veh_list():
     d.box(40, 808, 490, ["NtQueryInformationProcess() ⇒ process_cookie"], row_height=48, size=20,
           timeline=True)
     d.items.append(f'<path d="M 708 748 L 878 810 L 708 872 Z" '
-                   f'fill="#112b24" stroke="{RAW}" stroke-width="2"/>')
+                   f'fill="{PANEL}" stroke="{RAW}" stroke-width="1.5"/>')
     d.text(779, 810, "XOR + SHIFT", size=18)
     d.text(792, 899, "RtlDecodePointer", size=18, color=MUTED)
     d.text(792, 923, "RtlEncodePointer", size=18, color=MUTED)
-    d.items.append(f'<rect x="174" y="954" width="672" height="88" rx="12" '
-                   f'fill="#102219" stroke="{LINE}" stroke-width="2"/>')
+    d.items.append(f'<rect x="174" y="954" width="672" height="88" rx="4" '
+                   f'fill="{PANEL}" stroke="{LINE}" stroke-width="1.5"/>')
     d.text(192, 974, "LONG NTAPI VEHHandler(PEXCEPTION_POINTERS ExceptionInfo) {", size=17,
            anchor="start", mono=True)
     d.text(212, 999, "return EXCEPTION_CONTINUE_SEARCH;", size=17, color=ACCENT,

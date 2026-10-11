@@ -2,6 +2,9 @@
 date: 2017-04-28
 title: "Writing Optimized Windows Shellcode"
 url: /2017/04/28/optimized-shellcode.html
+featured: true
+topic: "Low-level engineering"
+description: "Building compact Windows payloads in C, from locating DLLs in memory to resolving the functions you need."
 ---
 
 You always have a lot of possibilities when you make a shellcode payload, 

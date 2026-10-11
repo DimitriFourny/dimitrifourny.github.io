@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#07110c">
+<meta name="theme-color" content="#111210">
 <title>{{ if .IsHome }}{{ .Site.Title }} — Security researcher{{ else }}{{ .Title }} — {{ .Site.Title }}{{ end }}</title>
 <meta name="description" content="{{ $description }}">
 <link rel="canonical" href="{{ .Permalink }}">
@@ -15,8 +15,12 @@
 <meta property="og:site_name" content="{{ .Site.Title }}">
 <meta property="og:type" content="{{ if and .IsPage (eq .Section "posts") }}article{{ else }}website{{ end }}">
 {{ if and .IsPage (eq .Section "posts") }}<meta property="article:published_time" content="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
-<link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
-{{ if and .IsPage (eq .Section "posts") }}<link rel="stylesheet" href="{{ "css/syntax-github.css" | relURL }}">{{ end }}
+{{ $style := resources.Get "css/style.css" | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $style.RelPermalink }}" integrity="{{ $style.Data.Integrity }}">
+{{ if and .IsPage (eq .Section "posts") }}
+{{ $syntax := resources.Get "css/syntax-github.css" | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $syntax.RelPermalink }}" integrity="{{ $syntax.Data.Integrity }}">
+{{ end }}
 <link rel="icon" href="{{ "img/favicon.png" | relURL }}" type="image/png" sizes="64x64">
 <link rel="icon" href="{{ "img/favicon.svg" | relURL }}" type="image/svg+xml" sizes="any">
 <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }} — Research &amp; writing" href="{{ "index.xml" | absURL }}">

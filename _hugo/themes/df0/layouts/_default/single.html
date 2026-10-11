@@ -1,6 +1,11 @@
 {{ define "main" }}
-<article class="df-article">
+<article class="df-article{{ if .Params.portrait }} df-profile{{ end }}">
   <header class="df-page-heading"><p class="df-kicker">{{ .Site.Title }}</p><h1>{{ .Title }}<span class="df-period">.</span></h1></header>
+  {{ with .Params.portrait }}
+  <div class="df-profile-body">
+    <img class="df-portrait" src="{{ . }}" alt="{{ $.Site.Title }}" width="176" height="176" decoding="async">
+  {{ end }}
   <div class="df-prose">{{ .Content }}</div>
+  {{ if .Params.portrait }}</div>{{ end }}
 </article>
 {{ end }}

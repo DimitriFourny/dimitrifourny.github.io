@@ -2,6 +2,9 @@
 date: 2024-11-14
 title: "Firefox Animation CVE-2024-9680"
 url: /2024/11/14/firefox-animation-cve-2024-9680.html
+featured: true
+topic: "Browser exploitation"
+description: "Following an exploited Firefox use-after-free from the patch to a working understanding of the bug."
 ---
 
 In this post, we delve into the analysis of a recent vulnerability CVE-2024-9680

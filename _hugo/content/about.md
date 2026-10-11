@@ -1,9 +1,8 @@
 ---
 title: "About me"
 url: /about.html
+portrait: "https://avatars.githubusercontent.com/u/17668518?v=4"
 ---
-
-{{< avatar src=https://avatars.githubusercontent.com/u/17668518?v=4 >}}
 
 I’m Dimitri Fourny, a French security researcher. I build tooling, infrastructure,
 and automation to scale security research. I use frontier AI models to amplify

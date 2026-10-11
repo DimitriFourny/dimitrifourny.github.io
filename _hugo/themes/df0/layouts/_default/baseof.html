@@ -12,7 +12,9 @@
       </main>
       {{ partial "footer.html" . }}
     </div>
-    {{ if .IsHome }}<script src="{{ "js/home.js" | relURL }}" defer></script>{{ end }}
-    {{ partial "icon-license.html" . }}
+    {{ if .IsHome }}
+    {{ $home := resources.Get "js/home.js" | minify | fingerprint }}
+    <script src="{{ $home.RelPermalink }}" integrity="{{ $home.Data.Integrity }}" defer></script>
+    {{ end }}
   </body>
 </html>
