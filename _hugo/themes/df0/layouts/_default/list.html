@@ -4,7 +4,7 @@
     <p class="df-kicker">Research &amp; writing</p>
     <h1 id="df-archive-title">{{ .Title }}<span class="df-period">.</span></h1>
     <div class="df-page-intro">{{ .Content }}</div>
-    <a class="df-back-link" href="{{ "index.xml" | relURL }}">Subscribe via RSS ↗</a>
+    <a class="df-back-link" href="{{ "index.xml" | relURL }}">Subscribe via RSS {{ partial "arrow.html" "up-right" }}</a>
   </div>
   {{ range .Pages.ByDate.Reverse.GroupByDate "2006" }}
   <section class="df-archive-year" aria-labelledby="year-{{ .Key }}">

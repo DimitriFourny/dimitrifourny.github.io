@@ -3,6 +3,6 @@
   <p class="df-kicker">Page not found</p>
   <h1>404<span class="df-period">.</span></h1>
   <p class="df-page-intro">This page could not be found. You can explore my work or browse the writing archive.</p>
-  <div class="df-error-links"><a class="df-contact" href="{{ .Site.Home.RelPermalink }}">Back to home ↗</a><a class="df-back-link" href="{{ "posts/" | relURL }}">Browse the archive ↗</a></div>
+  <div class="df-error-links"><a class="df-contact" href="{{ .Site.Home.RelPermalink }}">Back to home {{ partial "arrow.html" "up-right" }}</a><a class="df-back-link" href="{{ "posts/" | relURL }}">Browse the archive {{ partial "arrow.html" "up-right" }}</a></div>
 </section>
 {{ end }}

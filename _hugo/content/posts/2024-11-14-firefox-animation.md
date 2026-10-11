@@ -118,7 +118,7 @@ animations. To summarize the situation:
 
 <figure class="df-figure">
   <a href="/img/no_uaf.svg" aria-label="Open animation reference diagram at full size"><img alt="JavaScript retains both animations; each animation and the timeline have a reference count of 2." src="/img/no_uaf.svg" width="1344" height="924" loading="lazy" decoding="async"></a>
-  <figcaption>Animation references and raw linked-list pointers. <a href="/img/no_uaf.svg">View full size ↗</a></figcaption>
+  <figcaption>Animation references and raw linked-list pointers. <a href="/img/no_uaf.svg">View full size {{< arrow >}}</a></figcaption>
 </figure>
 
 The reference to an animation is removed when `RemoveAnimation` is called:
@@ -247,7 +247,7 @@ timeline references in JavaScript during the `Tick()`:
 
 <figure class="df-figure">
   <a href="/img/uaf_timeline.svg" aria-label="Open DocumentTimeline use-after-free diagram at full size"><img alt="Clearing both timeline references frees AnimationTimeline; RemoveAnimation is called through its freed VTable." src="/img/uaf_timeline.svg" width="1344" height="964" loading="lazy" decoding="async"></a>
-  <figcaption>DocumentTimeline use-after-free: the timeline reaches a reference count of zero. <a href="/img/uaf_timeline.svg">View full size ↗</a></figcaption>
+  <figcaption>DocumentTimeline use-after-free: the timeline reaches a reference count of zero. <a href="/img/uaf_timeline.svg">View full size {{< arrow >}}</a></figcaption>
 </figure>
 
 At the end of the loop, `this.RemoveAnimation` will be called:
@@ -309,7 +309,7 @@ This time, we will exploit the array of raw pointers in `animationsToRemove`:
 
 <figure class="df-figure">
   <a href="/img/uaf_animation.svg" aria-label="Open Animation use-after-free diagram at full size"><img alt="Animation 1 is freed, but animationsToRemove still holds its raw pointer. Animation 2 and the timeline remain alive." src="/img/uaf_animation.svg" width="1344" height="1040" loading="lazy" decoding="async"></a>
-  <figcaption>Animation use-after-free: a raw pointer remains in animationsToRemove. <a href="/img/uaf_animation.svg">View full size ↗</a></figcaption>
+  <figcaption>Animation use-after-free: a raw pointer remains in animationsToRemove. <a href="/img/uaf_animation.svg">View full size {{< arrow >}}</a></figcaption>
 </figure>
 
 ```cpp

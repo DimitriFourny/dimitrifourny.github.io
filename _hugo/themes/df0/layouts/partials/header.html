@@ -2,7 +2,7 @@
   <a class="df-wordmark" href="{{ .Site.Home.RelPermalink }}" aria-label="Dimitri Fourny, home">df<span>/</span></a>
   <nav aria-label="Main navigation">
     {{ if .IsHome }}
-    <a href="{{ "posts/" | relURL }}">Writing</a><a href="{{ "about.html" | relURL }}">About</a><a href="{{ .Site.Params.linkedin }}" target="_blank" rel="noopener noreferrer">Contact <span aria-hidden="true">↗</span></a>
+    <a href="{{ "posts/" | relURL }}">Writing</a><a href="{{ "about.html" | relURL }}">About</a><a href="{{ .Site.Params.linkedin }}" target="_blank" rel="noopener noreferrer">Contact <span aria-hidden="true">{{ partial "arrow.html" "up-right" }}</span></a>
     {{ else }}
     <a href="{{ .Site.Home.RelPermalink }}">Home</a><a href="{{ "posts/" | relURL }}"{{ if eq .Section "posts" }} aria-current="{{ if .IsPage }}location{{ else }}page{{ end }}"{{ end }}>Writing</a><a href="{{ "about.html" | relURL }}"{{ if eq .RelPermalink ("about.html" | relURL) }} aria-current="page"{{ end }}>About</a>
     {{ end }}

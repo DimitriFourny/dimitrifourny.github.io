@@ -5,8 +5,8 @@
     <h1 id="df-name">Dimitri<br><span>Fourny</span><span class="df-period">.</span></h1>
     <p class="df-headline">{{ .Site.Params.headline }}</p>
     <div class="df-hero-links">
-      <a class="df-text-link" href="#df-work">Explore the research <span aria-hidden="true">↘</span></a>
-      <a class="df-quiet-link" href="{{ .Site.Params.linkedin }}" target="_blank" rel="noopener noreferrer">Get in touch <span aria-hidden="true">↗</span></a>
+      <a class="df-text-link" href="#df-work">Explore the research <span aria-hidden="true">{{ partial "arrow.html" "down-right" }}</span></a>
+      <a class="df-quiet-link" href="{{ .Site.Params.linkedin }}" target="_blank" rel="noopener noreferrer">Get in touch <span aria-hidden="true">{{ partial "arrow.html" "up-right" }}</span></a>
     </div>
   </div>
   <figure class="df-flow" aria-labelledby="df-flow-caption">
@@ -33,7 +33,7 @@
     <p class="df-kicker">01 / Selected research</p>
     <h2 id="df-research-title">Below the<br><em>surface.</em></h2>
     <p>Vulnerabilities, internals, and the details that make a system tick.</p>
-    <a class="df-text-link" href="{{ "posts/" | relURL }}">All writing <span aria-hidden="true">↗</span></a>
+    <a class="df-text-link" href="{{ "posts/" | relURL }}">All writing <span aria-hidden="true">{{ partial "arrow.html" "up-right" }}</span></a>
   </div>
   <div class="df-research-list">
     {{ range $index, $post := (where .Site.RegularPages "Params.featured" true).ByDate.Reverse }}
@@ -41,7 +41,7 @@
       <div class="df-research-meta"><span>{{ printf "%02d" (add $index 1) }} / {{ .Params.topic }}</span><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006" }}</time></div>
       <h3>{{ .Title }}</h3>
       <p>{{ .Description }}</p>
-      <span class="df-entry-arrow" aria-hidden="true">↗</span>
+      <span class="df-entry-arrow" aria-hidden="true">{{ partial "arrow.html" "up-right" }}</span>
     </a>
     {{ end }}
   </div>
@@ -51,7 +51,7 @@
   <div class="df-about-copy">
     <h2 id="df-about-title">From understanding systems<br>to building <em>better tools.</em></h2>
     <p>{{ .Site.Params.bio }}</p>
-    <div class="df-about-links"><a class="df-text-link" href="{{ "about.html" | relURL }}">More about me <span aria-hidden="true">↗</span></a><a class="df-quiet-link" href="{{ .Site.Params.github }}" target="_blank" rel="noopener noreferrer">On GitHub <span aria-hidden="true">↗</span></a></div>
+    <div class="df-about-links"><a class="df-text-link" href="{{ "about.html" | relURL }}">More about me <span aria-hidden="true">{{ partial "arrow.html" "up-right" }}</span></a><a class="df-quiet-link" href="{{ .Site.Params.github }}" target="_blank" rel="noopener noreferrer">On GitHub <span aria-hidden="true">{{ partial "arrow.html" "up-right" }}</span></a></div>
   </div>
 </section>
 {{ end }}

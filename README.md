@@ -33,6 +33,10 @@ fingerprints them so a returning browser cannot mix old assets with new HTML.
 Articles use a quiet, narrow text column with wider code blocks and figures.
 The About page's `portrait` front matter places the photo alongside the text on
 desktop and centered above it on mobile.
+Diagonal link arrows use the shared `arrow.html` SVG partial, not Unicode
+glyphs that mobile fonts may render as emoji. Article captions use the
+`{{< arrow >}}` shortcode; the icons inherit text color and are decorative
+to assistive technology. Keep the arrowhead arms short relative to the shaft.
 
 To check a production build:
 

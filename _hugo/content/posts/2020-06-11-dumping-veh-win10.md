@@ -53,7 +53,7 @@ consequence it can debug an application while bypassing the basics debugger chec
 
 <figure class="df-figure df-screenshot">
   <img alt="Cheat Engine debugger options with Use VEH Debugger selected." src="/img/CheatEngine.png" width="620" height="550" loading="lazy" decoding="async">
-  <figcaption>Cheat Engine's VEH debugger setting. <a href="/img/CheatEngine.png">View original screenshot ↗</a></figcaption>
+  <figcaption>Cheat Engine's VEH debugger setting. <a href="/img/CheatEngine.png">View original screenshot {{< arrow >}}</a></figcaption>
 </figure>
 
 
@@ -69,7 +69,7 @@ call all the continue exception handlers.
 
 <figure class="df-figure">
   <a href="/img/exception_trace.svg" aria-label="Open exception dispatch diagram at full size"><img alt="The exception path from KiDispatchException in ring0 through KiUserExceptionDispatcher and RtlDispatchException in ring3 to vectored exception and continue handlers." src="/img/exception_trace.svg" width="1120" height="562" loading="lazy" decoding="async"></a>
-  <figcaption>Windows exception dispatch and the two vectored-handler paths. <a href="/img/exception_trace.svg">View full size ↗</a></figcaption>
+  <figcaption>Windows exception dispatch and the two vectored-handler paths. <a href="/img/exception_trace.svg">View full size {{< arrow >}}</a></figcaption>
 </figure>
 
 The VEH handlers are important because the [SEH][8] handlers are called only if no VEH handler has caught the 
@@ -92,7 +92,7 @@ The VEH list is a circular linked list with the handlers functions pointers enco
 
 <figure class="df-figure">
   <a href="/img/veh.svg" aria-label="Open VEH list diagram at full size"><img alt="VECTORED_HANDLER_LIST points to linked handler entries. Each encoded handler is decoded using XOR, SHIFT, and the process cookie." src="/img/veh.svg" width="1040" height="1058" loading="lazy" decoding="async"></a>
-  <figcaption>The VEH linked list and encoded handler pointers. <a href="/img/veh.svg">View full size ↗</a></figcaption>
+  <figcaption>The VEH linked list and encoded handler pointers. <a href="/img/veh.svg">View full size {{< arrow >}}</a></figcaption>
 </figure>
 
 The exception handlers are encoded with a process cookie but you can decode them easily. If you are dumping the VEH
@@ -105,7 +105,7 @@ The solution that I have chosen is to imitate `DecodePointer` by getting the pro
 
 <figure class="df-figure df-screenshot">
   <img alt="RtlDecodePointer disassembly showing process-cookie retrieval and pointer decoding with rotation and XOR." src="/img/RtlDecodePointer.png" width="645" height="1252" loading="lazy" decoding="async">
-  <figcaption>RtlDecodePointer disassembly. <a href="/img/RtlDecodePointer.png">View original screenshot ↗</a></figcaption>
+  <figcaption>RtlDecodePointer disassembly. <a href="/img/RtlDecodePointer.png">View original screenshot {{< arrow >}}</a></figcaption>
 </figure>
 
 ```cpp
@@ -152,7 +152,7 @@ My solution is to begin by getting a pointer to `RtlpAddVectoredHandler`:
 
 <figure class="df-figure df-screenshot">
   <img alt="RtlAddVectoredExceptionHandler disassembly showing the call to RtlpAddVectoredHandler." src="/img/RtlAddVectoredExceptionHandler.png" width="485" height="477" loading="lazy" decoding="async">
-  <figcaption>RtlAddVectoredExceptionHandler calls RtlpAddVectoredHandler. <a href="/img/RtlAddVectoredExceptionHandler.png">View original screenshot ↗</a></figcaption>
+  <figcaption>RtlAddVectoredExceptionHandler calls RtlpAddVectoredHandler. <a href="/img/RtlAddVectoredExceptionHandler.png">View original screenshot {{< arrow >}}</a></figcaption>
 </figure>
 
 You can disassemble the method `RtlAddVectoredExceptionHandler` until you find the instruction `call` or you can
@@ -170,7 +170,7 @@ a small Windows update:
 
 <figure class="df-figure df-screenshot">
   <img alt="Disassembly with the LdrpVectorHandlerList address highlighted in the add ebx instruction." src="/img/LdrpVectorHandlerList.png" width="541" height="377" loading="lazy" decoding="async">
-  <figcaption>The instruction referencing LdrpVectorHandlerList. <a href="/img/LdrpVectorHandlerList.png">View original screenshot ↗</a></figcaption>
+  <figcaption>The instruction referencing LdrpVectorHandlerList. <a href="/img/LdrpVectorHandlerList.png">View original screenshot {{< arrow >}}</a></figcaption>
 </figure>
 
 ```cpp
