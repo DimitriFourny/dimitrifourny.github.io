@@ -1,3 +1,18 @@
+@font-face {
+  font-family:"Geist";
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+  src:url("/fonts/geist-latin-400.woff2") format("woff2");
+}
+@font-face {
+  font-family:"Geist";
+  font-style:italic;
+  font-weight:400;
+  font-display:swap;
+  src:url("/fonts/geist-latin-400-italic.woff2") format("woff2");
+}
+
 /* Shared identity: graphite, warm paper, and one copper accent. */
 :root {
   color-scheme:dark;
@@ -46,9 +61,8 @@ h1,h2,h3,h4 {font-weight:400;}
 .df-hero {display:grid;grid-template-columns:1fr 1.12fr;align-items:center;gap:24px;min-height:700px;padding:40px 0 58px;}
 .df-hero-copy {position:relative;z-index:1;padding:30px 0;}
 .df-hero .df-kicker {color:var(--df-accent);font-size:10px;letter-spacing:.065em;}
-.df-hero h1 {margin:28px 0 30px;font-size:clamp(88px,9.5vw,138px);line-height:.87;letter-spacing:-.075em;}
-.df-hero h1 > span:not(.df-period) {font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:400;letter-spacing:-.075em;}
-.df-hero h1 .df-period {font-family:Georgia,serif;}
+.df-hero h1 {margin:28px 0 30px;font-family:"Geist","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:clamp(88px,9.5vw,118px);line-height:1;letter-spacing:-.03em;}
+.df-hero h1 > span:not(.df-period) {font-style:italic;}
 .df-headline {max-width:325px;font-size:21px;line-height:1.5;letter-spacing:-.025em;}
 .df-hero-links {display:flex;flex-wrap:wrap;gap:16px 30px;margin-top:29px;}
 .df-flow {min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;}
@@ -205,7 +219,7 @@ h1,h2,h3,h4 {font-weight:400;}
 @media(max-width:380px) {
   .df-site {padding:0 20px;}
   .df-header nav {gap:18px;font-size:12px;}
-  .df-hero h1 {font-size:88px;}
+  .df-hero h1 {font-size:clamp(72px,22vw,88px);}
   .df-hero-links {gap:12px 20px;}
   .df-text-link,.df-quiet-link {font-size:12px;}
   .df-page-heading h1 {font-size:36px;}

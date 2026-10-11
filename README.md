@@ -33,6 +33,10 @@ fingerprints them so a returning browser cannot mix old assets with new HTML.
 Articles use a quiet, narrow text column with wider code blocks and figures.
 The About page's `portrait` front matter places the photo alongside the text on
 desktop and centered above it on mobile.
+The homepage name uses Geist Regular for “Dimitri” and Geist Italic for “Fourny”,
+with a 118px desktop maximum; the rest of the typography remains system-based.
+The Latin WOFF2 files and their SIL Open Font License are self-hosted in
+`_hugo/static/fonts/`, with no external font requests.
 Diagonal link arrows use the shared `arrow.html` SVG partial, not Unicode
 glyphs that mobile fonts may render as emoji. Article captions use the
 `{{< arrow >}}` shortcode; the icons inherit text color and are decorative
