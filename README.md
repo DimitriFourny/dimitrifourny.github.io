@@ -19,17 +19,24 @@ Open <http://localhost:1313/>. The homepage presents the personal portfolio;
 `/posts/` contains the complete writing archive.
 Profile text and social links are configured in `_hugo/config.toml`.
 
-The homepage pairs selected research with an interactive 2D flow study. Set
-`featured: true`, `topic`, and `description` in a post's front matter to feature
-it; entries are ordered newest first. The flow runs only on the homepage,
-supports pause/resume, stops offscreen and in background tabs, and stays still
-with reduced motion. Without JavaScript, an SVG composition remains visible.
-The mouse cursor is a circular, impermeable obstacle: flow splits around it even
-when held still, with tangential slip at the boundary. Touch gestures scroll
-normally rather than controlling the simulation.
+The homepage pairs selected research with an interactive copper Lorenz strange
+attractor. On each page load, the copper trajectory draws itself at a fixed angle
+over three seconds of visible, unpaused animation, then its precomputed 3D orbit
+rotates at 0.14 radians per second (roughly one revolution every 45 seconds), with
+depth-shaded threads and a gentle variation in pitch and roll. Resizing does not
+restart the entrance. The sculpture fills the artwork area
+with a small clearance for rotation and tilt. Cursor movement tilts it; a short
+mobile tap tilts it for four seconds while swipes retain native page scrolling.
+The artwork supports pause/resume, preserves drawing progress offscreen and in
+background tabs, and skips the entrance to show a complete still composition
+with reduced motion. Without JavaScript,
+a two-lobed SVG composition remains visible.
+Set `featured: true`, `topic`, and `description` in a post's front matter to
+feature it; entries are ordered newest first.
 
-Theme CSS and JavaScript live in `_hugo/themes/df0/assets/`. Hugo minifies and
-fingerprints them so a returning browser cannot mix old assets with new HTML.
+Theme CSS and JavaScript live in `_hugo/themes/df0/assets/`. Hugo bundles the
+homepage's JavaScript modules, then minifies and fingerprints the assets so a
+returning browser cannot mix old assets with new HTML.
 Articles use a quiet, narrow text column with wider code blocks and figures.
 The About page's `portrait` front matter places the photo alongside the text on
 desktop and centered above it on mobile.

@@ -13,7 +13,7 @@
       {{ partial "footer.html" . }}
     </div>
     {{ if .IsHome }}
-    {{ $home := resources.Get "js/home.js" | minify | fingerprint }}
+    {{ $home := resources.Get "js/home.js" | js.Build | minify | fingerprint }}
     <script src="{{ $home.RelPermalink }}" integrity="{{ $home.Data.Integrity }}" defer></script>
     {{ end }}
   </body>

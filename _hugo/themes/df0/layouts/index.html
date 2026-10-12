@@ -11,20 +11,22 @@
   </div>
   <figure class="df-flow" aria-labelledby="df-flow-caption">
     <div class="df-flow-field">
-      <svg class="df-flow-still" viewBox="0 0 640 640" fill="none" aria-hidden="true">
-        <g transform="translate(320 320) rotate(-32)">
-          {{ range seq 0 43 }}
-          <ellipse cx="{{ mul . 0.8 }}" cy="0" rx="{{ add 118 (mul . 3.1) }}" ry="{{ add 68 (mul . 3.25) }}" stroke="currentColor" stroke-width="0.7" opacity="{{ sub 0.72 (mul . 0.012) }}" transform="rotate({{ mul . 0.65 }})" />
+      <svg class="df-flow-still" viewBox="65 65 510 510" fill="none" aria-hidden="true">
+        {{ range $side := seq 0 1 }}
+        <g transform="translate({{ if $side }}430{{ else }}210{{ end }} 320) rotate({{ if $side }}38{{ else }}-24{{ end }})">
+          {{ range seq 0 32 }}
+          <ellipse cx="0" cy="0" rx="{{ add 44 (mul . 2.2) }}" ry="{{ add 68 (mul . 3.1) }}" stroke="currentColor" stroke-width="0.7" opacity="{{ sub 0.65 (mul . 0.012) }}" />
           {{ end }}
         </g>
+        {{ end }}
       </svg>
       <canvas id="df-flow-canvas" aria-hidden="true"></canvas>
       <span class="df-flow-coordinate df-flow-coordinate-top" aria-hidden="true">+</span>
       <span class="df-flow-coordinate df-flow-coordinate-bottom" aria-hidden="true">+</span>
     </div>
     <figcaption id="df-flow-caption">
-      <div><span class="df-flow-label">Fig. 01 — A study in flow</span><span class="df-flow-hint">2D fluid simulation<span class="df-pointer-hint"> · Hold your cursor in the flow</span></span></div>
-      <button class="df-motion-toggle" type="button" aria-label="Pause flow animation" aria-pressed="false" hidden>Pause <span aria-hidden="true">Ⅱ</span></button>
+      <div><span class="df-flow-label">Fig. 01 — A study in chaos</span><span class="df-flow-hint">Rotating Lorenz attractor<span class="df-pointer-hint"> · Move your cursor to tilt</span></span></div>
+      <button class="df-motion-toggle" type="button" aria-label="Pause artwork animation" aria-pressed="false" hidden>Pause <span aria-hidden="true">Ⅱ</span></button>
     </figcaption>
   </figure>
 </section>
